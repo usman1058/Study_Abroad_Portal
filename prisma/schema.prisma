@@ -1,0 +1,397 @@
+// Study Abroad & Visa Agency Management System
+// Prisma 7 schema — prisma-client generator, output to ../src/generated/prisma
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  COUNSELOR
+  AGENCY // sub_agency distinguished via parentAgencyId, not a separate enum value
+  STUDENT
+}
+
+enum ApplicationStage {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  OFFER
+  DEPOSIT_PAID
+  VISA
+  ENROLLED
+  REJECTED
+  WITHDRAWN
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id               String   @id @default(cuid())
+  role             Role
+  email            String   @unique
+  passwordHash     String
+  userTitle        String?
+  firstName        String
+  lastName         String
+  phone            String?
+  country          String?
+  gender           String?
+  status           String   @default("active") // active / inactive
+  verified         Boolean  @default(false)
+  companyName      String? // agency / sub-agency extra field
+  licenseNumber    String? // agency / sub-agency extra field
+  preferredCurrency String  @default("MYR") // currency toggle, §6
+
+  createdById     String?
+  createdBy       User?    @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers    User[]   @relation("CreatedUsers")
+
+  parentAgencyId  String?
+  parentAgency    User?    @relation("AgencyHierarchy", fields: [parentAgencyId], references: [id])
+  subAgencies     User[]   @relation("AgencyHierarchy")
+
+  // Student-specific fields
+  passportNumber      String?
+  birthday            DateTime?
+  countryOfResidence  String?
+  nationality         String?
+  cityOfResidence     String?
+  address             String?
+  motherName          String?
+  fatherName          String?
+
+  assignedCounselorId String?
+  assignedCounselor   User?   @relation("AssignedStudents", fields: [assignedCounselorId], references: [id])
+  assignedStudents    User[]  @relation("AssignedStudents")
+
+  applications            Application[]
+  documents               Document[]
+  verifiedDocuments       Document[]          @relation("VerifiedDocuments")
+  studentTransactions     Transaction[]       @relation("StudentTransactions")
+  agencyTransactions      Transaction[]       @relation("AgencyTransactions")
+  enteredTransactions     Transaction[]       @relation("EnteredTransactions")
+  shortCourseEnrollments  ShortCourseEnrollment[]
+  shortlists              Shortlist[]
+  shortlistViews          ShortlistView[]
+  programViews            ProgramView[]
+  messagesSent            Message[]           @relation("MessagesSent")
+  messagesReceived        Message[]           @relation("MessagesReceived")
+  notifications           Notification[]
+  createdInviteLinks      InviteLink[]        @relation("CreatedInviteLinks")
+  scopedStudentInvites    InviteLink[]        @relation("ScopedStudentInvites")
+  visitorLeads            VisitorLead[]
+
+  agencyPermissionsGiven    AgencyPermission[] @relation("PermissionGrantor")
+  agencyPermissionsReceived AgencyPermission[] @relation("PermissionReceiver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([createdById])
+  @@index([parentAgencyId])
+  @@index([assignedCounselorId])
+}
+
+model AgencyPermission {
+  id                String  @id @default(cuid())
+  grantorId         String
+  grantor           User    @relation("PermissionGrantor", fields: [grantorId], references: [id])
+  receiverId        String
+  receiver          User    @relation("PermissionReceiver", fields: [receiverId], references: [id])
+  canViewCommission Boolean @default(false)
+  canViewFullChain  Boolean @default(false)
+
+  @@unique([grantorId, receiverId])
+}
+
+model University {
+  id       String    @id @default(cuid())
+  name     String
+  country  String
+  city     String?
+  logoUrl  String?
+  website  String?
+  programs Program[]
+
+  @@index([country])
+}
+
+model Program {
+  id                  String    @id @default(cuid())
+  slug                String?   @unique // URL-safe identifier for public-facing routes
+  universityId        String
+  university          University @relation(fields: [universityId], references: [id])
+  name                String
+  level               String // undergrad / postgrad / diploma / etc
+  field               String
+  location            String?
+  tuitionFee          Decimal   @db.Decimal(12, 2)
+  applicationFee      Decimal?  @db.Decimal(12, 2)
+  intakeDates         DateTime[]
+  requiredDocuments   String[]
+  minGpa              Float?
+  visaRequired        Boolean   @default(false)
+  commissionRate      Decimal   @default(0) @db.Decimal(5, 2)
+
+  // PDF / shortlist display fields, §5d
+  tags                 String[]
+  whyHighlights        Json
+  offerTurnaroundDays  Int?
+  collegeRank          String?
+  eligibilityCriteria  String[]
+  courseDurationMonths Int?
+  universityLogoUrl    String?
+
+  applications        Application[]
+  shortlistItems       ShortlistItem[]
+  programViews         ProgramView[]
+  shortCourses         ShortCourse[]
+
+  createdAt DateTime @default(now())
+
+  @@index([universityId])
+  @@index([field])
+  @@index([level])
+}
+
+model Shortlist {
+  id        String          @id @default(cuid())
+  studentId String
+  student   User            @relation(fields: [studentId], references: [id])
+  items     ShortlistItem[]
+  views     ShortlistView[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([studentId])
+}
+
+model ShortlistItem {
+  id          String    @id @default(cuid())
+  shortlistId String
+  shortlist   Shortlist @relation(fields: [shortlistId], references: [id])
+  programId   String
+  program     Program   @relation(fields: [programId], references: [id])
+  position    Int       @default(0)
+  addedAt     DateTime  @default(now())
+
+  @@unique([shortlistId, programId])
+  @@index([shortlistId])
+}
+
+// Last-viewed tracking, §6 — lets staff see whether a student opened their shortlist
+model ShortlistView {
+  id          String    @id @default(cuid())
+  shortlistId String
+  shortlist   Shortlist @relation(fields: [shortlistId], references: [id])
+  studentId   String
+  student     User      @relation(fields: [studentId], references: [id])
+  viewedAt    DateTime  @default(now())
+
+  @@index([shortlistId])
+  @@index([studentId])
+}
+
+// Last-viewed tracking for individual courses, §6
+model ProgramView {
+  id        String   @id @default(cuid())
+  programId String
+  program   Program  @relation(fields: [programId], references: [id])
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  viewedAt  DateTime @default(now())
+
+  @@index([programId])
+  @@index([studentId])
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  studentId     String
+  student       User              @relation(fields: [studentId], references: [id])
+  programId     String
+  program       Program           @relation(fields: [programId], references: [id])
+  stage         ApplicationStage  @default(DRAFT)
+  visaStage     String?
+  submittedAt   DateTime?
+  decisionAt    DateTime?
+  documents     Document[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  transactions  Transaction[]
+
+  @@index([studentId])
+  @@index([programId])
+  @@index([stage])
+}
+
+model Document {
+  id              String          @id @default(cuid())
+  ownerId         String
+  owner           User            @relation(fields: [ownerId], references: [id])
+  applicationId   String?
+  application     Application?    @relation(fields: [applicationId], references: [id])
+  type            String // passport / diploma / transcript / sop / other
+  fileUrl         String
+  status          DocumentStatus  @default(PENDING)
+  rejectionReason String?
+  verifiedById    String?
+  verifiedBy      User?           @relation("VerifiedDocuments", fields: [verifiedById], references: [id])
+  expiresAt       DateTime? // drives document-expiry reminders, §6
+  uploadedAt      DateTime        @default(now())
+
+  @@index([ownerId])
+  @@index([applicationId])
+  @@index([status])
+}
+
+model ShortCourse {
+  id               String   @id @default(cuid())
+  title            String
+  provider         String
+  category         String // language / test-prep / foundation / professional / other
+  duration         String
+  startDates       DateTime[]
+  fee              Decimal  @db.Decimal(12, 2)
+  deliveryMode     String
+  classSchedule    String?
+  meetingLink      String?
+  prerequisites    String?
+  description      String?
+  status           String   @default("active")
+  linkedProgramId  String?
+  linkedProgram    Program? @relation(fields: [linkedProgramId], references: [id])
+  enrollments      ShortCourseEnrollment[]
+  createdAt        DateTime @default(now())
+
+  @@index([category])
+  @@index([status])
+}
+
+model ShortCourseEnrollment {
+  id            String      @id @default(cuid())
+  studentId     String
+  student       User        @relation(fields: [studentId], references: [id])
+  shortCourseId String
+  shortCourse   ShortCourse @relation(fields: [shortCourseId], references: [id])
+  status        String      @default("interested") // interested / enrolled / completed / withdrawn
+  enrolledAt    DateTime    @default(now())
+
+  @@unique([studentId, shortCourseId])
+}
+
+model Transaction {
+  id                   String   @id @default(cuid())
+  type                 String // service_fee / commission_payout / deposit / refund
+  amount               Decimal  @db.Decimal(12, 2)
+  currency             String   @default("MYR")
+  relatedStudentId     String?
+  relatedStudent       User?    @relation("StudentTransactions", fields: [relatedStudentId], references: [id])
+  relatedApplicationId String?
+  relatedApplication   Application? @relation(fields: [relatedApplicationId], references: [id])
+  relatedAgencyId      String?
+  relatedAgency        User?    @relation("AgencyTransactions", fields: [relatedAgencyId], references: [id])
+  enteredById          String
+  enteredBy            User     @relation("EnteredTransactions", fields: [enteredById], references: [id])
+  method               String? // bank_transfer / cash / card / online
+  notes                String?
+  date                 DateTime @default(now())
+  createdAt            DateTime @default(now())
+
+  @@index([relatedStudentId])
+  @@index([relatedAgencyId])
+  @@index([enteredById])
+}
+
+// Guest invite link — scoped, expiring, revocable access without an account
+model InviteLink {
+  id            String   @id @default(cuid())
+  token         String   @unique
+  createdById   String
+  createdBy     User     @relation("CreatedInviteLinks", fields: [createdById], references: [id])
+  studentId     String? // optional data scope — which student/case the link applies to
+  student       User?    @relation("ScopedStudentInvites", fields: [studentId], references: [id])
+  permissionSet Json // { sections: [...], access: { sectionId: 'view'|'edit' } }
+  expiresAt     DateTime
+  revoked       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  action     String // create / update / delete
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  timestamp  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("MessagesSent", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User     @relation("MessagesReceived", fields: [recipientId], references: [id])
+  body        String
+  threadKey   String? // stable key pairing two users (e.g. "student:counselor:id") for listing threads
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([threadKey])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // application / document / message / commission / visa / invite / system
+  title     String
+  body      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([readAt])
+}
+
+model VisitorLead {
+  id                String   @id @default(cuid())
+  name              String
+  phone             String
+  email             String?
+  courseOfInterest  String?
+  countryOfInterest String?
+  source            String? // which page / section the form was submitted from
+  notes             String?
+  status            String   @default("new") // new / contacted / converted / closed
+  createdById       String?
+  createdBy         User?    @relation(fields: [createdById], references: [id])
+  createdAt         DateTime @default(now())
+
+  @@index([status])
+}
