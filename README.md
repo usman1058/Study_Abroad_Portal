@@ -41,7 +41,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5433/study_abroad_portal?
 For production deployments on Vercel, use the Neon PostgreSQL URL format:
 
 ```
-DATABASE_URL="postgresql://neondb_owner:npg_JU8RSkAIrms0@ep-weathered-glitter-azj3pb39-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/study_abroad_portal?schema=public"
 ```
 
 ### Authentication
