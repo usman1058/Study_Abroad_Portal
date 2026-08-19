@@ -22,7 +22,11 @@ const matches = (pathname: string, prefixes: string[]) =>
 // §7b — route guard: a student typing a partner URL is redirected, never shown the page.
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
+  // Cookie prefix must match how the auth handler derives it from the request
+  // protocol (https -> __Secure-authjs.session-token), otherwise every protected
+  // page redirect-loops between "/" and the target.
+  const secureCookie = request.nextUrl.protocol === "https:";
+  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET, secureCookie });
   const role = token?.role as Role | undefined;
   const authed = Boolean(token?.id && role);
 
