@@ -25,8 +25,6 @@ The Study Abroad & Visa Agency Management System is a comprehensive platform for
 - **Charts**: Recharts for dashboards and graphs
 - **PDF**: @react-pdf/renderer for document generation
 - **Utilities**: Zod validation, date-fns, class-variance-authority
--
 
----
 ---
 *Engineered for agency workflow automation. Not for public consumption.*
