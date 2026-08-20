@@ -6,6 +6,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import type { VisitorLeadStatus } from "@/generated/prisma/client";
 
 export const metadata = { title: "Visitor Form" };
 
@@ -51,7 +52,7 @@ export default async function VisitorFormPage() {
                       <td className="p-4 text-slate-500">
                         {[l.courseOfInterest, l.countryOfInterest].filter(Boolean).join(" · ") || "—"}
                       </td>
-                      <td className="p-4"><Badge tone={l.status === "new" ? "brand" : l.status === "converted" ? "green" : "slate"}>{l.status}</Badge></td>
+                      <td className="p-4"><Badge tone={l.status === "NEW" ? "brand" : l.status === "CONVERTED" ? "green" : "slate"}>{l.status}</Badge></td>
                       <td className="p-4 text-slate-500">{formatDate(l.createdAt)}</td>
                       <td className="p-4 text-right">
                         <DeleteButton endpoint={`/api/visitor-form/${l.id}`} confirmText="Delete this lead?" label="Delete" />

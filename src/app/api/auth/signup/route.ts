@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, toError } from "@/lib/api";
+import { signupRateLimit } from "@/lib/rate-limit";
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(80),
@@ -13,6 +14,9 @@ const signupSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rl = await signupRateLimit(req);
+  if (rl) return rl;
+
   try {
     const body = await req.json();
     const parsed = signupSchema.safeParse(body);
@@ -39,7 +43,6 @@ export async function POST(req: NextRequest) {
         lastName,
         phone,
         status: "active",
-        verified: false,
       },
       select: { id: true, email: true },
     });

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
 const createSchema = z.object({
   programId: z.string().min(1),
@@ -51,10 +52,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
+
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
     const where =
       user.role === "STUDENT"
@@ -65,15 +68,21 @@ export async function GET() {
             ? { student: { createdById: user.id } }
             : {};
 
-    const applications = await prisma.application.findMany({
+    const baseQuery = {
       where,
-      orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: "desc" as const },
       include: {
         student: { select: { id: true, firstName: true, lastName: true } },
         program: { select: { id: true, name: true, visaRequired: true, university: { select: { name: true } } } },
       },
-    });
-    return ok(applications);
+    };
+
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const applications = await prisma.application.findMany(query);
+
+    const { data, nextCursor, hasMore } = paginateResults(applications, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

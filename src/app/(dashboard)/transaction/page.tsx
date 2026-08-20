@@ -5,6 +5,7 @@ import { TransactionForm } from "@/components/transaction-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, fullName, toNum } from "@/lib/utils";
+import type { TransactionType } from "@/generated/prisma/client";
 
 export const metadata = { title: "Transactions" };
 
@@ -39,7 +40,7 @@ export default async function TransactionsPage() {
       acc[t.type] = (acc[t.type] ?? 0) + toNum(t.amount);
       return acc;
     },
-    {} as Record<string, number>
+    {} as Record<TransactionType, number>
   );
 
   return (
@@ -92,7 +93,7 @@ export default async function TransactionsPage() {
                   {transactions.map((t) => (
                     <tr key={t.id}>
                       <td className="p-4 text-slate-500">{formatDate(t.date)}</td>
-                      <td className="p-4"><Badge tone={t.type === "refund" ? "red" : t.type === "commission_payout" ? "green" : "brand"}>{t.type.replace(/_/g, " ")}</Badge></td>
+                      <td className="p-4"><Badge tone={t.type === "REFUND" ? "red" : t.type === "COMMISSION_PAYOUT" ? "green" : "brand"}>{t.type.replace(/_/g, " ")}</Badge></td>
                       <td className="p-4 font-medium">{formatCurrency(t.amount, t.currency)}</td>
                       <td className="p-4 text-slate-500">{(t.method ?? "—").replace(/_/g, " ")}</td>
                       <td className="p-4">{t.relatedStudent ? fullName(t.relatedStudent) : "—"}</td>

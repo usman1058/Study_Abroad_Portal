@@ -4,9 +4,11 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
+import { TransactionType } from "@/generated/prisma/client";
 
 const createSchema = z.object({
-  type: z.string().min(1),
+  type: z.nativeEnum(TransactionType),
   amount: z.number().positive(),
   currency: z.string().min(1),
   relatedStudentId: z.string().nullable().optional(),
@@ -68,26 +70,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
 
-    const transactions =
-      user.role === "STUDENT"
-        ? await prisma.transaction.findMany({ where: { relatedStudentId: user.id }, orderBy: { date: "desc" } })
-        : await prisma.transaction.findMany({
-            where:
-              user.role === "COUNSELOR"
-                ? { relatedStudent: { assignedCounselorId: user.id } }
-                : user.role === "AGENCY"
-                  ? { OR: [{ relatedStudent: { createdById: user.id } }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
-                  : {},
-            orderBy: { date: "desc" },
-            include: { relatedStudent: { select: { firstName: true, lastName: true } }, relatedAgency: { select: { firstName: true, lastName: true } } },
-          });
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
-    return ok(transactions);
+    const where =
+      user.role === "STUDENT"
+        ? { relatedStudentId: user.id }
+        : user.role === "COUNSELOR"
+          ? { relatedStudent: { assignedCounselorId: user.id } }
+          : user.role === "AGENCY"
+            ? { OR: [{ relatedStudent: { createdById: user.id } }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+            : {};
+
+    const baseQuery = {
+      where,
+      orderBy: { date: "desc" as const },
+      include: { relatedStudent: { select: { firstName: true, lastName: true } }, relatedAgency: { select: { firstName: true, lastName: true } } },
+    };
+
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const transactions = await prisma.transaction.findMany(query);
+
+    const { data, nextCursor, hasMore } = paginateResults(transactions, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

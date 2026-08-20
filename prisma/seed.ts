@@ -217,7 +217,7 @@ async function main() {
       id: "ielts-prep",
       title: "IELTS Preparation (6-week intensive)",
       provider: "EduLink Academy",
-      category: "test-prep",
+      category: "TEST_PREP",
       duration: "6 weeks",
       startDates: [new Date("2027-01-04"), new Date("2027-03-01")],
       fee: 1500,
@@ -235,7 +235,7 @@ async function main() {
       id: "foundation-english",
       title: "Foundation English for Academic Study",
       provider: "EduLink Academy",
-      category: "foundation",
+      category: "FOUNDATION",
       duration: "12 weeks",
       startDates: [new Date("2027-02-01")],
       fee: 2400,
@@ -278,7 +278,7 @@ async function main() {
   // Sample transaction.
   await prisma.transaction.create({
     data: {
-      type: "service_fee",
+      type: "SERVICE_FEE",
       amount: 2000,
       currency: "MYR",
       relatedStudentId: student.id,

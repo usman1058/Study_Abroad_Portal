@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
 const leadSchema = z.object({
   name: z.string().min(1),
@@ -46,18 +47,27 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
     if (user.role === "STUDENT") return fail("Forbidden", 403);
 
-    const leads = await prisma.visitorLead.findMany({
-      where: user.role === "COUNSELOR" ? { createdById: user.id } : {},
-      orderBy: { createdAt: "desc" },
-      take: 200,
-    });
-    return ok(leads);
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
+
+    const where = user.role === "COUNSELOR" ? { createdById: user.id } : {};
+
+    const baseQuery = {
+      where,
+      orderBy: { createdAt: "desc" as const },
+    };
+
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const leads = await prisma.visitorLead.findMany(query);
+
+    const { data, nextCursor, hasMore } = paginateResults(leads, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

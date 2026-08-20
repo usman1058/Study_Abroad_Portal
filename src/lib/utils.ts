@@ -72,3 +72,37 @@ export function fullName(u?: { firstName?: string | null; lastName?: string | nu
   if (!u) return "Unknown";
   return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || "Unknown";
 }
+
+const MIME_SIGNATURES: Record<string, number[][]> = {
+  "application/pdf": [[0x25, 0x50, 0x44, 0x46]],
+  "image/jpeg": [[0xff, 0xd8, 0xff]],
+  "image/png": [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  "application/msword": [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]],
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
+    [0x50, 0x4b, 0x03, 0x04],
+    [0x50, 0x4b, 0x05, 0x06],
+    [0x50, 0x4b, 0x07, 0x08],
+  ],
+};
+
+const ALLOWED_MIME_TYPES = Object.keys(MIME_SIGNATURES);
+
+export function detectMimeFromBase64(base64: string): string | null {
+  try {
+    const binary = atob(base64.split(",")[1] ?? base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    for (const [mime, sigs] of Object.entries(MIME_SIGNATURES)) {
+      for (const sig of sigs) {
+        if (sig.every((b, i) => bytes[i] === b)) return mime;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function isAllowedMimeType(mime: string): boolean {
+  return ALLOWED_MIME_TYPES.includes(mime);
+}

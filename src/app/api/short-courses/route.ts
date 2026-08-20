@@ -3,11 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { ShortCourseCategory } from "@/generated/prisma/client";
 
 const courseSchema = z.object({
   title: z.string().min(1),
   provider: z.string().min(1),
-  category: z.string().min(1),
+  category: z.nativeEnum(ShortCourseCategory),
   duration: z.string().min(1),
   startDates: z.array(z.string()).default([]),
   fee: z.number(),

@@ -38,7 +38,11 @@ export async function GET(req: NextRequest) {
       a.stage,
     ]);
 
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const esc = (v: string) => {
+      let s = v.replace(/"/g, '""');
+      if (/^[=+\-@]/.test(s)) s = "'" + s;
+      return `"${s}"`;
+    };
     const csv = [header.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
 
     return new Response(csv, {

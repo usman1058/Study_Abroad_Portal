@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, toNum } from "@/lib/utils";
+import type { TransactionType } from "@/generated/prisma/client";
 
 export const metadata = { title: "Reports" };
 
@@ -24,7 +25,7 @@ export default async function ReportsPage() {
   const byStage = await prisma.application.groupBy({ by: ["stage"], _count: { _all: true } });
   const byCountry = await prisma.user.groupBy({ by: ["country"], where: { role: "STUDENT", country: { not: null } }, _count: { _all: true } });
 
-  const totalRevenue = transactions.reduce((s, t) => s + (t.type === "refund" ? -toNum(t.amount) : toNum(t.amount)), 0);
+  const totalRevenue = transactions.reduce((s, t) => s + (t.type === "REFUND" ? -toNum(t.amount) : toNum(t.amount)), 0);
 
   return (
     <div className="space-y-6">

@@ -3,9 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
+import { DocumentType } from "@/generated/prisma/client";
 
 const uploadSchema = z.object({
-  type: z.string().min(1),
+  type: z.nativeEnum(DocumentType),
   base64: z.string().min(1),
   applicationId: z.string().optional().nullable(),
   expiresAt: z.string().optional().nullable(),
@@ -26,6 +29,11 @@ export async function POST(req: NextRequest) {
     const { type, base64, applicationId, expiresAt } = parsed.data;
 
     if (base64.length > MAX_BYTES) return fail("File is too large (max 4MB)", 413);
+
+    const mime = detectMimeFromBase64(base64);
+    if (!mime || !isAllowedMimeType(mime)) {
+      return fail("File type not allowed. Allowed: PDF, JPEG, PNG, DOC, DOCX", 415);
+    }
 
     // applicationId must belong to this student
     if (applicationId) {
@@ -56,21 +64,32 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
 
-    const documents =
-      user.role === "STUDENT"
-        ? await prisma.document.findMany({ where: { ownerId: user.id }, orderBy: { uploadedAt: "desc" } })
-        : await prisma.document.findMany({
-            where: user.role === "COUNSELOR" ? { owner: { assignedCounselorId: user.id } } : {},
-            orderBy: { uploadedAt: "desc" },
-            include: { owner: { select: { firstName: true, lastName: true } } },
-          });
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
-    return ok(documents);
+    const where =
+      user.role === "STUDENT"
+        ? { ownerId: user.id }
+        : user.role === "COUNSELOR"
+          ? { owner: { assignedCounselorId: user.id } }
+          : {};
+
+    const baseQuery = {
+      where,
+      orderBy: { uploadedAt: "desc" as const },
+      include: { owner: { select: { firstName: true, lastName: true } } },
+    };
+
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const documents = await prisma.document.findMany(query);
+
+    const { data, nextCursor, hasMore } = paginateResults(documents, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

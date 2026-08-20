@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, requireRole, toError } from "@/lib/api";
+import { ok, fail, requireUser, toError } from "@/lib/api";
 import { creatableRoles, canManageUser } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
 
 const createSchema = z.object({
@@ -67,7 +68,6 @@ export async function POST(req: NextRequest) {
         createdById: actor.id,
         parentAgencyId,
         status: "active",
-        verified: false,
       },
       select: { id: true, email: true, role: true },
     });
@@ -86,11 +86,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
     if (user.role === "STUDENT") return fail("Forbidden", 403);
+
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
     const where =
       user.role === "SUPER_ADMIN"
@@ -101,9 +103,9 @@ export async function GET() {
             ? { OR: [{ role: "STUDENT" as const, createdById: user.id }, { role: "AGENCY" as const, parentAgencyId: user.id }] }
             : { role: "STUDENT" as const, assignedCounselorId: user.id };
 
-    const users = await prisma.user.findMany({
+    const baseQuery = {
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "desc" as const },
       select: {
         id: true,
         role: true,
@@ -115,8 +117,14 @@ export async function GET() {
         status: true,
         createdAt: true,
       },
-    });
-    return ok(users);
+    };
+
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const users = await prisma.user.findMany(query);
+
+    const { data, nextCursor, hasMore } = paginateResults(users, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

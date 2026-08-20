@@ -93,14 +93,17 @@ export async function DELETE(req: NextRequest) {
       .delete({ where: { shortlistId_programId: { shortlistId: shortlist.id, programId } } })
       .catch(() => {});
 
-    // Re-normalize positions after removal.
-    const items = await prisma.shortlistItem.findMany({
-      where: { shortlistId: shortlist.id },
-      orderBy: { position: "asc" },
-    });
-    await prisma.$transaction(
-      items.map((it, i) => prisma.shortlistItem.update({ where: { id: it.id }, data: { position: i } }))
-    );
+    // Re-normalize positions atomically to avoid race conditions on concurrent deletes.
+    await prisma.$executeRaw`
+      UPDATE "ShortlistItem"
+      SET position = sub.new_pos
+      FROM (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY position) - 1 AS new_pos
+        FROM "ShortlistItem"
+        WHERE "shortlistId" = ${shortlist.id}
+      ) sub
+      WHERE "ShortlistItem".id = sub.id
+    `;
 
     return ok({ id: programId });
   } catch (e) {

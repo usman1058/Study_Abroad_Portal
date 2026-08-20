@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 
 type AuditInput = {
   actorId: string;
+  actorType?: "staff" | "guest" | "system";
   action: "create" | "update" | "delete" | "login" | "logout" | "read" | "download" | "invite_used" | "revoke" | "password_change" | "other";
   entityType: string;
   entityId: string;
@@ -14,6 +15,7 @@ export async function logAudit(input: AuditInput): Promise<void> {
     await prisma.auditLog.create({
       data: {
         actorId: input.actorId,
+        actorType: input.actorType,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,

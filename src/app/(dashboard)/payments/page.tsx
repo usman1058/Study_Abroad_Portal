@@ -62,7 +62,7 @@ export default async function PaymentsPage() {
             <CardContent className="p-5">
               <p className="text-xs text-slate-500">Balance due (est.)</p>
               <p className="mt-1 text-2xl font-bold text-amber-600">
-                {formatCurrency(transactions.reduce((s, t) => s + (t.type === "refund" ? -toNum(t.amount) : 0), total))}
+                {formatCurrency(transactions.reduce((s, t) => s + (t.type === "REFUND" ? -toNum(t.amount) : 0), total))}
               </p>
             </CardContent>
           </Card>

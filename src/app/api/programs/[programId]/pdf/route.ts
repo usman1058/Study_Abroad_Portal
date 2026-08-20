@@ -11,8 +11,8 @@ export const revalidate = 0;
 export async function GET(_req: NextRequest, { params }: Params) {
   const { programId } = await params;
 
-  const { error } = await requireUser();
-  if (error) return error;
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
 
   const program = await prisma.program.findUnique({
     where: { id: programId },

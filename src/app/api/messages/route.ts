@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, toError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
+import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
 const createSchema = z.object({
   recipientId: z.string().min(1),
@@ -44,28 +45,35 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
 
-    const messages = await prisma.message.findMany({
+    const { cursor, limit } = parsePaginationParams(req, 50, 100);
+
+    const baseQuery = {
       where: { OR: [{ senderId: user.id }, { recipientId: user.id }] },
-      orderBy: { createdAt: "desc" },
-      take: 200,
+      orderBy: { createdAt: "desc" as const },
       include: {
         sender: { select: { id: true, firstName: true, lastName: true, role: true } },
         recipient: { select: { id: true, firstName: true, lastName: true, role: true } },
       },
-    });
+    };
 
-    // Mark everything addressed to this user as read.
+    const query = buildPaginatedQuery(baseQuery, { cursor, limit });
+    const messages = await prisma.message.findMany(query);
+
+    // Mark only the fetched messages addressed to this user as read.
+    const fetchedIds = messages.map((m) => m.id);
     await prisma.message.updateMany({
-      where: { recipientId: user.id, readAt: null },
+      where: { id: { in: fetchedIds }, recipientId: user.id, readAt: null },
       data: { readAt: new Date() },
     });
 
-    return ok(messages);
+    const { data, nextCursor, hasMore } = paginateResults(messages, limit);
+
+    return ok({ data, nextCursor, hasMore });
   } catch (e) {
     return fail(toError(e), 500);
   }

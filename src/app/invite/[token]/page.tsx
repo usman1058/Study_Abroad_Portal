@@ -30,6 +30,7 @@ export default async function InvitePage({ params }: PageProps) {
   // Log the visit (audit trail)
   logAudit({
     actorId: link.createdById,
+    actorType: "guest",
     action: "invite_used",
     entityType: "InviteLink",
     entityId: link.id,
