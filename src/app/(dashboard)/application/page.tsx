@@ -26,9 +26,10 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   if (!user || user.role === "STUDENT") redirect("/");
 
   const { stage = "" } = await searchParams;
+  const validStage = APPLICATION_STAGES.some((s) => s.value === stage) ? (stage as ApplicationStage) : null;
 
   const where = {
-    ...(stage ? { stage: stage as ApplicationStage } : {}),
+    ...(validStage ? { stage: validStage } : {}),
     ...(user.role === "COUNSELOR"
       ? { student: { assignedCounselorId: user.id } }
       : user.role === "AGENCY"

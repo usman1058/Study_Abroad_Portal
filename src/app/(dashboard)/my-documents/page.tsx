@@ -5,7 +5,7 @@ import { UploadDocument } from "@/components/upload-document";
 import { DocumentViewer } from "@/components/document-viewer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, fullName } from "@/lib/utils";
+import { formatDate, fullName, humanize } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import type { DocumentStatus } from "@/generated/prisma/client";
 
@@ -79,7 +79,7 @@ export default async function MyDocumentsPage() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {documents.map((d) => (
                     <tr key={d.id}>
-                      <td className="p-4 font-medium capitalize">{d.type}</td>
+                      <td className="p-4 font-medium">{humanize(d.type)}</td>
                       <td className="p-4 text-slate-500">
                         {d.application ? `${d.application.program.university.name} — ${d.application.program.name}` : "General"}
                       </td>

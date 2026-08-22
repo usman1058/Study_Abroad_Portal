@@ -29,6 +29,7 @@ export function EnrollButton({
   const [open, setOpen] = useState(false);
 
   async function toggle() {
+    if (enrolled && !window.confirm("Withdraw from this course?")) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/short-courses/${shortCourseId}/enroll`, {

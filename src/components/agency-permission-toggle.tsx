@@ -25,6 +25,8 @@ export function AgencyPermissionToggle({
       const json = await res.json();
       if (!res.ok) alert(json.error ?? "Failed");
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

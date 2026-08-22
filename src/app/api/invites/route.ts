@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 
@@ -44,6 +44,6 @@ export async function POST(req: NextRequest) {
 
     return ok({ id: link.id, url: `/invite/${link.token}` }, { status: 201 });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -34,7 +34,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
     await logAudit({ actorId: user.id, action: "create", entityType: "ShortCourseEnrollment", entityId: enrollment.id });
     return ok({ id: enrollment.id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -50,6 +50,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     }).catch(() => {});
     return ok({ id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

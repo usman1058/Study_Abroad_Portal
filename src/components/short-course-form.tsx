@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
+import { humanize } from "@/lib/utils";
 
 type Props = {
   programs: { id: string; label: string }[];
@@ -36,7 +37,7 @@ export function ShortCourseForm({ programs, initial }: Props) {
   const [form, setForm] = useState({
     title: initial?.title ?? "",
     provider: initial?.provider ?? "",
-    category: initial?.category ?? "language",
+    category: initial?.category ?? "LANGUAGE",
     duration: initial?.duration ?? "",
     startDates: initial?.startDates?.join(", ") ?? "",
     fee: initial?.fee ?? "",
@@ -79,6 +80,8 @@ export function ShortCourseForm({ programs, initial }: Props) {
       }
       setOpen(false);
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,7 +106,7 @@ export function ShortCourseForm({ programs, initial }: Props) {
           <Label>Category</Label>
           <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
             {SHORT_COURSE_CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{humanize(c)}</option>
             ))}
           </Select>
         </div>

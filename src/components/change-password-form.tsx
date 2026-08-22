@@ -40,6 +40,8 @@ export function ChangePasswordForm() {
       setNext("");
       setConfirm("");
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

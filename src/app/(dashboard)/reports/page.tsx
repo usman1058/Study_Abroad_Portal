@@ -12,14 +12,11 @@ export default async function ReportsPage() {
   const user = await currentUser();
   if (!user || user.role === "STUDENT" || user.role === "COUNSELOR") redirect("/");
 
-  const [students, applications, programs, documents, transactions, shortCourses, enrollments] = await Promise.all([
+  const [students, applications, programs, transactions] = await Promise.all([
     prisma.user.count({ where: { role: "STUDENT" } }),
     prisma.application.count(),
     prisma.program.count(),
-    prisma.document.count(),
     prisma.transaction.findMany({ select: { amount: true, type: true, currency: true } }),
-    prisma.shortCourse.count(),
-    prisma.shortCourseEnrollment.count(),
   ]);
 
   const byStage = await prisma.application.groupBy({ by: ["stage"], _count: { _all: true } });

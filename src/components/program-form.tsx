@@ -108,6 +108,8 @@ export function ProgramForm({ universities, initial }: Props) {
       }
       setOpen(false);
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

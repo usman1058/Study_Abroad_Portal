@@ -29,6 +29,8 @@ export function ApplyForm({ programs }: { programs: { id: string; label: string 
         return;
       }
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

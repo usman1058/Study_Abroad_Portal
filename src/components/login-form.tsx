@@ -29,6 +29,8 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       const role = session?.user?.role;
       router.push(role === "STUDENT" ? "/my-applications" : "/home");
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 
 export async function GET() {
   try {
@@ -9,6 +9,6 @@ export async function GET() {
     const count = await prisma.notification.count({ where: { userId: user.id, readAt: null } });
     return ok({ count });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

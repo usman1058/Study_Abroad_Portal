@@ -48,29 +48,29 @@ export const DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
 };
 
 export const DOCUMENT_TYPES = [
-  "passport",
-  "diploma",
-  "transcript",
-  "sop",
-  "ielts",
-  "financial",
-  "recommendation",
-  "other",
+  "PASSPORT",
+  "DIPLOMA",
+  "TRANSCRIPT",
+  "SOP",
+  "IELTS",
+  "FINANCIAL",
+  "RECOMMENDATION",
+  "OTHER",
 ];
 
 export const SHORT_COURSE_CATEGORIES = [
-  "language",
-  "test-prep",
-  "foundation",
-  "professional",
-  "other",
+  "LANGUAGE",
+  "TEST_PREP",
+  "FOUNDATION",
+  "PROFESSIONAL",
+  "OTHER",
 ];
 
 export const TRANSACTION_TYPES = [
-  "service_fee",
-  "commission_payout",
-  "deposit",
-  "refund",
+  "SERVICE_FEE",
+  "COMMISSION_PAYOUT",
+  "DEPOSIT",
+  "REFUND",
 ];
 
 export const CURRENCIES = ["MYR", "USD", "EUR", "GBP", "AUD", "SGD", "CNY", "INR", "BDT", "NPR", "PKR", "LKR"];

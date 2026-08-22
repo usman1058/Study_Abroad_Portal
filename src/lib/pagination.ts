@@ -38,8 +38,3 @@ export function paginateResults<T>(items: T[], limit: number, cursorField = "id"
   const nextCursor = hasMore ? String(data[data.length - 1][cursorField as keyof T]) : null;
   return { data, nextCursor, hasMore };
 }
-
-export function okPaginated<T>(result: PaginatedResult<T>) {
-  const { NextResponse } = require("next/server");
-  return NextResponse.json({ success: true, ...result });
-}

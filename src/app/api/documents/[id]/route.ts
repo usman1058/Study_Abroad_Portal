@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     return ok({ id: updated.id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -75,6 +75,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     await logAudit({ actorId: user.id, action: "delete", entityType: "Document", entityId: id });
     return ok({ id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

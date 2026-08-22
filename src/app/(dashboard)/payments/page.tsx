@@ -8,9 +8,9 @@ import { formatDate, formatCurrency, fullName, toNum } from "@/lib/utils";
 export const metadata = { title: "Payments" };
 
 function typeTone(type: string): "green" | "brand" | "amber" | "red" | "slate" {
-  if (type === "refund") return "amber";
-  if (type === "commission_payout") return "green";
-  if (type === "deposit") return "brand";
+  if (type === "REFUND") return "amber";
+  if (type === "COMMISSION_PAYOUT") return "green";
+  if (type === "DEPOSIT") return "brand";
   return "slate";
 }
 
@@ -114,9 +114,15 @@ export default async function PaymentsPage() {
     );
   }
 
-  // Partner view — payments across students.
+  // Partner view — payments scoped to the actor's hierarchy.
+  const where =
+    user.role === "AGENCY"
+      ? { OR: [{ relatedStudent: { createdById: user.id } }, { relatedAgencyId: user.id }] }
+      : user.role === "COUNSELOR"
+        ? { relatedStudent: { assignedCounselorId: user.id } }
+        : {};
   const transactions = await prisma.transaction.findMany({
-    where: { relatedStudentId: { not: null } },
+    where,
     orderBy: { date: "desc" },
     take: 100,
     include: {

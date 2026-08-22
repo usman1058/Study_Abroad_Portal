@@ -4,23 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function DeleteButton({
-  endpoint,
-  confirmText = "Delete?",
-  label = "Delete",
-}: {
-  endpoint: string;
-  confirmText?: string;
-  label?: string;
-}) {
+export function ApproveButton({ userId, email }: { userId: string; email: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function run() {
-    if (!window.confirm(confirmText)) return;
+    if (!window.confirm(`Approve ${email}? They will be able to sign in immediately.`)) return;
     setBusy(true);
     try {
-      const res = await fetch(endpoint, { method: "DELETE" });
+      const res = await fetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "active" }),
+      });
       const json = await res.json();
       if (!res.ok) alert(json.error ?? "Failed");
       router.refresh();
@@ -32,8 +28,8 @@ export function DeleteButton({
   }
 
   return (
-    <Button variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30" onClick={run} disabled={busy}>
-      {label}
+    <Button variant="outline" size="sm" onClick={run} disabled={busy}>
+      Approve
     </Button>
   );
 }

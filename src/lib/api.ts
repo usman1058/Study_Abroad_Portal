@@ -17,7 +17,7 @@ export async function requireUser() {
   return { error: null, user };
 }
 
-export function toError(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  return String(e);
+export function serverError(e: unknown) {
+  console.error("[api] unhandled error:", e);
+  return fail("Internal server error", 500);
 }

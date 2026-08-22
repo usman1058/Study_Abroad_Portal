@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { Download, ExternalLink, MessageCircle } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getProgramBySlug } from "@/lib/queries";
-import { serializeProgram } from "@/lib/queries";
+import { getProgramBySlug, serializeProgram } from "@/lib/queries";
 import { ShortlistToggle } from "@/components/shortlist-toggle";
 import { CurrencySwitcher, FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +30,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
 
   // Last-viewed tracking, §6
   if (user.role === "STUDENT") {
-    prisma.programView.create({ data: { programId: id, studentId: user.id } }).catch(() => {});
+    prisma.programView.create({ data: { programId: program.id, studentId: user.id } }).catch(() => {});
   }
 
   const why = (program.whyHighlights as { icon?: string; title?: string; description?: string }[]) ?? [];
@@ -48,7 +47,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   // Similar course suggestions, §6
   const similar = await prisma.program.findMany({
     where: {
-      id: { not: id },
+      id: { not: program.id },
       field: program.field,
       OR: [{ level: program.level }, { universityId: program.university?.id }],
     },

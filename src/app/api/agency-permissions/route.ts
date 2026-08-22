@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 
 const permSchema = z.object({
@@ -50,6 +50,6 @@ export async function POST(req: NextRequest) {
     await logAudit({ actorId: user.id, action: "update", entityType: "AgencyPermission", entityId: permission.id, after: { receiverId, canViewCommission } });
     return ok({ id: permission.id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

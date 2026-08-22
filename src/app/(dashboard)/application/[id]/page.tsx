@@ -8,7 +8,7 @@ import { VerifyDocument } from "@/components/verify-document";
 import { MessageForm } from "@/components/message-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum, fullName } from "@/lib/utils";
+import { formatDate, formatCurrency, toNum, fullName, humanize } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import type { DocumentStatus } from "@/generated/prisma/client";
 
@@ -97,7 +97,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                   {application.documents.map((d) => (
                     <li key={d.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium capitalize">{d.type}</p>
+                        <p className="text-sm font-medium">{humanize(d.type)}</p>
                         <p className="truncate text-xs text-slate-500">
                           Uploaded {formatDate(d.uploadedAt)}
                           {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}

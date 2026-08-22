@@ -34,6 +34,8 @@ export function ShortlistBuilder({
       if (!res.ok) alert(json.error ?? "Failed to add");
       setProgramId("");
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -50,6 +52,8 @@ export function ShortlistBuilder({
       const json = await res.json();
       if (!res.ok) alert(json.error ?? "Failed to remove");
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

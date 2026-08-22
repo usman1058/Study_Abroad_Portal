@@ -24,6 +24,8 @@ export function MessageForm({ recipientId }: { recipientId: string }) {
       if (!res.ok) alert(json.error ?? "Failed to send");
       setBody("");
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

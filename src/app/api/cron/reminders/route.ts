@@ -18,6 +18,17 @@ export async function GET(req: NextRequest) {
 
   let sent = 0;
 
+  // Daily dedupe guard — skip candidates already reminded within the last 24h
+  // so repeated cron runs don't stack identical notifications.
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  async function alreadyReminded(userId: string, type: string, title: string): Promise<boolean> {
+    const existing = await prisma.notification.findFirst({
+      where: { userId, type, title, createdAt: { gte: dayAgo } },
+      select: { id: true },
+    });
+    return Boolean(existing);
+  }
+
   // 1. Applications with no activity for 14+ days → remind the responsible staff.
   const staleApps = await prisma.application.findMany({
     where: {
@@ -32,6 +43,7 @@ export async function GET(req: NextRequest) {
     const targetId = student?.assignedCounselorId ?? student?.createdById;
     if (!targetId) continue;
     try {
+      if (await alreadyReminded(targetId, "system", "Application needs attention")) continue;
       await createNotification({
         userId: targetId,
         type: "system",
@@ -49,6 +61,7 @@ export async function GET(req: NextRequest) {
   const visaApps = await prisma.application.findMany({ where: { stage: "VISA" }, include: { program: true } });
   for (const app of visaApps) {
     try {
+      if (await alreadyReminded(app.studentId, "visa", "Visa stage reminder")) continue;
       await createNotification({
         userId: app.studentId,
         type: "visa",
@@ -71,10 +84,12 @@ export async function GET(req: NextRequest) {
   for (const doc of expiring) {
     const days = daysUntil(doc.expiresAt);
     try {
+      const title = days != null && days >= 0 ? "Document expiring soon" : "Document expired";
+      if (await alreadyReminded(doc.ownerId, "document", title)) continue;
       await createNotification({
         userId: doc.ownerId,
         type: "document",
-        title: days != null && days >= 0 ? "Document expiring soon" : "Document expired",
+        title,
         body: `Your ${doc.type} document${days != null && days >= 0 ? ` expires in ${days} day(s)` : " has expired"}. Please upload a new copy.`,
         data: { documentId: doc.id },
       });

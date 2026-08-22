@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { listPrograms, listShortCourses, serializeProgram } from "@/lib/queries";
+import { listPrograms, listShortCourses } from "@/lib/queries";
 import { ShortCourseForm } from "@/components/short-course-form";
 import { EnrollButton } from "@/components/enroll-button";
 import { DeleteButton } from "@/components/delete-button";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/utils";
+import { formatDate, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Short Courses" };
 
@@ -54,7 +54,7 @@ export default async function ShortCoursesPage() {
                     <p className="text-xs text-slate-500">{c.provider}</p>
                     <h3 className="font-semibold">{c.title}</h3>
                   </div>
-                  <Badge tone="brand">{c.category}</Badge>
+                  <Badge tone="brand">{humanize(c.category)}</Badge>
                 </div>
                 <p className="mb-3 line-clamp-2 text-sm text-slate-500">{c.description || "No description."}</p>
                 <dl className="mb-4 space-y-1 text-sm">
@@ -69,12 +69,13 @@ export default async function ShortCoursesPage() {
                   <div className="flex justify-between">
                     <dt className="text-slate-500">Next start</dt>
                     <dd>
-                      {c.startDates
-                        .map((d) => new Date(d))
-                        .filter((d) => d.getTime() > Date.now())
-                        .sort((a, b) => a.getTime() - b.getTime())[0]
-                        ? formatDate(c.startDates[0])
-                        : "—"}
+                      {(() => {
+                        const nextStart = c.startDates
+                          .map((d) => new Date(d))
+                          .filter((d) => d.getTime() > Date.now())
+                          .sort((a, b) => a.getTime() - b.getTime())[0];
+                        return nextStart ? formatDate(nextStart) : "—";
+                      })()}
                     </dd>
                   </div>
                   <div className="flex justify-between">

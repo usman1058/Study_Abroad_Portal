@@ -27,6 +27,8 @@ export function ShortlistToggle({ programId, initial = false }: { programId: str
       }
       setOn(!on);
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

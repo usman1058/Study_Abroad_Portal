@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { makeProgramSlug } from "@/lib/slug";
 
@@ -75,7 +75,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     await logAudit({ actorId: user.id, action: "update", entityType: "Program", entityId: id, before: { name: current.name, commissionRate: Number(current.commissionRate) }, after: parsed.data });
     return ok({ id: updated.id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -90,6 +90,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     await logAudit({ actorId: user.id, action: "delete", entityType: "Program", entityId: id });
     return ok({ id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

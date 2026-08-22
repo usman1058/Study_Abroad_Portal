@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 
 const profileSchema = z.object({
   userTitle: z.string().optional().nullable(),
@@ -68,6 +68,6 @@ export async function PUT(req: NextRequest) {
 
     return ok({ id: updated.id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { requireUser, toError } from "@/lib/api";
+import { requireUser } from "@/lib/api";
 
 // CSV export of student + application data for agency managers.
 export async function GET(req: NextRequest) {
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
-    return new Response(toError(e), { status: 500 });
+    console.error("[api] csv export failed:", e);
+    return new Response("Internal server error", { status: 500 });
   }
 }

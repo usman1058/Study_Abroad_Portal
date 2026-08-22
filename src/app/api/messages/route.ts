@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     return ok({ id: message.id }, { status: 201 });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -75,6 +75,6 @@ export async function GET(req: NextRequest) {
 
     return ok({ data, nextCursor, hasMore });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

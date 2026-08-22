@@ -16,10 +16,12 @@ export function Topbar({ role, userName }: { role: Role; userName: string }) {
   const [openMenu, setOpenMenu] = useState(false);
 
   useEffect(() => {
-    fetch("/api/notifications/unread-count")
+    const controller = new AbortController();
+    fetch("/api/notifications/unread-count", { signal: controller.signal })
       .then((r) => r.json())
       .then((j) => j?.data?.count != null && setUnread(j.data.count))
       .catch(() => {});
+    return () => controller.abort();
   }, []);
 
   return (

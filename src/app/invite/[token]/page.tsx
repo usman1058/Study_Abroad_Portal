@@ -3,8 +3,7 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum } from "@/lib/utils";
-import { MessageForm } from "@/components/message-form";
+import { formatDate, formatCurrency, fullName } from "@/lib/utils";
 
 export const metadata = { title: "Guest Access" };
 
@@ -17,7 +16,10 @@ export default async function InvitePage({ params }: PageProps) {
 
   const link = await prisma.inviteLink.findUnique({
     where: { token },
-    include: { student: true },
+    include: {
+      student: true,
+      createdBy: { select: { firstName: true, lastName: true, email: true, phone: true } },
+    },
   });
 
   if (!link || link.revoked || new Date(link.expiresAt) < new Date()) {
@@ -155,7 +157,15 @@ export default async function InvitePage({ params }: PageProps) {
           <Card>
             <CardHeader><CardTitle>Contact your agency</CardTitle></CardHeader>
             <CardContent>
-              <MessageForm recipientId={link.createdById} />
+              {link.createdBy ? (
+                <div className="space-y-1 text-sm">
+                  <p className="font-medium">{fullName(link.createdBy)}</p>
+                  <p className="text-slate-500">{link.createdBy.email}</p>
+                  {link.createdBy.phone && <p className="text-slate-500">{link.createdBy.phone}</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Your agency contact is no longer available.</p>
+              )}
             </CardContent>
           </Card>
         </>

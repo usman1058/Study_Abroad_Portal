@@ -4,6 +4,13 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
+export function humanize(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function toNum(value: unknown): number {
   if (typeof value === "number") return value;
   if (value && typeof value === "object" && "toNumber" in value) {

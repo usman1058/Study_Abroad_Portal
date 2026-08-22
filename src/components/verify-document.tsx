@@ -15,11 +15,13 @@ export function VerifyDocument({ documentId }: { documentId: string }) {
       const res = await fetch(`/api/documents/${documentId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, rejectionReason: status === "REJECTED" ? "Rejected by staff" : null }),
+        body: JSON.stringify({ status, reason: status === "REJECTED" ? "Rejected by staff" : null }),
       });
       const json = await res.json();
       if (!res.ok) alert(json.error ?? "Failed");
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

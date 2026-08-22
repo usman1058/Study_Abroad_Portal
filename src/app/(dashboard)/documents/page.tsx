@@ -5,7 +5,7 @@ import { canAccessStudent } from "@/lib/permissions";
 import { VerifyDocument } from "@/components/verify-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, fullName } from "@/lib/utils";
+import { formatDate, fullName, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Documents" };
 
@@ -56,7 +56,7 @@ export default async function DocumentsPage() {
                 {s.documents.map((d) => (
                   <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium capitalize">{d.type}</p>
+                      <p className="text-sm font-medium">{humanize(d.type)}</p>
                       <p className="truncate text-xs text-slate-500">
                         {d.application ? `For ${d.application.program.name}` : "General"} · uploaded {formatDate(d.uploadedAt)}
                         {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}

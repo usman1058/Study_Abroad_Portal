@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,6 +17,6 @@ export async function PUT(_req: NextRequest, { params }: Params) {
     await prisma.notification.update({ where: { id }, data: { readAt: new Date() } });
     return ok({ id });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

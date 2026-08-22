@@ -30,10 +30,33 @@ export function ProfileForm({
     e.preventDefault();
     setBusy(true);
     try {
+      const allowed = [
+        "userTitle",
+        "firstName",
+        "lastName",
+        "gender",
+        "phone",
+        "country",
+        "passportNumber",
+        "birthday",
+        "countryOfResidence",
+        "nationality",
+        "cityOfResidence",
+        "address",
+        "motherName",
+        "fatherName",
+        "preferredCurrency",
+        "companyName",
+        "licenseNumber",
+      ];
+      const payload: Record<string, string> = {};
+      for (const key of allowed) {
+        if (form[key] != null) payload[key] = form[key];
+      }
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -42,6 +65,8 @@ export function ProfileForm({
       }
       setSaved(true);
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

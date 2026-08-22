@@ -35,7 +35,8 @@ export async function proxy(request: NextRequest) {
     pathname === "/" ||
     pathname.startsWith("/student/login") ||
     pathname.startsWith("/student/signup") ||
-    pathname.startsWith("/partner/login")
+    pathname.startsWith("/partner/login") ||
+    pathname.startsWith("/partner/signup")
   ) {
     if (authed) {
       return NextResponse.redirect(

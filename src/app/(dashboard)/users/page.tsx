@@ -7,6 +7,7 @@ import { ROLE_LABELS } from "@/lib/constants";
 import { UserForm } from "@/components/user-form";
 import { InviteLinkForm } from "@/components/invite-link-form";
 import { DeleteButton } from "@/components/delete-button";
+import { ApproveButton } from "@/components/approve-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName } from "@/lib/utils";
@@ -83,11 +84,14 @@ export default async function UsersPage() {
                     </td>
                     <td className="py-2.5 pr-4 text-slate-500">{u.phone ?? "—"}</td>
                     <td className="py-2.5 pr-4">
-                      <Badge tone={u.status === "active" ? "green" : "red"}>{u.status}</Badge>
+                      <Badge tone={u.status === "active" ? "green" : u.status === "pending" ? "amber" : "red"}>{u.status}</Badge>
                     </td>
                     <td className="py-2.5 pr-4 text-slate-500">{formatDate(u.createdAt)}</td>
                     <td className="py-2.5 text-right">
-                      <DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" />
+                      <div className="flex items-center justify-end gap-2">
+                        {u.status === "pending" && <ApproveButton userId={u.id} email={u.email} />}
+                        <DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" />
+                      </div>
                     </td>
                   </tr>
                 ))}

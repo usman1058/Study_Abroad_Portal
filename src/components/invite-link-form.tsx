@@ -14,6 +14,7 @@ type SectionAccess = Record<string, "view" | "edit">;
 export function InviteLinkForm({ students }: { students: { id: string; label: string }[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [studentId, setStudentId] = useState(students[0]?.id ?? "");
@@ -45,20 +46,32 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
       setError("Select at least one section.");
       return;
     }
-    const res = await fetch("/api/invites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentId, days, permissionSet: { sections, access } }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setError(json.error ?? "Failed to create invite link");
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          sections,
+          access,
+          expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to create invite link");
+        return;
+      }
+      const link = `${window.location.origin}/invite/${json.data.token}`;
+      setResult(link);
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    const link = `${window.location.origin}/invite/${json.data.token}`;
-    setResult(link);
-    setOpen(false);
-    router.refresh();
   }
 
   if (!open) {
@@ -115,7 +128,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
         </div>
       </div>
       <div className="flex gap-2">
-        <Button type="submit">Generate link</Button>
+        <Button type="submit" disabled={busy}>{busy ? "Generating…" : "Generate link"}</Button>
         <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
       {result && (

@@ -7,7 +7,7 @@ import { ShortlistBuilder } from "@/components/shortlist-builder";
 import { MessageForm } from "@/components/message-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, fullName, toNum } from "@/lib/utils";
+import { formatDate, fullName, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Student" };
 
@@ -81,7 +81,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                   {student.documents.map((d) => (
                     <li key={d.id} className="flex items-center justify-between py-3 text-sm">
-                      <span className="capitalize">{d.type}</span>
+                      <span>{humanize(d.type)}</span>
                       <Badge tone={d.status === "VERIFIED" ? "green" : d.status === "REJECTED" ? "red" : "amber"}>{d.status}</Badge>
                     </li>
                   ))}

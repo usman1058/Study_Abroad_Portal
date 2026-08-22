@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     await logAudit({ actorId: user.id, action: "create", entityType: "VisitorLead", entityId: lead.id, after: { name: data.name } });
     return ok({ id: lead.id }, { status: 201 });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -69,6 +69,6 @@ export async function GET(req: NextRequest) {
 
     return ok({ data, nextCursor, hasMore });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

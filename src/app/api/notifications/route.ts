@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     return ok({ data, nextCursor, hasMore });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -34,6 +34,6 @@ export async function PUT() {
     await prisma.notification.updateMany({ where: { userId: user.id, readAt: null }, data: { readAt: new Date() } });
     return ok({ marked: true });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

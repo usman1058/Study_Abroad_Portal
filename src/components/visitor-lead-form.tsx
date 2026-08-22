@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 export function VisitorLeadForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -25,19 +26,31 @@ export function VisitorLeadForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/visitor-form", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, source: "dashboard" }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      alert(json.error ?? "Failed to save lead");
-      return;
+    setBusy(true);
+    try {
+      const payload: Record<string, string> = { source: "dashboard" };
+      for (const [k, v] of Object.entries(form)) {
+        const trimmed = v.trim();
+        if (trimmed) payload[k] = trimmed;
+      }
+      const res = await fetch("/api/visitor-form", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(json.error ?? "Failed to save lead");
+        return;
+      }
+      setForm({ name: "", phone: "", email: "", courseOfInterest: "", countryOfInterest: "", notes: "" });
+      setOpen(false);
+      router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    setForm({ name: "", phone: "", email: "", courseOfInterest: "", countryOfInterest: "", notes: "" });
-    setOpen(false);
-    router.refresh();
   }
 
   if (!open) return <Button onClick={() => setOpen(true)}>+ Add visitor</Button>;
@@ -54,7 +67,7 @@ export function VisitorLeadForm() {
         <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       </div>
       <div className="flex gap-2">
-        <Button type="submit">Save lead</Button>
+        <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save lead"}</Button>
         <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
     </form>

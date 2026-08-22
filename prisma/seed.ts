@@ -30,7 +30,6 @@ async function main() {
       passwordHash,
       firstName: "Portal",
       lastName: "Admin",
-      verified: true,
     },
   });
 
@@ -44,7 +43,6 @@ async function main() {
       firstName: "Maya",
       lastName: "Manager",
       createdById: superAdmin.id,
-      verified: true,
     },
   });
 
@@ -59,7 +57,6 @@ async function main() {
       lastName: "Global",
       companyName: "EduLink Global",
       createdById: manager.id,
-      verified: true,
     },
   });
 
@@ -75,7 +72,6 @@ async function main() {
       companyName: "NextStep Consultancy",
       createdById: agency.id,
       parentAgencyId: agency.id,
-      verified: true,
     },
   });
 
@@ -89,7 +85,6 @@ async function main() {
       firstName: "Charlie",
       lastName: "Counselor",
       createdById: manager.id,
-      verified: true,
     },
   });
 
@@ -109,7 +104,6 @@ async function main() {
       cityOfResidence: "Kuala Lumpur",
       createdById: agency.id,
       assignedCounselorId: counselor.id,
-      verified: true,
     },
   });
 
@@ -182,12 +176,12 @@ async function main() {
   ];
 
   for (const p of programDefs) {
+    const slug = slugify(`${p.university.name}-${p.name}`);
     await prisma.program.upsert({
-      where: { id: `${p.university.id}:${p.name}` },
+      where: { slug },
       update: {},
       create: {
-        id: `${p.university.id}:${p.name}`,
-        slug: slugify(`${p.university.name}-${p.name}`),
+        slug,
         universityId: p.university.id,
         name: p.name,
         level: p.level,
@@ -275,20 +269,27 @@ async function main() {
     });
   }
 
-  // Sample transaction.
-  await prisma.transaction.create({
-    data: {
-      type: "SERVICE_FEE",
-      amount: 2000,
-      currency: "MYR",
-      relatedStudentId: student.id,
-      relatedApplicationId: programs[0] ? "sample-app-1" : null,
-      enteredById: manager.id,
-      method: "bank_transfer",
-      notes: "Service fee for the Bachelor of Computer Science application",
-      date: new Date(),
-    },
+  // Sample transaction (idempotent — skip if already seeded).
+  const sampleTxNotes = "Service fee for the Bachelor of Computer Science application";
+  const existingTx = await prisma.transaction.findFirst({
+    where: { notes: sampleTxNotes, relatedStudentId: student.id },
+    select: { id: true },
   });
+  if (!existingTx) {
+    await prisma.transaction.create({
+      data: {
+        type: "SERVICE_FEE",
+        amount: 2000,
+        currency: "MYR",
+        relatedStudentId: student.id,
+        relatedApplicationId: programs[0] ? "sample-app-1" : null,
+        enteredById: manager.id,
+        method: "bank_transfer",
+        notes: sampleTxNotes,
+        date: new Date(),
+      },
+    });
+  }
 
   console.log("Seed complete.");
   console.log("Logins (password varies by ADMIN_PASSWORD or default Admin@12345):");

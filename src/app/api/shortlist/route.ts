@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return ok({ id: item.id }, { status: 201 });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -69,9 +69,20 @@ export async function DELETE(req: NextRequest) {
     const { error, user } = await requireUser();
     if (error) return error;
 
-    const { searchParams } = new URL(req.url);
-    const programId = searchParams.get("programId");
-    const studentIdParam = searchParams.get("studentId");
+    let programId: string | null = null;
+    let studentIdParam: string | null = null;
+
+    const contentType = req.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = await req.json().catch(() => ({}) as Record<string, unknown>);
+      if (typeof body.programId === "string") programId = body.programId;
+      if (typeof body.studentId === "string") studentIdParam = body.studentId;
+    }
+    if (!programId) {
+      const { searchParams } = new URL(req.url);
+      programId = searchParams.get("programId");
+      studentIdParam = studentIdParam ?? searchParams.get("studentId");
+    }
 
     if (!programId) return fail("programId is required", 422);
 
@@ -107,6 +118,6 @@ export async function DELETE(req: NextRequest) {
 
     return ok({ id: programId });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

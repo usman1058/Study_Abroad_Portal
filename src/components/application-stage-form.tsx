@@ -40,6 +40,8 @@ export function ApplicationStageForm({
         return;
       }
       router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
     }

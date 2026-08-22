@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, toError } from "@/lib/api";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { creatableRoles, canManageUser } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     return ok({ id: created.id }, { status: 201 });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }
 
@@ -126,6 +126,6 @@ export async function GET(req: NextRequest) {
 
     return ok({ data, nextCursor, hasMore });
   } catch (e) {
-    return fail(toError(e), 500);
+    return serverError(e);
   }
 }

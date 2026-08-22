@@ -12,7 +12,7 @@ import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import type { ApplicationStage } from "@/generated/prisma/client";
 
 export const metadata = { title: "Home" };
@@ -25,13 +25,21 @@ export default async function HomePage() {
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
+  const studentScope =
+    user.role === "COUNSELOR"
+      ? { assignedCounselorId: user.id }
+      : user.role === "AGENCY"
+        ? { createdById: user.id }
+        : {};
+
   const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs] =
     await Promise.all([
-      prisma.user.count({ where: { role: "STUDENT", createdAt: { gte: weekAgo } } }),
-      prisma.application.count({ where: { stage: { notIn: TERMINAL } } }),
-      prisma.document.count({ where: { status: "PENDING" } }),
-      prisma.application.count({ where: { stage: "VISA" } }),
+      prisma.user.count({ where: { role: "STUDENT", createdAt: { gte: weekAgo }, ...studentScope } }),
+      prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
+      prisma.document.count({ where: { status: "PENDING", owner: { role: "STUDENT", ...studentScope } } }),
+      prisma.application.count({ where: { stage: "VISA", student: studentScope } }),
       prisma.application.findMany({
+        where: { student: studentScope },
         take: 8,
         orderBy: { updatedAt: "desc" },
         include: {
@@ -41,15 +49,15 @@ export default async function HomePage() {
       }),
       prisma.user.findMany({
         take: 8,
-        where: { role: "STUDENT" },
+        where: { role: "STUDENT", ...studentScope },
         orderBy: { createdAt: "desc" },
         select: { id: true, firstName: true, lastName: true, country: true, createdAt: true },
       }),
       prisma.notification.count({ where: { userId: user.id, readAt: null } }),
     ]);
 
-  const kpis = [
-    { label: "Leads this week", value: leadsThisWeek, icon: Users, href: "/users" },
+  const kpis: { label: string; value: number; icon: typeof Users; href: string | null }[] = [
+    { label: "Leads this week", value: leadsThisWeek, icon: Users, href: user.role === "COUNSELOR" ? null : "/users" },
     { label: "Applications in progress", value: appsInProgress, icon: ClipboardList, href: "/application" },
     { label: "Pending doc verifications", value: pendingDocs, icon: ShieldCheck, href: "/documents" },
     { label: "Applications at Visa stage", value: visaApps, icon: Plane, href: "/application" },
@@ -67,8 +75,8 @@ export default async function HomePage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <Link key={k.label} href={k.href}>
+        {kpis.map((k) => {
+          const card = (
             <Card className="transition hover:border-brand-400">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
@@ -80,8 +88,13 @@ export default async function HomePage() {
                 </span>
               </CardContent>
             </Card>
-          </Link>
-        ))}
+          );
+          return k.href ? (
+            <Link key={k.label} href={k.href}>{card}</Link>
+          ) : (
+            <div key={k.label}>{card}</div>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

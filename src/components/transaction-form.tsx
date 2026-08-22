@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { TRANSACTION_TYPES, CURRENCIES } from "@/lib/constants";
+import { humanize } from "@/lib/utils";
 
 export function TransactionForm({
   students,
@@ -17,13 +18,13 @@ export function TransactionForm({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    type: "service_fee",
+    type: "SERVICE_FEE",
     amount: "",
     currency: "MYR",
     relatedStudentId: "",
-    relatedApplicationId: "",
     relatedAgencyId: "",
     method: "bank_transfer",
     notes: "",
@@ -37,26 +38,32 @@ export function TransactionForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = await fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        amount: parseFloat(form.amount),
-        relatedStudentId: form.relatedStudentId || null,
-        relatedApplicationId: form.relatedApplicationId || null,
-        relatedAgencyId: form.relatedAgencyId || null,
-        method: form.method || null,
-        notes: form.notes || null,
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setError(json.error ?? "Failed to add transaction");
-      return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          amount: parseFloat(form.amount),
+          relatedStudentId: form.relatedStudentId || null,
+          relatedAgencyId: form.relatedAgencyId || null,
+          method: form.method || null,
+          notes: form.notes || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to add transaction");
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    setOpen(false);
-    router.refresh();
   }
 
   if (!open) return <Button onClick={() => setOpen(true)}>+ Add transaction</Button>;
@@ -70,7 +77,7 @@ export function TransactionForm({
           <Label>Type</Label>
           <Select value={form.type} onChange={(e) => set("type", e.target.value)}>
             {TRANSACTION_TYPES.map((t) => (
-              <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
+              <option key={t} value={t}>{humanize(t)}</option>
             ))}
           </Select>
         </div>
@@ -123,7 +130,7 @@ export function TransactionForm({
         <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="e.g. Service fee for Bachelor of Computer Science" />
       </div>
       <div className="flex gap-2">
-        <Button type="submit">Save transaction</Button>
+        <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save transaction"}</Button>
         <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
     </form>

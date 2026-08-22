@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { DOCUMENT_TYPES } from "@/lib/constants";
+import { humanize } from "@/lib/utils";
 
 export function UploadDocument({ applications }: { applications: { id: string; label: string }[] }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [type, setType] = useState("passport");
+  const [type, setType] = useState("PASSPORT");
   const [applicationId, setApplicationId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function UploadDocument({ applications }: { applications: { id: string; l
         <Label>Document type</Label>
         <Select value={type} onChange={(e) => setType(e.target.value)}>
           {DOCUMENT_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+            <option key={t} value={t}>{humanize(t)}</option>
           ))}
         </Select>
       </div>
