@@ -2,35 +2,36 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
+import { optionalText } from "@/lib/validation";
 
 const profileSchema = z.object({
-  userTitle: z.string().optional().nullable(),
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  gender: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  passportNumber: z.string().optional().nullable(),
-  birthday: z.string().optional().nullable(),
-  countryOfResidence: z.string().optional().nullable(),
-  nationality: z.string().optional().nullable(),
-  cityOfResidence: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  motherName: z.string().optional().nullable(),
-  fatherName: z.string().optional().nullable(),
-  preferredCurrency: z.string().optional(),
-  companyName: z.string().optional().nullable(),
-  licenseNumber: z.string().optional().nullable(),
-  assignedCounselorId: z.string().optional().nullable(),
+  userTitle: optionalText(10),
+  firstName: z.string().trim().max(80).optional(),
+  lastName: z.string().trim().max(80).optional(),
+  gender: optionalText(20),
+  phone: optionalText(30),
+  country: optionalText(80),
+  passportNumber: optionalText(20),
+  birthday: z.string().max(32).optional().nullable(),
+  countryOfResidence: optionalText(80),
+  nationality: optionalText(80),
+  cityOfResidence: optionalText(100),
+  address: optionalText(300),
+  motherName: optionalText(80),
+  fatherName: optionalText(80),
+  preferredCurrency: z.string().length(3).optional(),
+  companyName: optionalText(160),
+  licenseNumber: optionalText(60),
+  assignedCounselorId: z.string().max(64).optional().nullable(),
   educationHistory: z
     .array(
       z.object({
-        level: z.string().min(1).max(120),
-        institution: z.string().min(1).max(160),
-        fieldOfStudy: z.string().max(160).optional(),
-        startYear: z.string().max(9).optional(),
-        endYear: z.string().max(9).optional(),
-        grade: z.string().max(60).optional(),
+        level: z.string().trim().min(1).max(120),
+        institution: z.string().trim().min(1).max(160),
+        fieldOfStudy: z.string().trim().max(160).optional(),
+        startYear: z.string().trim().max(9).optional(),
+        endYear: z.string().trim().max(9).optional(),
+        grade: z.string().trim().max(60).optional(),
       })
     )
     .max(20)

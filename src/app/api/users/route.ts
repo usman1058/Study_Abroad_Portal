@@ -7,19 +7,20 @@ import { creatableRoles, canManageUser } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
+import { requiredName, emailField, passwordField, optionalText } from "@/lib/validation";
 
 const createSchema = z.object({
   role: z.enum(["MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]),
-  email: z.string().email(),
-  password: z.string().min(8),
-  userTitle: z.string().optional().nullable(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  gender: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  country: z.string().optional().nullable(),
-  companyName: z.string().optional().nullable(),
-  assignedCounselorId: z.string().optional().nullable(),
+  email: emailField(),
+  password: passwordField(),
+  userTitle: optionalText(10),
+  firstName: requiredName(80),
+  lastName: requiredName(80),
+  gender: optionalText(20),
+  phone: optionalText(30),
+  country: optionalText(80),
+  companyName: optionalText(160),
+  assignedCounselorId: z.string().max(64).optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {

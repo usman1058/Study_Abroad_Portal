@@ -4,15 +4,16 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
+import { requiredName, optionalText, emailField, phoneField } from "@/lib/validation";
 
 const leadSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(1),
-  email: z.string().email().optional().nullable(),
-  courseOfInterest: z.string().optional().nullable(),
-  countryOfInterest: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  source: z.string().optional().nullable(),
+  name: requiredName(120),
+  phone: phoneField(),
+  email: emailField().optional().nullable(),
+  courseOfInterest: optionalText(120),
+  countryOfInterest: optionalText(120),
+  notes: optionalText(1000),
+  source: optionalText(40),
 });
 
 export async function POST(req: NextRequest) {

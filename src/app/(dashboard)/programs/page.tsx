@@ -20,7 +20,8 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
   const user = await currentUser();
   if (!user) redirect("/");
 
-  const { q = "", country = "", city = "" } = await searchParams;
+  const { q: rawQ = "", country = "", city = "" } = await searchParams;
+  const q = rawQ.slice(0, 200);
 
   const programs = await prisma.program.findMany({
     where: {

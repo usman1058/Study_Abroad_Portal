@@ -4,26 +4,27 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { makeProgramSlug } from "@/lib/slug";
+import { optionalText, money, intRange, dateStringArray } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
 const updateSchema = z.object({
-  name: z.string().min(1).optional(),
-  level: z.string().min(1).optional(),
-  field: z.string().optional(),
-  location: z.string().optional().nullable(),
-  tuitionFee: z.number().optional(),
-  applicationFee: z.number().optional().nullable(),
-  intakeDates: z.array(z.string()).optional(),
-  requiredDocuments: z.array(z.string()).optional(),
-  minGpa: z.number().optional().nullable(),
+  name: z.string().trim().min(1).max(200).optional(),
+  level: z.string().trim().min(1).max(50).optional(),
+  field: z.string().trim().max(120).optional(),
+  location: optionalText(160),
+  tuitionFee: money().optional(),
+  applicationFee: money().optional().nullable(),
+  intakeDates: dateStringArray(24).optional(),
+  requiredDocuments: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
+  minGpa: z.number().min(0).max(100).optional().nullable(),
   visaRequired: z.boolean().optional(),
-  commissionRate: z.number().optional(),
-  tags: z.array(z.string()).optional(),
-  eligibilityCriteria: z.array(z.string()).optional(),
-  offerTurnaroundDays: z.number().optional().nullable(),
-  collegeRank: z.string().optional().nullable(),
-  courseDurationMonths: z.number().optional().nullable(),
+  commissionRate: z.number().min(0).max(100).optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
+  eligibilityCriteria: z.array(z.string().trim().min(1).max(300)).max(15).optional(),
+  offerTurnaroundDays: intRange(0, 365).optional().nullable(),
+  collegeRank: optionalText(160),
+  courseDurationMonths: intRange(0, 240).optional().nullable(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {

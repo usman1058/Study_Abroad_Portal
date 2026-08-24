@@ -5,12 +5,13 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { idField, futureExpiry } from "@/lib/validation";
 
 const createSchema = z.object({
-  studentId: z.string().min(1),
+  studentId: idField(),
   sections: z.array(z.enum(["applications", "documents", "shortlist", "payments", "profile"])).default(["applications", "documents"]),
-  access: z.record(z.string(), z.enum(["view", "edit"])).optional(),
-  expiresAt: z.string().min(1),
+  access: z.record(z.string().max(40), z.enum(["view", "edit"])).optional(),
+  expiresAt: futureExpiry(90),
 });
 
 export async function POST(req: NextRequest) {

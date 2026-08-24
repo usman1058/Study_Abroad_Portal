@@ -95,23 +95,23 @@ export function UserForm({
         </div>
         <div>
           <Label>First name</Label>
-          <Input required value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
+          <Input required maxLength={80} value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
         </div>
         <div>
           <Label>Last name</Label>
-          <Input required value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
+          <Input required maxLength={80} value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
         </div>
         <div>
           <Label>Email</Label>
-          <Input type="email" required value={form.email} onChange={(e) => set("email", e.target.value)} />
+          <Input type="email" required maxLength={254} value={form.email} onChange={(e) => set("email", e.target.value)} />
         </div>
         <div>
           <Label>Password</Label>
-          <Input type="password" required minLength={8} value={form.password} onChange={(e) => set("password", e.target.value)} />
+          <Input type="password" required minLength={8} maxLength={72} value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
         <div>
           <Label>Phone</Label>
-          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          <Input maxLength={30} value={form.phone} onChange={(e) => set("phone", e.target.value)} />
         </div>
         <div>
           <Label>Gender</Label>
@@ -124,12 +124,12 @@ export function UserForm({
         </div>
         <div>
           <Label>Country</Label>
-          <Input value={form.country} onChange={(e) => set("country", e.target.value)} />
+          <Input maxLength={80} value={form.country} onChange={(e) => set("country", e.target.value)} />
         </div>
         {form.role === "AGENCY" && (
           <div>
             <Label>Company name</Label>
-            <Input value={form.companyName} onChange={(e) => set("companyName", e.target.value)} />
+            <Input maxLength={160} value={form.companyName} onChange={(e) => set("companyName", e.target.value)} />
           </div>
         )}
         {form.role === "STUDENT" && counselors.length > 0 && (

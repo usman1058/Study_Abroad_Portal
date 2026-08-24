@@ -6,8 +6,8 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  currentPassword: z.string().min(1).max(72),
+  newPassword: z.string().min(8, "New password must be at least 8 characters").max(72),
 });
 
 export async function PUT(req: NextRequest) {

@@ -58,9 +58,28 @@ export function ShortCourseForm({ programs, initial }: Props) {
     setError(null);
     setLoading(true);
     try {
+      const feeNum = parseFloat(form.fee || "0");
+      if (Number.isNaN(feeNum) || feeNum < 0 || feeNum > 10_000_000) {
+        setError("Enter a valid course fee.");
+        return;
+      }
+      if (form.meetingLink && !/^https?:\/\//i.test(form.meetingLink.trim())) {
+        setError("Meeting link must start with http:// or https://");
+        return;
+      }
+      const rawDates = form.startDates.split(",").map((s) => s.trim()).filter(Boolean);
+      const badDate = rawDates.find((d) => Number.isNaN(Date.parse(d)));
+      if (badDate) {
+        setError(`Invalid start date: "${badDate}". Use YYYY-MM-DD.`);
+        return;
+      }
       const payload = {
         ...form,
-        fee: parseFloat(form.fee || "0"),
+        meetingLink: form.meetingLink.trim() || null,
+        classSchedule: form.classSchedule.trim() || null,
+        prerequisites: form.prerequisites.trim() || null,
+        description: form.description.trim() || null,
+        fee: feeNum,
         startDates: form.startDates
           .split(",")
           .map((s) => s.trim())
@@ -96,11 +115,11 @@ export function ShortCourseForm({ programs, initial }: Props) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label>Title</Label>
-          <Input required value={form.title} onChange={(e) => set("title", e.target.value)} />
+          <Input required maxLength={200} value={form.title} onChange={(e) => set("title", e.target.value)} />
         </div>
         <div>
           <Label>Provider</Label>
-          <Input required value={form.provider} onChange={(e) => set("provider", e.target.value)} />
+          <Input required maxLength={120} value={form.provider} onChange={(e) => set("provider", e.target.value)} />
         </div>
         <div>
           <Label>Category</Label>
@@ -112,7 +131,7 @@ export function ShortCourseForm({ programs, initial }: Props) {
         </div>
         <div>
           <Label>Duration</Label>
-          <Input value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="6 weeks" />
+          <Input maxLength={80} value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="6 weeks" />
         </div>
         <div>
           <Label>Fee (MYR)</Label>
@@ -128,11 +147,11 @@ export function ShortCourseForm({ programs, initial }: Props) {
         </div>
         <div>
           <Label>Class schedule</Label>
-          <Input value={form.classSchedule} onChange={(e) => set("classSchedule", e.target.value)} placeholder="Mon/Wed 7:00 PM–9:00 PM (MYT)" />
+          <Input maxLength={160} value={form.classSchedule} onChange={(e) => set("classSchedule", e.target.value)} placeholder="Mon/Wed 7:00 PM–9:00 PM (MYT)" />
         </div>
         <div>
           <Label>Meeting link</Label>
-          <Input value={form.meetingLink} onChange={(e) => set("meetingLink", e.target.value)} placeholder="https://meet.example.com/course" />
+          <Input maxLength={300} value={form.meetingLink} onChange={(e) => set("meetingLink", e.target.value)} placeholder="https://meet.example.com/course" />
         </div>
         <div>
           <Label>Start dates (comma separated)</Label>
@@ -149,7 +168,7 @@ export function ShortCourseForm({ programs, initial }: Props) {
         </div>
         <div className="sm:col-span-2">
           <Label>Prerequisites</Label>
-          <Input value={form.prerequisites} onChange={(e) => set("prerequisites", e.target.value)} />
+          <Input maxLength={300} value={form.prerequisites} onChange={(e) => set("prerequisites", e.target.value)} />
         </div>
         <div className="sm:col-span-2">
           <Label>Description</Label>

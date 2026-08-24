@@ -191,11 +191,11 @@ export function ApplicationWizard({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label>First name *</Label>
-            <Input value={pForm.firstName ?? ""} onChange={(e) => setP("firstName", e.target.value)} />
+            <Input maxLength={80} value={pForm.firstName ?? ""} onChange={(e) => setP("firstName", e.target.value)} />
           </div>
           <div>
             <Label>Last name *</Label>
-            <Input value={pForm.lastName ?? ""} onChange={(e) => setP("lastName", e.target.value)} />
+            <Input maxLength={80} value={pForm.lastName ?? ""} onChange={(e) => setP("lastName", e.target.value)} />
           </div>
           <div>
             <Label>Gender *</Label>
@@ -212,31 +212,31 @@ export function ApplicationWizard({
           </div>
           <div>
             <Label>Passport number *</Label>
-            <Input value={pForm.passportNumber ?? ""} onChange={(e) => setP("passportNumber", e.target.value)} placeholder="A12345678" />
+            <Input maxLength={20} value={pForm.passportNumber ?? ""} onChange={(e) => setP("passportNumber", e.target.value)} placeholder="A12345678" />
           </div>
           <div>
             <Label>Nationality</Label>
-            <Input value={pForm.nationality ?? ""} onChange={(e) => setP("nationality", e.target.value)} />
+            <Input maxLength={80} value={pForm.nationality ?? ""} onChange={(e) => setP("nationality", e.target.value)} />
           </div>
           <div>
             <Label>Country of residence</Label>
-            <Input value={pForm.countryOfResidence ?? ""} onChange={(e) => setP("countryOfResidence", e.target.value)} />
+            <Input maxLength={80} value={pForm.countryOfResidence ?? ""} onChange={(e) => setP("countryOfResidence", e.target.value)} />
           </div>
           <div>
             <Label>City of residence</Label>
-            <Input value={pForm.cityOfResidence ?? ""} onChange={(e) => setP("cityOfResidence", e.target.value)} />
+            <Input maxLength={100} value={pForm.cityOfResidence ?? ""} onChange={(e) => setP("cityOfResidence", e.target.value)} />
           </div>
           <div className="sm:col-span-2">
             <Label>Address</Label>
-            <Textarea rows={2} value={pForm.address ?? ""} onChange={(e) => setP("address", e.target.value)} />
+            <Textarea rows={2} maxLength={300} value={pForm.address ?? ""} onChange={(e) => setP("address", e.target.value)} />
           </div>
           <div>
             <Label>Mother&apos;s name</Label>
-            <Input value={pForm.motherName ?? ""} onChange={(e) => setP("motherName", e.target.value)} />
+            <Input maxLength={80} value={pForm.motherName ?? ""} onChange={(e) => setP("motherName", e.target.value)} />
           </div>
           <div>
             <Label>Father&apos;s name</Label>
-            <Input value={pForm.fatherName ?? ""} onChange={(e) => setP("fatherName", e.target.value)} />
+            <Input maxLength={80} value={pForm.fatherName ?? ""} onChange={(e) => setP("fatherName", e.target.value)} />
           </div>
         </div>
       )}
@@ -256,23 +256,23 @@ export function ApplicationWizard({
               </div>
               <div className="sm:col-span-2">
                 <Label>Institution *</Label>
-                <Input value={row.institution} onChange={(e) => setEdu(i, "institution", e.target.value)} placeholder="School / college / university" />
+                <Input maxLength={160} value={row.institution} onChange={(e) => setEdu(i, "institution", e.target.value)} placeholder="School / college / university" />
               </div>
               <div>
                 <Label>Field of study</Label>
-                <Input value={row.fieldOfStudy ?? ""} onChange={(e) => setEdu(i, "fieldOfStudy", e.target.value)} placeholder="e.g. Computer Science" />
+                <Input maxLength={160} value={row.fieldOfStudy ?? ""} onChange={(e) => setEdu(i, "fieldOfStudy", e.target.value)} placeholder="e.g. Computer Science" />
               </div>
               <div>
                 <Label>From year</Label>
-                <Input value={row.startYear ?? ""} onChange={(e) => setEdu(i, "startYear", e.target.value)} placeholder="2019" />
+                <Input maxLength={9} value={row.startYear ?? ""} onChange={(e) => setEdu(i, "startYear", e.target.value)} placeholder="2019" />
               </div>
               <div>
                 <Label>To year</Label>
-                <Input value={row.endYear ?? ""} onChange={(e) => setEdu(i, "endYear", e.target.value)} placeholder="2023" />
+                <Input maxLength={9} value={row.endYear ?? ""} onChange={(e) => setEdu(i, "endYear", e.target.value)} placeholder="2023" />
               </div>
               <div>
                 <Label>Grade / CGPA</Label>
-                <Input value={row.grade ?? ""} onChange={(e) => setEdu(i, "grade", e.target.value)} placeholder="e.g. CGPA 3.4" />
+                <Input maxLength={60} value={row.grade ?? ""} onChange={(e) => setEdu(i, "grade", e.target.value)} placeholder="e.g. CGPA 3.4" />
               </div>
               <div className="sm:col-span-3">
                 <Button type="button" size="sm" variant="ghost" className="text-red-600" disabled={eduRows.length === 1} onClick={() => setEduRows((prev) => prev.filter((_, idx) => idx !== i))}>

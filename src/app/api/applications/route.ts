@@ -5,10 +5,11 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
+import { idField } from "@/lib/validation";
 
 const createSchema = z.object({
-  programId: z.string().min(1),
-  studentId: z.string().optional(),
+  programId: idField(),
+  studentId: z.string().max(64).optional(),
   submit: z.boolean().optional(),
 });
 

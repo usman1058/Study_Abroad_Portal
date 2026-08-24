@@ -4,10 +4,11 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
+import { idField } from "@/lib/validation";
 
 const createSchema = z.object({
-  recipientId: z.string().min(1),
-  body: z.string().min(1).max(5000),
+  recipientId: idField(),
+  body: z.string().trim().min(1).max(5000),
 });
 
 export async function POST(req: NextRequest) {

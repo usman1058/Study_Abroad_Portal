@@ -18,7 +18,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
 
-  const { q = "", country = "", level = "" } = await searchParams;
+  const { q: rawQ = "", country = "", level = "" } = await searchParams;
+  const q = rawQ.slice(0, 200);
 
   const results = await prisma.program.findMany({
     where: {
@@ -56,7 +57,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       <form method="GET" className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-64 flex-1">
           <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input name="q" defaultValue={q} placeholder="Program, field or university…" className="pl-9" />
+          <Input name="q" maxLength={200} defaultValue={q} placeholder="Program, field or university…" className="pl-9" />
         </div>
         <Select name="country" defaultValue={country} className="w-44">
           <option value="">All countries</option>

@@ -38,6 +38,15 @@ export function TransactionForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const amt = parseFloat(form.amount);
+    if (!form.amount || Number.isNaN(amt) || amt <= 0) {
+      setError("Enter a valid positive amount.");
+      return;
+    }
+    if (amt > 1_000_000_000_000) {
+      setError("Amount is too large.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/transactions", {
@@ -45,7 +54,7 @@ export function TransactionForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          amount: parseFloat(form.amount),
+          amount: amt,
           relatedStudentId: form.relatedStudentId || null,
           relatedAgencyId: form.relatedAgencyId || null,
           method: form.method || null,
@@ -127,7 +136,7 @@ export function TransactionForm({
       </div>
       <div>
         <Label>Notes (what is this payment for?)</Label>
-        <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="e.g. Service fee for Bachelor of Computer Science" />
+        <Input maxLength={500} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="e.g. Service fee for Bachelor of Computer Science" />
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save transaction"}</Button>

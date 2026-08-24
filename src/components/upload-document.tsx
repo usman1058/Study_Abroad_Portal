@@ -24,6 +24,10 @@ export function UploadDocument({ applications }: { applications: { id: string; l
       setError("Choose a file to upload.");
       return;
     }
+    if (file.size > 3 * 1024 * 1024) {
+      setError("File is too large. Maximum size is 3 MB.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -75,6 +79,7 @@ export function UploadDocument({ applications }: { applications: { id: string; l
       <div className="sm:col-span-2">
         <Label>File</Label>
         <Input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+        <p className="mt-1 text-xs text-slate-500">PDF, JPG, PNG or DOC up to 3 MB.</p>
       </div>
       <div className="sm:col-span-2">
         <Button type="submit" disabled={busy}>{busy ? "Uploading…" : "Upload document"}</Button>

@@ -47,7 +47,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
-          type="email"
+          type="email" maxLength={254}
           autoComplete="email"
           required
           value={email}
@@ -59,7 +59,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         <Label htmlFor="password">Password</Label>
         <PasswordInput
           id="password"
-          autoComplete="current-password"
+          autoComplete="current-password" maxLength={72}
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}

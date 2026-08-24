@@ -59,12 +59,12 @@ export function VisitorLeadForm() {
     <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
       <h3 className="font-semibold">Capture a visitor / enquiry</h3>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><Label>Name</Label><Input required value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
-        <div><Label>Phone</Label><Input required value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-        <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
-        <div><Label>Course of interest</Label><Input value={form.courseOfInterest} onChange={(e) => set("courseOfInterest", e.target.value)} /></div>
-        <div><Label>Country of interest</Label><Input value={form.countryOfInterest} onChange={(e) => set("countryOfInterest", e.target.value)} /></div>
-        <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+        <div><Label>Name</Label><Input required maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+        <div><Label>Phone</Label><Input required maxLength={30} value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
+        <div><Label>Email</Label><Input type="email" maxLength={254} value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+        <div><Label>Course of interest</Label><Input maxLength={120} value={form.courseOfInterest} onChange={(e) => set("courseOfInterest", e.target.value)} /></div>
+        <div><Label>Country of interest</Label><Input maxLength={120} value={form.countryOfInterest} onChange={(e) => set("countryOfInterest", e.target.value)} /></div>
+        <div className="sm:col-span-2"><Label>Notes</Label><Textarea rows={2} maxLength={1000} value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       </div>
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save lead"}</Button>

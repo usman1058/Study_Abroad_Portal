@@ -68,24 +68,24 @@ export function SignupForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="firstName">First name</Label>
-          <Input id="firstName" required value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
+          <Input id="firstName" required maxLength={80} value={form.firstName} onChange={(e) => set("firstName", e.target.value)} />
         </div>
         <div>
           <Label htmlFor="lastName">Last name</Label>
-          <Input id="lastName" required value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
+          <Input id="lastName" required maxLength={80} value={form.lastName} onChange={(e) => set("lastName", e.target.value)} />
         </div>
       </div>
       <div>
         <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" type="tel" required value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+60 12 345 6789" />
+        <Input id="phone" type="tel" required maxLength={30} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="+60 12 345 6789" />
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" required value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" />
+        <Input id="email" type="email" required maxLength={254} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" />
       </div>
       <div>
         <Label htmlFor="password">Password</Label>
-        <PasswordInput id="password" required minLength={8} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="At least 8 characters" />
+        <PasswordInput id="password" required minLength={8} maxLength={72} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="At least 8 characters" />
       </div>
       <Button type="submit" className="w-full" disabled={loading} size="lg">
         {loading ? "Creating account…" : "Create account"}

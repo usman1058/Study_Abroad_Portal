@@ -3,9 +3,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { idField } from "@/lib/validation";
 
 const permSchema = z.object({
-  receiverId: z.string().min(1),
+  receiverId: idField(),
   canViewCommission: z.boolean(),
   canViewFullChain: z.boolean().optional(),
 });

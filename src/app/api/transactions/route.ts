@@ -6,17 +6,24 @@ import { canAccessStudent } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { TransactionType } from "@/generated/prisma/client";
+import { idField, money, optionalText } from "@/lib/validation";
+
+const dateStringSingle = z
+  .string()
+  .max(32)
+  .refine((s) => !Number.isNaN(Date.parse(s)), "Invalid date")
+  .optional();
 
 const createSchema = z.object({
   type: z.nativeEnum(TransactionType),
-  amount: z.number().positive(),
-  currency: z.string().min(1),
-  relatedStudentId: z.string().nullable().optional(),
-  relatedApplicationId: z.string().nullable().optional(),
-  relatedAgencyId: z.string().nullable().optional(),
-  method: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  date: z.string().optional(),
+  amount: money(1_000_000_000_000).refine((n) => n > 0, "Amount must be greater than zero"),
+  currency: z.string().trim().regex(/^[A-Z]{3}$/, "Currency must be a 3-letter code"),
+  relatedStudentId: idField().nullable().optional(),
+  relatedApplicationId: idField().nullable().optional(),
+  relatedAgencyId: idField().nullable().optional(),
+  method: optionalText(40),
+  notes: optionalText(500),
+  date: dateStringSingle,
 });
 
 export async function POST(req: NextRequest) {

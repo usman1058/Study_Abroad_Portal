@@ -99,11 +99,11 @@ export function ProfileForm({
         </div>
         <div>
           <Label>Phone</Label>
-          <Input value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+          <Input maxLength={30} value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
         </div>
         <div>
           <Label>Country</Label>
-          <Input value={form.country ?? ""} onChange={(e) => set("country", e.target.value)} />
+          <Input maxLength={80} value={form.country ?? ""} onChange={(e) => set("country", e.target.value)} />
         </div>
         <div>
           <Label>Preferred currency</Label>
@@ -117,11 +117,11 @@ export function ProfileForm({
           <>
             <div>
               <Label>Company name</Label>
-              <Input value={form.companyName ?? ""} onChange={(e) => set("companyName", e.target.value)} />
+              <Input maxLength={160} value={form.companyName ?? ""} onChange={(e) => set("companyName", e.target.value)} />
             </div>
             <div>
               <Label>License number</Label>
-              <Input value={form.licenseNumber ?? ""} onChange={(e) => set("licenseNumber", e.target.value)} />
+              <Input maxLength={60} value={form.licenseNumber ?? ""} onChange={(e) => set("licenseNumber", e.target.value)} />
             </div>
           </>
         )}
@@ -129,7 +129,7 @@ export function ProfileForm({
           <>
             <div>
               <Label>Passport number</Label>
-              <Input value={form.passportNumber ?? ""} onChange={(e) => set("passportNumber", e.target.value)} />
+              <Input maxLength={20} value={form.passportNumber ?? ""} onChange={(e) => set("passportNumber", e.target.value)} />
             </div>
             <div>
               <Label>Birthday</Label>
@@ -137,27 +137,27 @@ export function ProfileForm({
             </div>
             <div>
               <Label>Nationality</Label>
-              <Input value={form.nationality ?? ""} onChange={(e) => set("nationality", e.target.value)} />
+              <Input maxLength={80} value={form.nationality ?? ""} onChange={(e) => set("nationality", e.target.value)} />
             </div>
             <div>
               <Label>Country of residence</Label>
-              <Input value={form.countryOfResidence ?? ""} onChange={(e) => set("countryOfResidence", e.target.value)} />
+              <Input maxLength={80} value={form.countryOfResidence ?? ""} onChange={(e) => set("countryOfResidence", e.target.value)} />
             </div>
             <div>
               <Label>City of residence</Label>
-              <Input value={form.cityOfResidence ?? ""} onChange={(e) => set("cityOfResidence", e.target.value)} />
+              <Input maxLength={100} value={form.cityOfResidence ?? ""} onChange={(e) => set("cityOfResidence", e.target.value)} />
             </div>
             <div className="sm:col-span-2">
               <Label>Address</Label>
-              <Input value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} />
+              <Input maxLength={300} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} />
             </div>
             <div>
               <Label>Mother's name</Label>
-              <Input value={form.motherName ?? ""} onChange={(e) => set("motherName", e.target.value)} />
+              <Input maxLength={80} value={form.motherName ?? ""} onChange={(e) => set("motherName", e.target.value)} />
             </div>
             <div>
               <Label>Father's name</Label>
-              <Input value={form.fatherName ?? ""} onChange={(e) => set("fatherName", e.target.value)} />
+              <Input maxLength={80} value={form.fatherName ?? ""} onChange={(e) => set("fatherName", e.target.value)} />
             </div>
           </>
         )}

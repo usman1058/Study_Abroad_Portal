@@ -69,6 +69,29 @@ export function ProgramForm({ universities, initial }: Props) {
     setError(null);
     setLoading(true);
     try {
+      const num = parseFloat(form.tuitionFee);
+      if (!form.tuitionFee || Number.isNaN(num) || num < 0 || num > 1_000_000_000) {
+        setError("Enter a valid tuition fee.");
+        return;
+      }
+      const rate = parseFloat(form.commissionRate || "0");
+      if (Number.isNaN(rate) || rate < 0 || rate > 100) {
+        setError("Commission rate must be between 0 and 100.");
+        return;
+      }
+      const intField = (v: string, lo: number, hi: number, label: string): string | null => {
+        if (!v) return null;
+        const n = parseInt(v, 10);
+        if (Number.isNaN(n) || n < lo || n > hi) return label;
+        return null;
+      };
+      const intError =
+        intField(form.offerTurnaroundDays, 0, 365, "Offer turnaround must be 0-365 days") ??
+        intField(form.courseDurationMonths, 0, 240, "Course duration must be 0-240 months");
+      if (intError) {
+        setError(intError + ".");
+        return;
+      }
       const payload = {
         ...form,
         tuitionFee: parseFloat(form.tuitionFee || "0"),
@@ -96,6 +119,12 @@ export function ProgramForm({ universities, initial }: Props) {
           .filter(Boolean),
         newUniversity,
       };
+
+        const badDates = payload.intakeDates.filter((iso) => Number.isNaN(Date.parse(iso)) || new Date(iso).toString() === "Invalid Date");
+        if (badDates.length > 0) {
+          setError("One or more intake dates are invalid. Use YYYY-MM-DD.");
+          return;
+        }
       const res = await fetch(initial?.id ? `/api/scholarships/${initial.id}` : "/api/scholarships", {
         method: initial?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -154,7 +183,7 @@ export function ProgramForm({ universities, initial }: Props) {
         </div>
         <div>
           <Label>Program name</Label>
-          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <Input required maxLength={200} value={form.name} onChange={(e) => set("name", e.target.value)} />
         </div>
         <div>
           <Label>Level</Label>
@@ -168,11 +197,11 @@ export function ProgramForm({ universities, initial }: Props) {
         </div>
         <div>
           <Label>Field</Label>
-          <Input value={form.field} onChange={(e) => set("field", e.target.value)} />
+          <Input maxLength={120} value={form.field} onChange={(e) => set("field", e.target.value)} />
         </div>
         <div>
           <Label>Location</Label>
-          <Input value={form.location} onChange={(e) => set("location", e.target.value)} />
+          <Input maxLength={160} value={form.location} onChange={(e) => set("location", e.target.value)} />
         </div>
         <div>
           <Label>Tuition fee (MYR)</Label>
@@ -200,7 +229,7 @@ export function ProgramForm({ universities, initial }: Props) {
         </div>
         <div>
           <Label>College rank (QS etc.)</Label>
-          <Input value={form.collegeRank} onChange={(e) => set("collegeRank", e.target.value)} placeholder="e.g. 251 by QS Rankings" />
+          <Input maxLength={160} value={form.collegeRank} onChange={(e) => set("collegeRank", e.target.value)} placeholder="e.g. 251 by QS Rankings" />
         </div>
         <div>
           <Label>Intake dates (comma separated)</Label>

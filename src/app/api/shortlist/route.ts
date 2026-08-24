@@ -12,8 +12,8 @@ async function getOrCreateShortlist(studentId: string) {
 }
 
 const addSchema = z.object({
-  programId: z.string().min(1),
-  studentId: z.string().optional(),
+  programId: z.string().min(1).max(64),
+  studentId: z.string().max(64).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -75,8 +75,8 @@ export async function DELETE(req: NextRequest) {
     const contentType = req.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const body = await req.json().catch(() => ({}) as Record<string, unknown>);
-      if (typeof body.programId === "string") programId = body.programId;
-      if (typeof body.studentId === "string") studentIdParam = body.studentId;
+      if (typeof body.programId === "string" && body.programId.length <= 64) programId = body.programId;
+      if (typeof body.studentId === "string" && body.studentId.length <= 64) studentIdParam = body.studentId;
     }
     if (!programId) {
       const { searchParams } = new URL(req.url);

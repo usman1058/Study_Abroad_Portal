@@ -4,22 +4,23 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { ShortCourseCategory } from "@/generated/prisma/client";
+import { optionalText, money, dateStringArray, httpUrl, emptyToNull, requiredName } from "@/lib/validation";
 
 type Params = { params: Promise<{ id: string }> };
 
 const updateSchema = z.object({
-  title: z.string().min(1).optional(),
-  provider: z.string().min(1).optional(),
+  title: requiredName(200).optional(),
+  provider: requiredName(120).optional(),
   category: z.nativeEnum(ShortCourseCategory).optional(),
-  duration: z.string().optional(),
-  startDates: z.array(z.string()).optional(),
-  fee: z.number().optional(),
-  deliveryMode: z.string().optional(),
-  classSchedule: z.string().optional().nullable(),
-  meetingLink: z.string().optional().nullable(),
-  prerequisites: z.string().optional().nullable(),
-  description: z.string().optional().nullable(),
-  linkedProgramId: z.string().optional().nullable(),
+  duration: requiredName(80).optional(),
+  startDates: dateStringArray(24).optional(),
+  fee: money(10_000_000, "Fee").optional(),
+  deliveryMode: requiredName(40).optional(),
+  classSchedule: optionalText(160),
+  meetingLink: httpUrl(),
+  prerequisites: optionalText(300),
+  description: optionalText(2000),
+  linkedProgramId: emptyToNull(z.string().trim().min(1).max(64)).optional().nullable(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -34,6 +35,10 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const data = parsed.data;
+    if (data.linkedProgramId) {
+      const linked = await prisma.program.findUnique({ where: { id: data.linkedProgramId }, select: { id: true } });
+      if (!linked) return fail("Linked program not found", 422);
+    }
     const updated = await prisma.shortCourse.update({
       where: { id },
       data: {

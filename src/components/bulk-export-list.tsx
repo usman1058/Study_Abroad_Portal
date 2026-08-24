@@ -119,7 +119,7 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
                     aria-label={`Select ${p.name}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <Link href={`/scholarships/${p.slug ?? p.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-brand-600 hover:underline">
+                    <Link href={`/scholarships/${p.slug ?? p.id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="font-medium hover:text-brand-600 hover:underline">
                       {p.name}
                     </Link>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">

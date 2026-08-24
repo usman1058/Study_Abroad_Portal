@@ -18,6 +18,9 @@ const MAX_BYTES = 4 * 1024 * 1024; // ~4MB
 
 export async function POST(req: NextRequest) {
   try {
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > 5_500_000) return fail("File is too large (max 3 MB)", 413);
+
     const { error, user } = await requireUser();
     if (error) return error;
     if (user.role !== "STUDENT") return fail("Only students can upload documents", 403);

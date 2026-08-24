@@ -33,10 +33,11 @@ export function MessageForm({ recipientId }: { recipientId: string }) {
 
   return (
     <form onSubmit={send} className="space-y-2">
-      <Textarea rows={2} placeholder="Send a message…" value={body} onChange={(e) => setBody(e.target.value)} />
+      <Textarea rows={2} maxLength={5000} placeholder="Send a message…" value={body} onChange={(e) => setBody(e.target.value)} />
       <Button type="submit" size="sm" disabled={busy || !body.trim()}>
         Send
       </Button>
+      <span className="text-right text-xs text-slate-400">{body.length}/5000</span>
     </form>
   );
 }

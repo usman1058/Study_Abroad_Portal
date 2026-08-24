@@ -4,13 +4,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, serverError } from "@/lib/api";
 import { signupRateLimit } from "@/lib/rate-limit";
+import { requiredName, emailField, phoneField, passwordField } from "@/lib/validation";
 
 const signupSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(80),
-  lastName: z.string().min(1, "Last name is required").max(80),
-  email: z.string().email("Valid email required"),
-  phone: z.string().min(6, "Valid phone required").max(30),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: requiredName(80),
+  lastName: requiredName(80),
+  email: emailField(),
+  phone: phoneField(),
+  password: passwordField(),
 });
 
 export async function POST(req: NextRequest) {

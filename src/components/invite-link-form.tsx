@@ -98,7 +98,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
         </div>
         <div>
           <Label>Expires in (days)</Label>
-          <Input type="number" min={1} max={90} value={days} onChange={(e) => setDays(Number(e.target.value))} />
+          <Input type="number" min={1} max={90} value={days} onChange={(e) => { const n = Number(e.target.value); setDays(Number.isFinite(n) ? Math.min(90, Math.max(1, n)) : 7); }} />
         </div>
       </div>
       <div>

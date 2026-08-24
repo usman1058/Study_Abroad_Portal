@@ -4,28 +4,32 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { makeProgramSlug } from "@/lib/slug";
+import { requiredName, optionalText, money, intRange, dateStringArray } from "@/lib/validation";
+
+const idFieldMax = z.string().trim().min(1).max(64);
+const tagList = z.array(z.string().trim().min(1).max(40)).max(10).default([]);
 
 const programSchema = z.object({
-  universityId: z.string().optional(),
+  universityId: idFieldMax.optional(),
   newUniversity: z.boolean().optional(),
-  newUniversityName: z.string().optional(),
-  newUniversityCountry: z.string().optional(),
-  name: z.string().min(1),
-  level: z.string().min(1),
-  field: z.string().default(""),
-  location: z.string().optional().nullable(),
-  tuitionFee: z.number(),
-  applicationFee: z.number().optional().nullable(),
-  intakeDates: z.array(z.string()).default([]),
-  requiredDocuments: z.array(z.string()).default([]),
-  minGpa: z.number().optional().nullable(),
+  newUniversityName: optionalText(160),
+  newUniversityCountry: optionalText(80),
+  name: requiredName(200),
+  level: requiredName(50),
+  field: z.string().trim().max(120).default(""),
+  location: optionalText(160),
+  tuitionFee: money(),
+  applicationFee: money().optional().nullable(),
+  intakeDates: dateStringArray(24).default([]),
+  requiredDocuments: z.array(z.string().trim().min(1).max(80)).max(15).default([]),
+  minGpa: z.number().min(0).max(100).optional().nullable(),
   visaRequired: z.boolean().optional().default(false),
-  commissionRate: z.number().optional().default(0),
-  tags: z.array(z.string()).default([]),
-  eligibilityCriteria: z.array(z.string()).default([]),
-  offerTurnaroundDays: z.number().optional().nullable(),
-  collegeRank: z.string().optional().nullable(),
-  courseDurationMonths: z.number().optional().nullable(),
+  commissionRate: z.number().min(0).max(100).optional().default(0),
+  tags: tagList,
+  eligibilityCriteria: z.array(z.string().trim().min(1).max(300)).max(15).default([]),
+  offerTurnaroundDays: intRange(0, 365).optional().nullable(),
+  collegeRank: optionalText(160),
+  courseDurationMonths: intRange(0, 240).optional().nullable(),
 });
 
 async function resolveUniversity(data: z.infer<typeof programSchema>) {
