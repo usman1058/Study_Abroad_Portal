@@ -24,6 +24,11 @@
   color-scheme: dark;
 }
 
+html {
+  /* Accessibility: scale the whole rem-based UI up for readability */
+  font-size: 112.5%;
+}
+
 html,
 body {
   height: 100%;

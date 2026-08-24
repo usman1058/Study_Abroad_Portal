@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { ExternalLink, MapPin } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { listPrograms } from "@/lib/queries";
+import { listPrograms, profileCompleteness } from "@/lib/queries";
 import { ProgramsFilter } from "@/components/programs-filter";
 import { ShortlistToggle } from "@/components/shortlist-toggle";
+import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,12 +46,54 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     .filter((u) => programs.some((p) => p.universityId === u.id))
     .map((u) => ({ university: u, programs: programs.filter((p) => p.universityId === u.id) }));
 
+  const isStudent = user.role === "STUDENT";
+  const me = isStudent
+    ? await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          phone: true,
+          country: true,
+          gender: true,
+          birthday: true,
+          passportNumber: true,
+          countryOfResidence: true,
+          nationality: true,
+          cityOfResidence: true,
+          address: true,
+          motherName: true,
+          fatherName: true,
+        },
+      })
+    : null;
+  const profileReady = Boolean(me && profileCompleteness(me as unknown as Parameters<typeof profileCompleteness>[0]) >= 80);
+
+  const bulkGroups: BulkGroup[] = grouped.map(({ university, programs: uniPrograms }) => ({
+    universityId: university.id,
+    universityName: university.name,
+    city: university.city ?? "—",
+    country: university.country,
+    programs: uniPrograms.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      level: p.level,
+      field: p.field,
+      tuitionFee: Number(p.tuitionFee),
+      nextIntake:
+        p.intakeDates
+          .map((d) => new Date(d))
+          .filter((d) => d.getTime() > Date.now())
+          .sort((a, b) => a.getTime() - b.getTime())[0]?.toISOString() ?? null,
+    })),
+  }));
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Programs</h1>
         <p className="text-sm text-slate-500">
           Browse every program, grouped by university and city.
+          {isStudent && " Tick courses to build a shareable PDF shortlist, or apply directly."}
         </p>
       </div>
 
@@ -65,6 +108,8 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             No programs match your filters.
           </CardContent>
         </Card>
+      ) : isStudent ? (
+        <BulkExportList groups={bulkGroups} profileReady={profileReady} />
       ) : (
         grouped.map(({ university, programs: uniPrograms }) => (
           <Card key={university.id}>
@@ -111,7 +156,6 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                         >
                           <ExternalLink className="h-3 w-3" /> View
                         </Link>
-                        {user.role === "STUDENT" && <ShortlistToggle programId={p.id} />}
                       </div>
                     </div>
                   );

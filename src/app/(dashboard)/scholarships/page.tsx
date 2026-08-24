@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Download, ExternalLink } from "lucide-react";
 import { currentUser } from "@/lib/session";
-import { listPrograms, listUniversities, type ProgramCard } from "@/lib/queries";
+import { prisma } from "@/lib/db";
+import { listPrograms, listUniversities, profileCompleteness, type ProgramCard } from "@/lib/queries";
 import { ProgramForm } from "@/components/program-form";
 import { CurrencySwitcher, FeeDisplay } from "@/components/currency";
 import { ShortlistToggle } from "@/components/shortlist-toggle";
+import { ApplyButton } from "@/components/apply-button";
 import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,19 @@ export default async function ScholarshipsPage() {
 
   const [programs, universities] = await Promise.all([listPrograms(), listUniversities()]);
   const isSuperAdmin = user.role === "SUPER_ADMIN";
+
+  let profileReady = false;
+  if (user.role === "STUDENT") {
+    const me = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        phone: true, country: true, gender: true, birthday: true, passportNumber: true,
+        countryOfResidence: true, nationality: true, cityOfResidence: true,
+        address: true, motherName: true, fatherName: true,
+      },
+    });
+    profileReady = Boolean(me && profileCompleteness(me as unknown as Parameters<typeof profileCompleteness>[0]) >= 80);
+  }
 
   return (
     <div className="space-y-6">
@@ -126,6 +141,7 @@ export default async function ScholarshipsPage() {
                               <Download className="h-3 w-3" /> PDF
                             </a>
                             {user.role === "STUDENT" && <ShortlistToggle programId={p.id} />}
+                            {user.role === "STUDENT" && <ApplyButton programId={p.id} profileReady={profileReady} />}
                             {isSuperAdmin && (
                               <>
                                 <ProgramForm universities={universities} initial={{ id: p.id, universityId: p.university?.id ?? undefined, name: p.name, level: p.level, field: p.field, location: p.location ?? undefined, tuitionFee: String(p.tuitionFee), applicationFee: p.applicationFee != null ? String(p.applicationFee) : "", intakeDates: p.intakeDates, requiredDocuments: p.requiredDocuments, minGpa: p.minGpa, visaRequired: p.visaRequired, commissionRate: String(p.commissionRate), tags: p.tags, offerTurnaroundDays: p.offerTurnaroundDays, collegeRank: p.collegeRank ?? undefined, eligibilityCriteria: p.eligibilityCriteria, courseDurationMonths: p.courseDurationMonths ?? undefined }} />

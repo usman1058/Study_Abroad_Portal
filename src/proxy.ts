@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { Role } from "@/generated/prisma/client";
 
-const STUDENT_ONLY = ["/my-shortlist", "/my-applications", "/my-documents"];
+const STUDENT_ONLY = ["/my-shortlist", "/my-applications"];
 const PARTNER_ONLY = [
   "/home",
   "/users",

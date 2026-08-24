@@ -9,6 +9,7 @@ import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/l
 const createSchema = z.object({
   programId: z.string().min(1),
   studentId: z.string().optional(),
+  submit: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -40,11 +41,16 @@ export async function POST(req: NextRequest) {
     if (existing) return fail("An application for this program already exists", 409);
 
     const application = await prisma.application.create({
-      data: { studentId, programId, stage: "DRAFT" },
+      data: {
+        studentId,
+        programId,
+        stage: parsed.data.submit ? "SUBMITTED" : "DRAFT",
+        ...(parsed.data.submit ? { submittedAt: new Date() } : {}),
+      },
       select: { id: true },
     });
 
-    await logAudit({ actorId: user.id, action: "create", entityType: "Application", entityId: application.id, after: { studentId, programId } });
+    await logAudit({ actorId: user.id, action: "create", entityType: "Application", entityId: application.id, after: { studentId, programId, submit: Boolean(parsed.data.submit) } });
 
     return ok({ id: application.id }, { status: 201 });
   } catch (e) {

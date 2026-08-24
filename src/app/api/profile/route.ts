@@ -22,6 +22,19 @@ const profileSchema = z.object({
   companyName: z.string().optional().nullable(),
   licenseNumber: z.string().optional().nullable(),
   assignedCounselorId: z.string().optional().nullable(),
+  educationHistory: z
+    .array(
+      z.object({
+        level: z.string().min(1).max(120),
+        institution: z.string().min(1).max(160),
+        fieldOfStudy: z.string().max(160).optional(),
+        startYear: z.string().max(9).optional(),
+        endYear: z.string().max(9).optional(),
+        grade: z.string().max(60).optional(),
+      })
+    )
+    .max(20)
+    .optional(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -62,6 +75,7 @@ export async function PUT(req: NextRequest) {
         ...(data.companyName !== undefined ? { companyName: data.companyName } : {}),
         ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
         ...(data.assignedCounselorId !== undefined ? { assignedCounselorId: data.assignedCounselorId } : {}),
+        ...(data.educationHistory !== undefined ? { educationHistory: data.educationHistory } : {}),
       },
       select: { id: true },
     });

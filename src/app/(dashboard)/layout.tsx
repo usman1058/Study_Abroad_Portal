@@ -16,7 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-svh">
       <Sidebar sections={sections} role={user.role} userName={user.name} />
       <div className="pl-60">
-        <Topbar role={user.role} userName={user.name} />
+        <Topbar role={user.role} userName={user.name} userEmail={user.email} />
         <main className="mx-auto max-w-7xl p-6">{children}</main>
       </div>
     </div>

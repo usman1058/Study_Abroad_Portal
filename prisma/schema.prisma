@@ -105,6 +105,7 @@ model User {
   address             String?
   motherName          String?
   fatherName          String?
+  educationHistory    Json? // [{ level, institution, fieldOfStudy, startYear, endYear, grade }]
 
   assignedCounselorId String?
   assignedCounselor   User?   @relation("AssignedStudents", fields: [assignedCounselorId], references: [id], onDelete: SetNull)

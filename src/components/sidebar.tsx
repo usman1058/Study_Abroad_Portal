@@ -62,10 +62,7 @@ export function Sidebar({ sections, role, userName }: { sections: Section[]; rol
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-      <Link href={role === "STUDENT" ? "/my-applications" : "/home"} className="flex h-14 items-center gap-2 border-b border-slate-200 px-4 dark:border-slate-800">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">SA</span>
-        <span className="truncate text-sm font-semibold">{t("StudyAbroad")}</span>
-      </Link>
+      <div className="h-16 border-b border-slate-200 dark:border-slate-800" aria-hidden />
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {sections.map((section) => {

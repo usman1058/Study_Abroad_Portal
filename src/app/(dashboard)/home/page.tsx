@@ -12,6 +12,7 @@ import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ROLE_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import type { ApplicationStage } from "@/generated/prisma/client";
 
@@ -32,7 +33,7 @@ export default async function HomePage() {
         ? { createdById: user.id }
         : {};
 
-  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs] =
+  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me] =
     await Promise.all([
       prisma.user.count({ where: { role: "STUDENT", createdAt: { gte: weekAgo }, ...studentScope } }),
       prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
@@ -54,6 +55,10 @@ export default async function HomePage() {
         select: { id: true, firstName: true, lastName: true, country: true, createdAt: true },
       }),
       prisma.notification.count({ where: { userId: user.id, readAt: null } }),
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { email: true, phone: true, companyName: true, country: true },
+      }),
     ]);
 
   const kpis: { label: string; value: number; icon: typeof Users; href: string | null }[] = [
@@ -73,6 +78,28 @@ export default async function HomePage() {
           </p>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-lg font-bold text-white">
+            {user.name?.[0]?.toUpperCase() ?? "?"}
+          </span>
+          <div>
+            <p className="font-semibold">{user.name}</p>
+            <p className="text-sm text-slate-500">{me?.email}</p>
+          </div>
+          <Badge tone={user.role === "AGENCY" ? "brand" : "slate"}>{ROLE_LABELS[user.role]}</Badge>
+          {me?.companyName && (
+            <div className="text-sm"><span className="text-slate-500">Company: </span>{me.companyName}</div>
+          )}
+          {me?.phone && (
+            <div className="text-sm"><span className="text-slate-500">Phone: </span>{me.phone}</div>
+          )}
+          {me?.country && (
+            <div className="text-sm"><span className="text-slate-500">Country: </span>{me.country}</div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => {
