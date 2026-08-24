@@ -29,11 +29,11 @@ export function DraftSubmitButton({ applicationId }: { applicationId: string }) 
   }
 
   return (
-    <div className="mt-2">
+    <span className="inline-flex flex-col items-start gap-1">
       <Button size="sm" onClick={submit} disabled={busy}>
         {busy ? "Submitting…" : "Submit draft"}
       </Button>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-    </div>
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </span>
   );
 }

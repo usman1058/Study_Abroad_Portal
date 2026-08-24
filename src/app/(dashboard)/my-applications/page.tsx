@@ -2,10 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { listPrograms } from "@/lib/queries";
-import { ApplicationWizard, type WizardEducation, type WizardPersonal } from "@/components/application-wizard";
 import { DraftSubmitButton } from "@/components/draft-submit-button";
-import { ApplyForm } from "@/components/apply-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, toNum } from "@/lib/utils";
@@ -28,10 +25,7 @@ const STAGE_TONE: Record<ApplicationStage, "red" | "green" | "brand" | "amber" |
 
 type TabKey = "all" | "drafts" | "waiting" | "missing-docs" | "offer" | "visa-enrolled" | "rejected";
 
-const TABS: { key: TabKey; label: string; match: (a: {
-  stage: ApplicationStage;
-  docsOk: boolean;
-}) => boolean }[] = [
+const TABS: { key: TabKey; label: string; match: (a: { stage: ApplicationStage; docsOk: boolean }) => boolean }[] = [
   { key: "all", label: "All", match: () => true },
   { key: "drafts", label: "Drafts", match: (a) => a.stage === "DRAFT" },
   { key: "waiting", label: "Waiting for Approval", match: (a) => a.stage === "SUBMITTED" || a.stage === "UNDER_REVIEW" },
@@ -50,30 +44,13 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
   const { tab = "all", submitted } = await searchParams;
 
-  const [applications, programs, me] = await Promise.all([
-    prisma.application.findMany({
-      where: { studentId: user.id },
-      orderBy: { createdAt: "desc" },
-      include: {
-        program: { include: { university: true } },
-        documents: true,
-      },
-    }),
-    listPrograms(),
-    prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        firstName: true, lastName: true, userTitle: true, gender: true, birthday: true,
-        passportNumber: true, nationality: true, countryOfResidence: true, cityOfResidence: true,
-        address: true, motherName: true, fatherName: true, educationHistory: true,
-      },
-    }),
-  ]);
-
-  const allDocs = await prisma.document.findMany({
-    where: { ownerId: user.id },
-    orderBy: { uploadedAt: "desc" },
-    select: { type: true, status: true },
+  const applications = await prisma.application.findMany({
+    where: { studentId: user.id },
+    orderBy: { createdAt: "desc" },
+    include: {
+      program: { include: { university: true } },
+      documents: true,
+    },
   });
 
   type Row = (typeof applications)[number] & { docsOk: boolean };
@@ -85,7 +62,6 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   const activeTab = (TABS.find((t) => t.key === tab)?.key ?? "all") as TabKey;
   const visible = rows.filter((r) => TABS.find((t) => t.key === activeTab)!.match({ stage: r.stage, docsOk: r.docsOk }));
 
-  // KPIs + stage chart data
   const total = rows.length;
   const offered = rows.filter((a) => ["OFFER", "DEPOSIT_PAID"].includes(a.stage)).length;
   const inProgress = rows.filter((a) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(a.stage)).length;
@@ -96,19 +72,20 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   for (const a of rows) stageCounts.set(a.stage, (stageCounts.get(a.stage) ?? 0) + 1);
   const maxCount = Math.max(1, ...stageCounts.values());
   const totalFees = rows.reduce((s, a) => s + toNum(a.program.tuitionFee), 0);
-
-  const personal: WizardPersonal = me ?? {};
-  const education = Array.isArray(me?.educationHistory) ? (me!.educationHistory as unknown as WizardEducation[]) : [];
+  const draftCount = rows.filter((r) => r.stage === "DRAFT").length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">My Applications</h1>
-          <p className="text-sm text-slate-500">Track and submit your study-abroad applications.</p>
+          <p className="text-sm text-slate-500">Track your applications and their progress.</p>
         </div>
-        <Link href="#new-application">
-          <Badge tone="brand">Guided application ↓</Badge>
+        <Link
+          href="/apply"
+          className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
+        >
+          + New application
         </Link>
       </div>
 
@@ -155,29 +132,6 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         </Card>
       )}
 
-      <div id="new-application" className="space-y-4">
-        <Card>
-          <CardHeader><CardTitle>Start a new application (guided)</CardTitle></CardHeader>
-          <CardContent>
-            <ApplicationWizard
-              programs={programs.map((p) => ({ id: p.id, label: `${p.university?.name ?? ""} — ${p.name}` }))}
-              personal={personal}
-              education={education}
-              documents={allDocs.map((d) => ({ type: d.type, status: d.status }))}
-            />
-          </CardContent>
-        </Card>
-
-        {rows.length === 0 && (
-          <Card>
-            <CardHeader><CardTitle>Quick apply</CardTitle></CardHeader>
-            <CardContent>
-              <ApplyForm programs={programs.map((p) => ({ id: p.id, label: `${p.university?.name ?? ""} — ${p.name}` }))} />
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {TABS.map((t) => {
@@ -200,7 +154,14 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         </div>
 
         {visible.length === 0 ? (
-          <Card><CardContent className="py-10 text-center text-sm text-slate-500">No applications in this view.</CardContent></Card>
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-slate-500">
+              No applications in this view.
+              {(activeTab === "all" || activeTab === "drafts") && (
+                <> Use <Link href="/apply" className="font-medium text-brand-600 hover:underline">Apply Application</Link> to start one.</>
+              )}
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((a) => (
@@ -217,10 +178,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                     <p className="mb-2 text-xs text-amber-600">⚠ Missing or unverified documents — upload them so processing isn&apos;t blocked.</p>
                   )}
                   {a.stage === "DRAFT" && (
-                    <>
-                      <p className="mb-2 text-xs text-slate-500">Draft — submit it now, or use the guided form above to update your details first.</p>
-                      <DraftSubmitButton applicationId={a.id} />
-                    </>
+                    <p className="mb-2 text-xs text-slate-500">Draft — edit or submit it when ready.</p>
                   )}
                   <dl className="space-y-1 text-sm">
                     <div className="flex justify-between">
@@ -236,10 +194,27 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                       <dd>{a.documents.filter((d) => d.status === "VERIFIED").length}/{a.documents.length} verified</dd>
                     </div>
                   </dl>
+                  {a.stage === "DRAFT" && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <Link
+                        href={`/apply?draft=${a.id}`}
+                        className="inline-flex h-8 items-center rounded-lg border border-slate-300 px-3 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                      >
+                        Edit draft
+                      </Link>
+                      <DraftSubmitButton applicationId={a.id} />
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
+        )}
+
+        {draftCount > 0 && activeTab !== "drafts" && (
+          <p className="text-xs text-slate-500">
+            You have {draftCount} draft{draftCount > 1 ? "s" : ""} waiting in the Drafts tab.
+          </p>
         )}
       </div>
     </div>

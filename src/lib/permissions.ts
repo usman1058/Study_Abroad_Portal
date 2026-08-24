@@ -15,6 +15,7 @@ export type Section = {
 export const SECTIONS: Section[] = [
   { key: "home", label: "Home", href: "/home", icon: "home", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY"] },
   { key: "my-applications", label: "My Applications", href: "/my-applications", icon: "file", roles: ["STUDENT"] },
+  { key: "apply", label: "Apply Application", href: "/apply", icon: "filePlus", roles: ["STUDENT"] },
   { key: "programs", label: "Programs", href: "/programs", icon: "globe", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"] },
   { key: "users", label: "Users", href: "/users", icon: "users", roles: ["SUPER_ADMIN", "MANAGER"] },
   { key: "scholarships", label: "Scholarships", href: "/scholarships", icon: "graduation", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"] },

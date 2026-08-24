@@ -10,6 +10,7 @@ export type LangCode = (typeof LANGS)[number]["code"];
 const DICT: Record<string, Record<LangCode, string>> = {
   "Home": { en: "Home", ar: "الرئيسية", zh: "首页", fr: "Accueil" },
   "My Applications": { en: "My Applications", ar: "طلباتي", zh: "我的申请", fr: "Mes candidatures" },
+  "Apply Application": { en: "Apply Application", ar: "تقديم طلب", zh: "申请入学", fr: "Postuler" },
   "Programs": { en: "Programs", ar: "البرامج", zh: "课程项目", fr: "Programmes" },
   "Users": { en: "Users", ar: "المستخدمون", zh: "用户", fr: "Utilisateurs" },
   "Scholarships": { en: "Scholarships", ar: "المنح", zh: "奖学金", fr: "Bourses" },

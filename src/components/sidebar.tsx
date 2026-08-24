@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   FileText,
+  FilePlus,
   Users,
   GraduationCap,
   BookOpen,
@@ -36,6 +37,7 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 const ICONS: Record<string, LucideIcon> = {
   home: Home,
   file: FileText,
+  filePlus: FilePlus,
   users: Users,
   graduation: GraduationCap,
   book: BookOpen,
