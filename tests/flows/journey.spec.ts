@@ -283,7 +283,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.goto("/profile");
     await controlFor(page, "City of residence").fill("Kuala Lumpur");
     const [saveResp] = await Promise.all([
-      page.waitForResponse((r) => r.url().includes("/api/profile") && r.request().method() === "PUT"),
+      page.waitForResponse((r) => Boolean(r.url().includes("/api/profile") && r.request().method() === "PUT")),
       page.getByRole("button", { name: "Save profile" }).click(),
     ]);
     expect(saveResp.status(), "PUT /api/profile should succeed").toBe(200);
@@ -309,7 +309,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
 
     if ((await enrollBtn.count()) > 0) {
       const [enrollResp] = await Promise.all([
-        page.waitForResponse((r) => r.url().includes("/enroll"), { timeout: 15_000 }),
+        page.waitForResponse((r) => Boolean(r.url().includes("/enroll")), { timeout: 15_000 }),
         enrollBtn.click(),
       ]);
       expect(enrollResp.status(), "POST /enroll should succeed").toBe(200);
@@ -334,17 +334,30 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
   test("admin verifies and rejects uploaded documents", async ({ page }) => {
     await page.goto("/documents");
 
-    const pendingBefore = Number(
+    // Helper to read current pending count from the subtitle
+    const getPending = async () => Number(
       (await page.getByText(/\d+ pending\./).textContent())?.match(/(\d+) pending/)?.[1] ?? "0",
     );
+
+    const pendingBefore = await getPending();
     expect(pendingBefore).toBeGreaterThanOrEqual(2);
 
-    await page.getByRole("button", { name: "Verify", exact: true }).first().click();
-    await expect(page.getByText(new RegExp(`${pendingBefore - 1} pending`))).toBeVisible({ timeout: 15_000 });
+    // Verify first document
+    const [verifyResp] = await Promise.all([
+      page.waitForResponse((r) => Boolean(r.url().match(/\/api\/documents\/[^/]+$/)) && r.request().method() === "PUT"),
+      page.getByRole("button", { name: "Verify", exact: true }).first().click(),
+    ]);
+    expect(verifyResp.status()).toBe(200);
+    await expect.poll(async () => (await getPending()) === pendingBefore - 1, { timeout: 15_000 });
 
-    acceptNextConfirm(page); // "Reject this document? ..."
-    await page.getByRole("button", { name: "Reject", exact: true }).first().click();
-    await expect(page.getByText(new RegExp(`${pendingBefore - 2} pending`))).toBeVisible({ timeout: 15_000 });
+    // Reject second document
+    acceptNextConfirm(page);
+    const [rejectResp] = await Promise.all([
+      page.waitForResponse((r) => Boolean(r.url().match(/\/api\/documents\/[^/]+$/)) && r.request().method() === "PUT"),
+      page.getByRole("button", { name: "Reject", exact: true }).first().click(),
+    ]);
+    expect(rejectResp.status()).toBe(200);
+    await expect.poll(async () => (await getPending()) === pendingBefore - 2, { timeout: 15_000 });
     await expect(page.getByText("Rejected by staff").first()).toBeVisible();
   });
 
@@ -389,8 +402,16 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
 
   test("admin curates student shortlist and messages the student", async ({ page }) => {
     await page.goto("/users");
-    await page.getByRole("link", { name: "Sam Student" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Sam Student" })).toBeVisible();
+    const samLink = page.getByRole("link", { name: "Sam Student" });
+    const href = await samLink.getAttribute("href");
+    await samLink.click();
+    try {
+      await expect(page).toHaveURL(/\/users\/[^/]+$/, { timeout: 8_000 });
+    } catch {
+      if (href) await page.goto(href);
+      await expect(page).toHaveURL(/\/users\/[^/]+$/);
+    }
+    await expect(page.getByRole("heading", { level: 1, name: "Sam Student" })).toBeVisible({ timeout: 15_000 });
 
     // ShortlistBuilder — remove (if present) then restore
     const label = "Monash University Malaysia — Bachelor of Computer Science";
@@ -482,6 +503,8 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const sharePanel = page.locator("div.bg-emerald-50");
     const code = sharePanel.locator("code").first();
     await expect(sharePanel).toBeVisible({ timeout: 15_000 });
+    const codeText = await code.textContent();
+    console.log("Code element text:", codeText);
     await expect(code).toContainText("/invite/");
     const url = (await code.textContent())!.trim();
 

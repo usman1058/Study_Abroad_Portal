@@ -33,6 +33,7 @@ import type { Role } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/providers";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { SidebarUserCreate } from "@/components/sidebar-user-create";
 
 const ICONS: Record<string, LucideIcon> = {
   home: Home,
@@ -58,9 +59,17 @@ const ICONS: Record<string, LucideIcon> = {
   globe: Globe,
 };
 
-export function Sidebar({ sections, role, userName }: { sections: Section[]; role: Role; userName: string }) {
+export function Sidebar({
+  sections,
+  role,
+  userName,
+  allowedRoles,
+  counselors,
+}: { sections: Section[]; role: Role; userName: string; allowedRoles: Role[]; counselors: { id: string; label: string }[] }) {
   const pathname = usePathname();
   const { t } = useLang();
+
+  const isPartner = role !== "STUDENT";
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -89,6 +98,9 @@ export function Sidebar({ sections, role, userName }: { sections: Section[]; rol
       </nav>
 
       <div className="border-t border-slate-200 p-3 dark:border-slate-800">
+        {isPartner && (
+          <SidebarUserCreate allowedRoles={allowedRoles} counselors={counselors} />
+        )}
         <LanguageSwitcher />
         {role !== "STUDENT" && (
           <a

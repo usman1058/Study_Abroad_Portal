@@ -30,6 +30,7 @@ const programSchema = z.object({
   offerTurnaroundDays: intRange(0, 365).optional().nullable(),
   collegeRank: optionalText(160),
   courseDurationMonths: intRange(0, 240).optional().nullable(),
+  universityLogoUrl: optionalText(500),
 });
 
 async function resolveUniversity(data: z.infer<typeof programSchema>) {
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
         offerTurnaroundDays: data.offerTurnaroundDays ?? null,
         collegeRank: data.collegeRank ?? null,
         courseDurationMonths: data.courseDurationMonths ?? null,
+        universityLogoUrl: data.universityLogoUrl ?? null,
       },
       select: { id: true, name: true },
     });

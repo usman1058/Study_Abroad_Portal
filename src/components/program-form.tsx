@@ -29,6 +29,7 @@ type Props = {
     collegeRank?: string;
     eligibilityCriteria?: string[];
     courseDurationMonths?: number | null;
+    universityLogoUrl?: string;
   };
 };
 
@@ -58,6 +59,7 @@ export function ProgramForm({ universities, initial }: Props) {
     collegeRank: initial?.collegeRank ?? "",
     eligibilityCriteria: initial?.eligibilityCriteria?.join("\n") ?? "",
     courseDurationMonths: initial?.courseDurationMonths != null ? String(initial.courseDurationMonths) : "",
+    universityLogoUrl: initial?.universityLogoUrl ?? "",
   });
 
   function set<K extends keyof typeof form>(k: K, v: string | boolean) {
@@ -180,6 +182,14 @@ export function ProgramForm({ universities, initial }: Props) {
               + Add new university
             </button>
           )}
+        </div>
+        <div>
+          <Label>University Logo URL</Label>
+          <Input
+            placeholder="https://example.com/logo.png"
+            value={form.universityLogoUrl}
+            onChange={(e) => set("universityLogoUrl", e.target.value)}
+          />
         </div>
         <div>
           <Label>Program name</Label>

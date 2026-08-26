@@ -166,12 +166,19 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
           <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((a) => (
               <Card key={a.id}>
-                <CardContent className="p-5">
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold">{a.program.name}</p>
-                      <p className="text-xs text-slate-500">{a.program.university.name}</p>
-                    </div>
+<CardContent className="p-5">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div>
+                        {a.program.universityLogoUrl && (
+                          <img
+                            src={a.program.universityLogoUrl}
+                            alt={`${a.program.university.name} logo`}
+                            className="h-8 w-8 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 mr-2"
+                          />
+                        )}
+                        <p className="font-semibold">{a.program.name}</p>
+                        <p className="text-xs text-slate-500">{a.program.university.name}</p>
+                      </div>
                     <Badge tone={STAGE_TONE[a.stage]}>{a.stage.replace(/_/g, " ")}</Badge>
                   </div>
                   {!a.docsOk && a.stage !== "WITHDRAWN" && (

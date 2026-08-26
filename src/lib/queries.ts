@@ -24,6 +24,7 @@ export type ProgramCard = {
   requiredDocuments: string[];
   whyHighlights: unknown[];
   minGpa: number | null;
+  universityLogoUrl: string | null;
   university: {
     id: string;
     name: string;
@@ -55,6 +56,7 @@ export function serializeProgram(p: ProgramWithUniversity): ProgramCard {
     requiredDocuments: p.requiredDocuments ?? [],
     whyHighlights: (p.whyHighlights ?? []) as unknown[],
     minGpa: p.minGpa,
+    universityLogoUrl: p.universityLogoUrl,
     university: p.university
       ? {
           id: p.university.id,

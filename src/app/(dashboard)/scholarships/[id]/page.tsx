@@ -78,6 +78,13 @@ export default async function ProgramDetailPage({ params }: PageProps) {
         <CardContent className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-4">
+              {program.universityLogoUrl && (
+                <img
+                  src={program.universityLogoUrl}
+                  alt={`${program.university?.name} logo`}
+                  className="h-14 w-14 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                />
+              )}
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                 {program.university?.name?.[0] ?? "?"}
               </span>

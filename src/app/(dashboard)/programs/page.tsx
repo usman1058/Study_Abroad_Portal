@@ -117,7 +117,14 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             <CardContent className="p-0">
               <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+                  {university.logoUrl && (
+                  <img
+                    src={university.logoUrl}
+                    alt={`${university.name} logo`}
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                  />
+                )}
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                     {university.name[0]}
                   </span>
                   <div>

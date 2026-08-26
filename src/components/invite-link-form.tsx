@@ -63,7 +63,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
         setError(json.error ?? "Failed to create invite link");
         return;
       }
-      const link = `${window.location.origin}/invite/${json.data.token}`;
+      const link = `${window.location.origin}${json.data.url}`;
       setResult(link);
       setOpen(false);
       router.refresh();

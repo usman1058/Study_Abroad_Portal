@@ -25,6 +25,7 @@ const updateSchema = z.object({
   offerTurnaroundDays: intRange(0, 365).optional().nullable(),
   collegeRank: optionalText(160),
   courseDurationMonths: intRange(0, 240).optional().nullable(),
+  universityLogoUrl: optionalText(500),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -69,6 +70,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(data.offerTurnaroundDays !== undefined ? { offerTurnaroundDays: data.offerTurnaroundDays } : {}),
         ...(data.collegeRank !== undefined ? { collegeRank: data.collegeRank } : {}),
         ...(data.courseDurationMonths !== undefined ? { courseDurationMonths: data.courseDurationMonths } : {}),
+        ...(data.universityLogoUrl !== undefined ? { universityLogoUrl: data.universityLogoUrl } : {}),
       },
       select: { id: true },
     });

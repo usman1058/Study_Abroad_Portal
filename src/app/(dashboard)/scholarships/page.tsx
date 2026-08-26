@@ -91,9 +91,13 @@ export default async function ScholarshipsPage() {
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-                              {p.university?.name?.[0] ?? "?"}
-                            </span>
+                            {p.universityLogoUrl && (
+                              <img
+                                src={p.universityLogoUrl}
+                                alt={`${p.university?.name} logo`}
+                                className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                              />
+                            )}
                             <div className="min-w-0">
                               <p className="font-medium">{p.university?.name ?? "Unknown"}</p>
                               <p className="truncate text-xs text-slate-500">
