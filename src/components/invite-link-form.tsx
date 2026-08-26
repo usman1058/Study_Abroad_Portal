@@ -75,7 +75,17 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
   }
 
   if (!open) {
-    return <Button variant="outline" onClick={() => setOpen(true)}>+ Generate guest invite link</Button>;
+    return (
+      <div className="space-y-3">
+        <Button variant="outline" onClick={() => setOpen(true)}>+ Generate guest invite link</Button>
+        {result && (
+          <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/30">
+            <p className="mb-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">Share this link:</p>
+            <code className="break-all text-xs">{result}</code>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (

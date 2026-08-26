@@ -5,15 +5,30 @@ import { CURRENCIES, CURRENCY_RATES_TO_MYR, convertAmount } from "@/lib/constant
 import { formatCurrency } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
 
+// Module-level pub-sub so every FeeDisplay re-renders when CurrencySwitcher changes.
+const currencyListeners = new Set<() => void>();
+
 function useCurrency() {
   const [currency, setCurrency] = useState("MYR");
   useEffect(() => {
-    const c = localStorage.getItem("currency");
-    if (c && CURRENCY_RATES_TO_MYR[c]) setCurrency(c);
+    const stored = localStorage.getItem("currency");
+    if (stored && CURRENCY_RATES_TO_MYR[stored]) setCurrency(stored);
+
+    const sync = () => {
+      const next = localStorage.getItem("currency") ?? "MYR";
+      setCurrency(next);
+    };
+    currencyListeners.add(sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      currencyListeners.delete(sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
   const apply = (c: string) => {
-    setCurrency(c);
     localStorage.setItem("currency", c);
+    setCurrency(c);
+    currencyListeners.forEach((fn) => fn());
   };
   return { currency, apply };
 }

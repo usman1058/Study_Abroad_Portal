@@ -29,8 +29,23 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   }
 
   // Last-viewed tracking, §6
+  let shortlisted = false;
   if (user.role === "STUDENT") {
     prisma.programView.create({ data: { programId: program.id, studentId: user.id } }).catch(() => {});
+
+    // Hydrate the shortlist toggle with its real state so an already-shortlisted
+    // course shows "Shortlisted" and can be removed from this page.
+    const shortlist = await prisma.shortlist.findUnique({
+      where: { studentId: user.id },
+      select: { id: true },
+    });
+    if (shortlist) {
+      const item = await prisma.shortlistItem.findUnique({
+        where: { shortlistId_programId: { shortlistId: shortlist.id, programId: program.id } },
+        select: { id: true },
+      });
+      shortlisted = Boolean(item);
+    }
   }
 
   const why = (program.whyHighlights as { icon?: string; title?: string; description?: string }[]) ?? [];
@@ -87,7 +102,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
             <div className="flex items-center gap-2">
               {user.role === "STUDENT" && (
                 <>
-                  <ShortlistToggle programId={program.id} />
+                  <ShortlistToggle programId={program.id} initial={shortlisted} />
                   <CurrencySwitcher />
                 </>
               )}
