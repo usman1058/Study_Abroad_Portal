@@ -118,6 +118,7 @@ model User {
   agencyTransactions      Transaction[]       @relation("AgencyTransactions")
   enteredTransactions     Transaction[]       @relation("EnteredTransactions")
   shortCourseEnrollments  ShortCourseEnrollment[]
+  approvedEnrollments     ShortCourseEnrollment[] @relation("ApprovedEnrollments")
   shortlists              Shortlist[]
   shortlistViews          ShortlistView[]
   programViews            ProgramView[]
@@ -310,6 +311,8 @@ model ShortCourse {
   prerequisites    String?
   description      String?
   status           String               @default("active")
+  paymentType      String               @default("FREE") // FREE, PAID, OTHER
+  bankDetails      String?
   linkedProgramId  String?
   linkedProgram    Program?             @relation(fields: [linkedProgramId], references: [id], onDelete: SetNull)
   enrollments      ShortCourseEnrollment[]
@@ -325,8 +328,12 @@ model ShortCourseEnrollment {
   student       User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
   shortCourseId String
   shortCourse   ShortCourse @relation(fields: [shortCourseId], references: [id], onDelete: Cascade)
-  status        String      @default("interested") // interested / enrolled / completed / withdrawn
+  status        String      @default("interested") // interested / enrolled / completed / withdrawn / pending_payment / pending_approval / rejected
+  receiptUrl    String?
   enrolledAt    DateTime    @default(now())
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?       @relation("ApprovedEnrollments", fields: [approvedById], references: [id], onDelete: SetNull)
 
   @@unique([studentId, shortCourseId])
 }

@@ -26,6 +26,8 @@ type Props = {
     prerequisites?: string | null;
     description?: string | null;
     linkedProgramId?: string | null;
+    paymentType?: "FREE" | "PAID" | "OTHER";
+    bankDetails?: string;
   };
 };
 
@@ -47,6 +49,8 @@ export function ShortCourseForm({ programs, initial }: Props) {
     prerequisites: initial?.prerequisites ?? "",
     description: initial?.description ?? "",
     linkedProgramId: initial?.linkedProgramId ?? "",
+    paymentType: initial?.paymentType ?? "FREE",
+    bankDetails: initial?.bankDetails ?? "",
   });
 
   function set<K extends keyof typeof form>(k: K, v: string) {
@@ -86,6 +90,8 @@ export function ShortCourseForm({ programs, initial }: Props) {
           .filter(Boolean)
           .map((d) => new Date(d).toISOString()),
         linkedProgramId: form.linkedProgramId || null,
+        paymentType: form.paymentType,
+        bankDetails: form.paymentType === "PAID" ? form.bankDetails.trim() || null : null,
       };
       const res = await fetch(initial?.id ? `/api/short-courses/${initial.id}` : "/api/short-courses", {
         method: initial?.id ? "PUT" : "POST",
@@ -138,6 +144,14 @@ export function ShortCourseForm({ programs, initial }: Props) {
           <Input type="number" step="0.01" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </div>
         <div>
+          <Label>Payment Type</Label>
+          <Select value={form.paymentType} onChange={(e) => set("paymentType", e.target.value)}>
+            <option value="FREE">Free</option>
+            <option value="PAID">Paid</option>
+            <option value="OTHER">Other</option>
+          </Select>
+        </div>
+        <div>
           <Label>Delivery mode</Label>
           <Select value={form.deliveryMode} onChange={(e) => set("deliveryMode", e.target.value)}>
             <option value="online">Online</option>
@@ -145,6 +159,12 @@ export function ShortCourseForm({ programs, initial }: Props) {
             <option value="hybrid">Hybrid</option>
           </Select>
         </div>
+        {form.paymentType === "PAID" && (
+          <div className="sm:col-span-2">
+            <Label>Bank Details</Label>
+            <Textarea rows={3} value={form.bankDetails} onChange={(e) => set("bankDetails", e.target.value)} placeholder="Bank name, account number, SWIFT code, etc." />
+          </div>
+        )}
         <div>
           <Label>Class schedule</Label>
           <Input maxLength={160} value={form.classSchedule} onChange={(e) => set("classSchedule", e.target.value)} placeholder="Mon/Wed 7:00 PM–9:00 PM (MYT)" />

@@ -87,12 +87,13 @@ export default async function ShortCoursesPage() {
                 </dl>
                 <div className="flex items-center gap-2">
                   {user.role === "STUDENT" && (
-                    <EnrollButton
-                      shortCourseId={c.id}
-                      enrolled={enrolledMap.has(c.id)}
-                      status={enrolledMap.get(c.id)}
-                      course={{ fee: c.fee, deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: c.meetingLink, startDates: c.startDates, duration: c.duration }}
-                    />
+<EnrollButton
+  shortCourseId={c.id}
+  enrolled={enrolledMap.has(c.id)}
+  status={enrolledMap.get(c.id)}
+  paymentType={c.paymentType as "FREE" | "PAID" | "OTHER"}
+  course={{ fee: c.fee, deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: c.meetingLink, startDates: c.startDates, duration: c.duration }}
+/>
                   )}
                   {isSuperAdmin && (
                     <>

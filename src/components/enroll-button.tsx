@@ -10,11 +10,13 @@ export function EnrollButton({
   shortCourseId,
   enrolled,
   status,
+  paymentType,
   course,
 }: {
   shortCourseId: string;
   enrolled: boolean;
   status?: string;
+  paymentType?: "FREE" | "PAID" | "OTHER";
   course?: {
     fee: number;
     deliveryMode: string;
@@ -42,6 +44,14 @@ export function EnrollButton({
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!enrolled && paymentType === "PAID") {
+    return (
+      <Button size="sm" variant="primary" onClick={toggle} disabled={busy}>
+        {busy ? "Working…" : "Enroll / express interest"}
+      </Button>
+    );
   }
 
   if (!enrolled) {

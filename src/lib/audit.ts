@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 type AuditInput = {
   actorId: string;
   actorType?: "staff" | "guest" | "system";
-  action: "create" | "update" | "delete" | "login" | "logout" | "read" | "download" | "invite_used" | "revoke" | "password_change" | "other";
+  action: "create" | "update" | "delete" | "login" | "logout" | "read" | "download" | "invite_used" | "revoke" | "password_change" | "upload_receipt" | "other";
   entityType: string;
   entityId: string;
   before?: unknown;

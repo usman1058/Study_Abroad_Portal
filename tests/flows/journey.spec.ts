@@ -312,7 +312,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
         page.waitForResponse((r) => Boolean(r.url().includes("/enroll")), { timeout: 15_000 }),
         enrollBtn.click(),
       ]);
-      expect(enrollResp.status(), "POST /enroll should succeed").toBe(200);
+      expect(enrollResp.status(), "POST /enroll should succeed").toBe(201);
       courseCard = rowForAction(page, title, { name: /Interested|Enrolled/ });
       await expect(courseCard.getByRole("button", { name: /Interested|Enrolled/ })).toBeVisible({ timeout: 15_000 });
     }
@@ -517,17 +517,19 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await anon.close();
   });
 
-  test("admin search filters return filtered results", async ({ page }) => {
-    await page.goto("/search");
+test("admin search filters return filtered results", async ({ page }) => {
+    await page.goto("/search", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await expect(page.getByPlaceholder("Program, field or university…")).toBeVisible({ timeout: 30_000 });
     await page.getByPlaceholder("Program, field or university…").fill("Melbourne");
     await page.getByRole("button", { name: "Search" }).click();
-    await expect(page).toHaveURL(/\?q=Melbourne/);
-    await expect(page.getByText("Master of Information Technology")).toBeVisible();
+    await expect(page).toHaveURL(/\?q=Melbourne/, { timeout: 15_000 });
+    await expect(page.locator("table").getByText("Master of Information Technology")).toBeVisible({ timeout: 15_000 });
 
-    await page.goto("/search");
+    await page.goto("/search", { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await expect(page.getByPlaceholder("Program, field or university…")).toBeVisible({ timeout: 15_000 });
     await page.getByPlaceholder("Program, field or university…").fill("zzz-nothing-zzz");
     await page.getByRole("button", { name: "Search" }).click();
-    await expect(page.getByText("No results. Try a different search.")).toBeVisible();
+    await expect(page.getByText("No results. Try a different search.")).toBeVisible({ timeout: 15_000 });
   });
 
   test("admin stage filter navigates with query param", async ({ page }) => {

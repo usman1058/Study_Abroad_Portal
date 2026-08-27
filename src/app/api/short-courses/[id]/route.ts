@@ -3,25 +3,45 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { requiredName, optionalText, money, dateStringArray, httpUrl, emptyToNull } from "@/lib/validation";
+import { z as zod } from "zod";
 import { ShortCourseCategory } from "@/generated/prisma/client";
-import { optionalText, money, dateStringArray, httpUrl, emptyToNull, requiredName } from "@/lib/validation";
 
-type Params = { params: Promise<{ id: string }> };
-
-const updateSchema = z.object({
-  title: requiredName(200).optional(),
-  provider: requiredName(120).optional(),
-  category: z.nativeEnum(ShortCourseCategory).optional(),
-  duration: requiredName(80).optional(),
-  startDates: dateStringArray(24).optional(),
-  fee: money(10_000_000, "Fee").optional(),
-  deliveryMode: requiredName(40).optional(),
+const courseSchema = zod.object({
+  title: requiredName(200),
+  provider: requiredName(120),
+  category: zod.nativeEnum(ShortCourseCategory),
+  duration: requiredName(80),
+  startDates: dateStringArray(24).default([]),
+  fee: money(10_000_000, "Fee"),
+  deliveryMode: requiredName(40),
   classSchedule: optionalText(160),
   meetingLink: httpUrl(),
   prerequisites: optionalText(300),
   description: optionalText(2000),
-  linkedProgramId: emptyToNull(z.string().trim().min(1).max(64)).optional().nullable(),
+  linkedProgramId: emptyToNull(zod.string().trim().min(1).max(64)).optional().nullable(),
+  paymentType: zod.enum(["FREE", "PAID", "OTHER"]).default("FREE"),
+  bankDetails: optionalText(2000),
 });
+
+type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_req: NextRequest, { params }: Params) {
+  try {
+    const { id } = await params;
+    const course = await prisma.shortCourse.findUnique({
+      where: { id },
+      include: {
+        linkedProgram: { include: { university: true } },
+        enrollments: { include: { student: true } },
+      },
+    });
+    if (!course) return fail("Course not found", 404);
+    return ok(course);
+  } catch (e) {
+    return serverError(e);
+  }
+}
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
@@ -31,7 +51,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (user.role !== "SUPER_ADMIN") return fail("Only the portal owner can manage short courses", 403);
 
     const body = await req.json();
-    const parsed = updateSchema.safeParse(body);
+    const parsed = courseSchema.partial().safeParse(body);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const data = parsed.data;
@@ -39,7 +59,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
       const linked = await prisma.program.findUnique({ where: { id: data.linkedProgramId }, select: { id: true } });
       if (!linked) return fail("Linked program not found", 422);
     }
-    const updated = await prisma.shortCourse.update({
+
+    const course = await prisma.shortCourse.update({
       where: { id },
       data: {
         ...(data.title !== undefined ? { title: data.title } : {}),
@@ -54,11 +75,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(data.prerequisites !== undefined ? { prerequisites: data.prerequisites } : {}),
         ...(data.description !== undefined ? { description: data.description } : {}),
         ...(data.linkedProgramId !== undefined ? { linkedProgramId: data.linkedProgramId } : {}),
+        ...(data.paymentType !== undefined ? { paymentType: data.paymentType } : {}),
+        ...(data.bankDetails !== undefined ? { bankDetails: data.bankDetails } : {}),
       },
-      select: { id: true },
+      select: { id: true, title: true },
     });
-    await logAudit({ actorId: user.id, action: "update", entityType: "ShortCourse", entityId: id });
-    return ok({ id: updated.id });
+
+    await logAudit({ actorId: user.id, action: "update", entityType: "ShortCourse", entityId: id, after: parsed.data });
+    return ok(course);
   } catch (e) {
     return serverError(e);
   }

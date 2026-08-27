@@ -117,8 +117,36 @@ export async function listShortCourses() {
     prerequisites: c.prerequisites,
     description: c.description,
     status: c.status,
+    paymentType: c.paymentType,
+    bankDetails: c.bankDetails,
     linkedProgram: c.linkedProgram ? serializeProgram(c.linkedProgram) : null,
   }));
+}
+
+export async function getShortCourse(id: string) {
+  const row = await prisma.shortCourse.findUnique({
+    where: { id },
+    include: { linkedProgram: { include: { university: true } } },
+  });
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    provider: row.provider,
+    category: row.category,
+    duration: row.duration,
+    startDates: row.startDates.map((d) => d.toISOString()),
+    fee: toNum(row.fee),
+    deliveryMode: row.deliveryMode,
+    classSchedule: row.classSchedule,
+    meetingLink: row.meetingLink,
+    prerequisites: row.prerequisites,
+    description: row.description,
+    status: row.status,
+    paymentType: row.paymentType,
+    bankDetails: row.bankDetails,
+    linkedProgram: row.linkedProgram ? serializeProgram(row.linkedProgram) : null,
+  };
 }
 
 export type UserCard = {
