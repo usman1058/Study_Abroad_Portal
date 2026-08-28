@@ -35,7 +35,8 @@ const profileSchema = z.object({
       })
     )
     .max(20)
-    .optional(),
+    .optional()
+    .nullable(),
 });
 
 export async function PUT(req: NextRequest) {
@@ -76,7 +77,9 @@ export async function PUT(req: NextRequest) {
         ...(data.companyName !== undefined ? { companyName: data.companyName } : {}),
         ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
         ...(data.assignedCounselorId !== undefined ? { assignedCounselorId: data.assignedCounselorId } : {}),
-        ...(data.educationHistory !== undefined ? { educationHistory: data.educationHistory } : {}),
+        ...(data.educationHistory !== undefined
+          ? { educationHistory: data.educationHistory ?? [] }
+          : {}),
       },
       select: { id: true },
     });
