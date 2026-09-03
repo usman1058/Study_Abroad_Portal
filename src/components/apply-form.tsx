@@ -3,17 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { CourseFilter } from "@/components/course-filter";
 
-export function ApplyForm({ programs }: { programs: { id: string; label: string }[] }) {
+export function ApplyForm({ programs }: { programs: { id: string; label: string; country?: string; level?: string; field?: string; fee?: number }[] }) {
   const router = useRouter();
-  const [programId, setProgramId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit(programId: string) {
     if (!programId) return;
     setBusy(true);
     setError(null);
@@ -37,18 +34,12 @@ export function ApplyForm({ programs }: { programs: { id: string; label: string 
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-wrap items-end gap-3">
-      <div className="min-w-64 flex-1">
-        <Label>Start a new application</Label>
-        <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
-          <option value="">Select a program…</option>
-          {programs.map((p) => (
-            <option key={p.id} value={p.id}>{p.label}</option>
-          ))}
-        </Select>
-      </div>
-      <Button type="submit" disabled={busy || !programId}>Apply</Button>
+    <div className="space-y-4">
+      <CourseFilter
+        programs={programs}
+        onSelect={(programId) => submit(programId)}
+      />
       {error && <p className="w-full text-sm text-red-600">{error}</p>}
-    </form>
+    </div>
   );
 }

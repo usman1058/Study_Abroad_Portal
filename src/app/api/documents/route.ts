@@ -14,7 +14,7 @@ const uploadSchema = z.object({
   expiresAt: z.string().optional().nullable(),
 });
 
-const MAX_BYTES = 4 * 1024 * 1024; // ~4MB
+const MAX_BYTES = 10 * 1024 * 1024; // ~10MB
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const { type, base64, applicationId, expiresAt } = parsed.data;
 
-    if (base64.length > MAX_BYTES) return fail("File is too large (max 4MB)", 413);
+    if (base64.length > MAX_BYTES) return fail("File is too large (max 10MB)", 413);
 
     const mime = detectMimeFromBase64(base64);
     if (!mime || !isAllowedMimeType(mime)) {
