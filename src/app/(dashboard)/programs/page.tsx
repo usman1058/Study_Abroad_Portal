@@ -12,6 +12,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ProgramDetailDialog } from "@/components/program-detail-dialog";
+import { ProgramForm } from "@/components/program-form";
+import { DeleteButton } from "@/components/delete-button";
 
 export const metadata = { title: "Programs" };
 
@@ -49,6 +51,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     .map((u) => ({ university: u, programs: programs.filter((p) => p.universityId === u.id) }));
 
   const isStudent = user.role === "STUDENT";
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
   const me = isStudent
     ? await prisma.user.findUnique({
         where: { id: user.id },
@@ -91,12 +94,13 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Programs</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h1 className="text-2xl font-bold">Programs</h1>
         <p className="text-sm text-slate-500">
           Browse every program, grouped by university and city.
           {isStudent && " Tick courses to build a shareable PDF shortlist, or apply directly."}
-        </p>
+        </p></div>
+        {isSuperAdmin && <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} />}
       </div>
 
       <ProgramsFilter
@@ -160,6 +164,10 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                       </div>
                       <div className="flex items-center gap-1.5">
                         <ProgramDetailDialog program={{ ...p, tuitionFee: Number(p.tuitionFee), applicationFee: p.applicationFee == null ? null : Number(p.applicationFee), commissionRate: Number(p.commissionRate), university: p.university ? { ...p.university, id: p.university.id } : null }} />
+                        {isSuperAdmin && <>
+                          <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} initial={{ id: p.id, universityId: p.universityId, name: p.name, level: p.level, field: p.field, location: p.location ?? undefined, tuitionFee: String(p.tuitionFee), applicationFee: p.applicationFee == null ? "" : String(p.applicationFee), intakeDates: p.intakeDates.map((date) => new Date(date).toISOString()), requiredDocuments: p.requiredDocuments, minGpa: p.minGpa, visaRequired: p.visaRequired, commissionRate: String(p.commissionRate), tags: p.tags, offerTurnaroundDays: p.offerTurnaroundDays, collegeRank: p.collegeRank ?? undefined, eligibilityCriteria: p.eligibilityCriteria, courseDurationMonths: p.courseDurationMonths, universityLogoUrl: p.universityLogoUrl ?? undefined }} />
+                          <DeleteButton endpoint={`/api/scholarships/${p.id}`} confirmText={`Delete ${p.name}?`} label="Delete" />
+                        </>}
                       </div>
                     </div>
                   );
