@@ -19,7 +19,7 @@ function slugify(input: string): string {
 }
 
 async function main() {
-  const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD ?? "Admin@12345", 12);
+  const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD ?? "admin1234", 12);
 
   const superAdmin = await prisma.user.upsert({
     where: { email: (process.env.ADMIN_EMAIL ?? "admin@studyabroad.test").toLowerCase() },
