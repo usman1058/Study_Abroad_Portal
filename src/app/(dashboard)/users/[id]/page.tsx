@@ -5,6 +5,7 @@ import { canAccessStudent } from "@/lib/permissions";
 import { listPrograms, profileCompleteness } from "@/lib/queries";
 import { ShortlistBuilder } from "@/components/shortlist-builder";
 import { MessageForm } from "@/components/message-form";
+import { PromoteUserButton } from "@/components/promote-user-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
@@ -31,7 +32,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
     return <Card><CardContent className="py-12 text-center text-slate-500">Student not found.</CardContent></Card>;
   }
 
-  if (!(await canAccessStudent(user, student))) redirect("/users");
+  const canView = student.role === "STUDENT" ? await canAccessStudent(user, student) : user.role === "SUPER_ADMIN" || (user.role === "MANAGER" && student.role !== "SUPER_ADMIN");
+  if (!canView) redirect("/users");
 
   const programs = await listPrograms();
   const shortlist = student.shortlists[0];
@@ -42,8 +44,9 @@ export default async function StudentDetailPage({ params }: PageProps) {
       <div>
         <h1 className="text-2xl font-bold">{fullName(student)}</h1>
         <p className="text-sm text-slate-500">
-          {student.email} · {student.country ?? "—"} · profile {profileCompleteness(student)}% complete
+          {student.email} · {student.country ?? "—"} · {student.role.replace(/_/g, " ")} · profile {profileCompleteness(student)}% complete
         </p>
+        <div className="mt-3 flex flex-wrap gap-2">{user.role === "SUPER_ADMIN" && student.role !== "SUPER_ADMIN" && <PromoteUserButton userId={student.id} />}<a href={`https://wa.me/${(student.phone ?? "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-lg border border-emerald-300 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">WhatsApp</a><a href={`/users/${student.id}/analytics`} className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700">More Details</a></div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -92,6 +95,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         </div>
 
         <div className="space-y-6">
+          <Card><CardHeader><CardTitle>Contact & account</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><Info label="Phone" value={student.phone ?? "—"} /><Info label="Country" value={student.country ?? "—"} /><Info label="Company" value={student.companyName ?? "—"} /><Info label="Status" value={student.status} /></CardContent></Card>
           <Card>
             <CardHeader><CardTitle>Shortlist (staff-curated)</CardTitle></CardHeader>
             <CardContent>
@@ -126,3 +130,5 @@ export default async function StudentDetailPage({ params }: PageProps) {
     </div>
   );
 }
+
+function Info({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4"><span className="text-slate-500">{label}</span><span className="text-right font-medium">{value}</span></div>; }

@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { Download } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency, toNum } from "@/lib/utils";
 import type { TransactionType } from "@/generated/prisma/client";
+import { ReportActions } from "@/components/report-actions";
 
 export const metadata = { title: "Reports" };
 
@@ -31,9 +31,7 @@ export default async function ReportsPage() {
           <h1 className="text-2xl font-bold">Reports</h1>
           <p className="text-sm text-slate-500">Operational summaries.</p>
         </div>
-        <a href="/api/reports/export" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
-          <Download className="h-4 w-4" /> Export CSV
-        </a>
+        <ReportActions />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

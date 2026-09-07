@@ -11,6 +11,7 @@ import { ApproveButton } from "@/components/approve-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName } from "@/lib/utils";
+import { PromoteUserButton } from "@/components/promote-user-button";
 
 export const metadata = { title: "Users" };
 
@@ -90,6 +91,8 @@ export default async function UsersPage() {
                     <td className="py-2.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {u.status === "pending" && <ApproveButton userId={u.id} email={u.email} />}
+                        {user.role === "SUPER_ADMIN" && u.role !== "SUPER_ADMIN" && <PromoteUserButton userId={u.id} />}
+                        <Link href={`/users/${u.id}`} className="rounded-lg px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50">View</Link>
                         <DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" />
                       </div>
                     </td>

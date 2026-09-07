@@ -7,6 +7,9 @@ import {
   Plane,
   Activity,
   ArrowRight,
+  Plus,
+  UserPlus,
+  Clock3,
 } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
@@ -33,7 +36,7 @@ export default async function HomePage() {
         ? { createdById: user.id }
         : {};
 
-  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me] =
+  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me, totalStudents, activePrograms, courseEnrollments, revenueTransactions] =
     await Promise.all([
       prisma.user.count({ where: { role: "STUDENT", createdAt: { gte: weekAgo }, ...studentScope } }),
       prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
@@ -59,6 +62,10 @@ export default async function HomePage() {
         where: { id: user.id },
         select: { email: true, phone: true, companyName: true, country: true },
       }),
+      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.program.count(),
+      prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
+      prisma.transaction.findMany({ where: { type: { not: "REFUND" } }, select: { amount: true }, take: 1000 }),
     ]);
 
   const kpis: { label: string; value: number; icon: typeof Users; href: string | null }[] = [
@@ -123,6 +130,19 @@ export default async function HomePage() {
           );
         })}
       </div>
+
+      {user.role === "SUPER_ADMIN" && <>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminMetric label="Total students" value={totalStudents} hint="All registered students" />
+          <AdminMetric label="Active programs" value={activePrograms} hint="Catalog availability" />
+          <AdminMetric label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" />
+          <AdminMetric label="Recorded revenue" value={`MYR ${revenueTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0).toLocaleString()}`} hint="Excluding refunds" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Operations overview</CardTitle><Activity className="h-5 w-5 text-brand-600" /></CardHeader><CardContent><div className="space-y-4"><Bar label="Applications in progress" value={appsInProgress} max={Math.max(appsInProgress, totalStudents, 1)} tone="bg-brand-600" /><Bar label="Pending document checks" value={pendingDocs} max={Math.max(pendingDocs, appsInProgress, 1)} tone="bg-amber-500" /><Bar label="Visa-stage applications" value={visaApps} max={Math.max(visaApps, appsInProgress, 1)} tone="bg-emerald-500" /></div><div className="mt-5 grid grid-cols-2 gap-3"><Link href="/application" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><Clock3 className="mb-2 h-4 w-4 text-brand-600" />Review pipeline</Link><Link href="/documents" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><ShieldCheck className="mb-2 h-4 w-4 text-amber-600" />Verify documents</Link></div></CardContent></Card>
+          <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
+        </div>
+      </>}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -190,3 +210,6 @@ export default async function HomePage() {
     </div>
   );
 }
+
+function AdminMetric({ label, value, hint }: { label: string; value: string | number; hint: string }) { return <Card><CardContent className="p-5"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></CardContent></Card>; }
+function Bar({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) { return <div><div className="mb-1 flex justify-between text-sm"><span>{label}</span><span className="font-semibold">{value}</span></div><div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className={`h-2 rounded-full ${tone}`} style={{ width: `${Math.max(4, Math.round(value / max * 100))}%` }} /></div></div>; }

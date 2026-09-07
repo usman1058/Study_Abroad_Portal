@@ -11,6 +11,7 @@ import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ProgramDetailDialog } from "@/components/program-detail-dialog";
 
 export const metadata = { title: "Programs" };
 
@@ -145,7 +146,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                   return (
                     <div key={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
-                        <Link href={`/scholarships/${p.slug ?? p.id}`} className="font-medium hover:text-brand-600 hover:underline">
+                        <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
                           {p.name}
                         </Link>
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -158,12 +159,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                         <FeeDisplay amount={Number(p.tuitionFee)} />
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Link
-                          href={`/scholarships/${p.slug ?? p.id}`}
-                          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/40"
-                        >
-                          <ExternalLink className="h-3 w-3" /> View
-                        </Link>
+                        <ProgramDetailDialog program={{ ...p, tuitionFee: Number(p.tuitionFee), applicationFee: p.applicationFee == null ? null : Number(p.applicationFee), commissionRate: Number(p.commissionRate), university: p.university ? { ...p.university, id: p.university.id } : null }} />
                       </div>
                     </div>
                   );

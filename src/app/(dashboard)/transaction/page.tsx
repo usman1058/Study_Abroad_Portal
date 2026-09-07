@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, fullName, toNum } from "@/lib/utils";
 import type { TransactionType } from "@/generated/prisma/client";
+import { DeleteButton } from "@/components/delete-button";
 
 export const metadata = { title: "Transactions" };
 
@@ -87,6 +88,7 @@ export default async function TransactionsPage() {
                     <th className="p-4">Agency</th>
                     <th className="p-4">Notes</th>
                     <th className="p-4">Entered by</th>
+                    {user.role === "SUPER_ADMIN" && <th className="p-4 text-right">Actions</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -100,6 +102,7 @@ export default async function TransactionsPage() {
                       <td className="p-4">{t.relatedAgency ? (t.relatedAgency.companyName ?? fullName(t.relatedAgency)) : "—"}</td>
                       <td className="p-4 text-slate-500">{t.notes ?? "—"}</td>
                       <td className="p-4 text-slate-500">{t.enteredBy.firstName} {t.enteredBy.lastName}</td>
+                      {user.role === "SUPER_ADMIN" && <td className="p-4 text-right"><DeleteButton endpoint={`/api/transactions/${t.id}`} confirmText="Delete this transaction?" /></td>}
                     </tr>
                   ))}
                 </tbody>

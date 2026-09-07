@@ -5,6 +5,8 @@ import { AgencyPermissionToggle } from "@/components/agency-permission-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName } from "@/lib/utils";
+import { UserForm } from "@/components/user-form";
+import { DeleteButton } from "@/components/delete-button";
 
 export const metadata = { title: "Sub Agencies" };
 
@@ -39,6 +41,7 @@ export default async function SubAgenciesPage() {
             : "All sub-agencies and their parent relationships."}
         </p>
       </div>
+      {(user.role === "SUPER_ADMIN" || user.role === "AGENCY") && <div className="flex flex-wrap items-center gap-3"><UserForm allowedRoles={["AGENCY"]} counselors={[]} /><span className="text-xs text-slate-500">Create and manage agency relationships from this workspace.</span></div>}
 
       <Card>
         <CardHeader>
@@ -78,6 +81,7 @@ export default async function SubAgenciesPage() {
                           />
                         </td>
                         <td className="p-4 text-slate-500">{formatDate(a.createdAt)}</td>
+                        <td className="p-4 text-right"><DeleteButton endpoint={`/api/users/${a.id}`} confirmText={`Delete ${fullName(a)}?`} /></td>
                       </tr>
                     );
                   })}

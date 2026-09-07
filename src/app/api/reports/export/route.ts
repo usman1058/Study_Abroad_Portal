@@ -45,10 +45,11 @@ export async function GET(req: NextRequest) {
     };
     const csv = [header.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))].join("\r\n");
 
+    const excel = new URL(req.url).searchParams.get("format") === "excel";
     return new Response(csv, {
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="applications-export-${Date.now()}.csv"`,
+        "Content-Type": excel ? "application/vnd.ms-excel; charset=utf-8" : "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="applications-export-${Date.now()}.${excel ? "xls" : "csv"}"`,
       },
     });
   } catch (e) {

@@ -8,7 +8,8 @@ import { logAudit, createNotification } from "@/lib/audit";
 type Params = { params: Promise<{ id: string }> };
 
 const statusSchema = z.object({
-  status: z.enum(["active", "inactive"]),
+  status: z.enum(["active", "inactive"]).optional(),
+  role: z.enum(["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -28,10 +29,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return fail(parsed.error.issues[0]?.message ?? "Invalid status", 422);
     }
 
+    if (!parsed.data.status && !parsed.data.role) return fail("No changes supplied", 422);
+    if (parsed.data.role === "SUPER_ADMIN" && user.role !== "SUPER_ADMIN") return fail("Only a super admin can promote users", 403);
+    if (target.role === "SUPER_ADMIN" && parsed.data.role && parsed.data.role !== "SUPER_ADMIN") return fail("Cannot demote a super admin", 403);
     const updated = await prisma.user.update({
       where: { id },
-      data: { status: parsed.data.status },
-      select: { id: true, email: true, status: true },
+      data: { ...(parsed.data.status ? { status: parsed.data.status } : {}), ...(parsed.data.role ? { role: parsed.data.role } : {}) },
+      select: { id: true, email: true, status: true, role: true },
     });
 
     await logAudit({
@@ -39,8 +43,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       action: "update",
       entityType: "User",
       entityId: id,
-      before: { status: target.status },
-      after: { status: updated.status },
+      before: { status: target.status, role: target.role },
+      after: { status: updated.status, role: updated.role },
     });
 
     if (target.status !== "active" && parsed.data.status === "active") {

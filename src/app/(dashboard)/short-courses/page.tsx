@@ -9,6 +9,7 @@ import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, humanize } from "@/lib/utils";
+import Link from "next/link";
 
 export const metadata = { title: "Short Courses" };
 
@@ -18,6 +19,9 @@ export default async function ShortCoursesPage() {
 
   const [courses, programs] = await Promise.all([listShortCourses(), listPrograms()]);
   const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const courseStats = isSuperAdmin ? await prisma.shortCourseEnrollment.groupBy({ by: ["status"], _count: { _all: true } }) : [];
+  const enrolledCount = courseStats.filter((s) => s.status === "enrolled" || s.status === "completed").reduce((n, s) => n + s._count._all, 0);
+  const pendingCount = courseStats.filter((s) => s.status === "pending_approval" || s.status === "pending_payment").reduce((n, s) => n + s._count._all, 0);
 
   const myEnrollments =
     user.role === "STUDENT"
@@ -39,6 +43,8 @@ export default async function ShortCoursesPage() {
           <ShortCourseForm programs={programs.map((p) => ({ id: p.id, label: `${p.university?.name ?? ""} — ${p.name}` }))} />
         )}
       </div>
+
+      {isSuperAdmin && <div className="grid gap-4 sm:grid-cols-3"><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Active courses</p><p className="mt-1 text-2xl font-bold">{courses.length}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Enrolled students</p><p className="mt-1 text-2xl font-bold">{enrolledCount}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Pending applications/payments</p><p className="mt-1 text-2xl font-bold">{pendingCount}</p></CardContent></Card></div>}
 
       {courses.length === 0 ? (
         <Card>
@@ -86,6 +92,7 @@ export default async function ShortCoursesPage() {
                   </div>
                 </dl>
                 <div className="flex items-center gap-2">
+                  <Link href={`/short-courses/${c.id}`} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50">More Details</Link>
                   {user.role === "STUDENT" && (
 <EnrollButton
   shortCourseId={c.id}

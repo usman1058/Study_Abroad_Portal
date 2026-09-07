@@ -1,0 +1,11 @@
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { ok, fail, requireUser, serverError } from "@/lib/api";
+import { logAudit } from "@/lib/audit";
+
+type Params = { params: Promise<{ id: string }> };
+const updateSchema = z.object({ type: z.enum(["SERVICE_FEE", "COMMISSION_PAYOUT", "DEPOSIT", "REFUND"]).optional(), amount: z.number().positive().optional(), currency: z.string().regex(/^[A-Z]{3}$/).optional(), method: z.string().max(40).nullable().optional(), notes: z.string().max(500).nullable().optional(), date: z.string().optional() });
+
+export async function PATCH(req: NextRequest, { params }: Params) { try { const { id } = await params; const { error, user } = await requireUser(); if (error) return error; if (user.role !== "SUPER_ADMIN") return fail("Only a super admin can edit transactions", 403); const current = await prisma.transaction.findUnique({ where: { id } }); if (!current) return fail("Transaction not found", 404); const parsed = updateSchema.safeParse(await req.json()); if (!parsed.success) return fail("Invalid transaction", 422); const d = parsed.data; const updated = await prisma.transaction.update({ where: { id }, data: { ...d, ...(d.date ? { date: new Date(d.date) } : {}) } }); await logAudit({ actorId: user.id, action: "update", entityType: "Transaction", entityId: id, before: { amount: current.amount.toString(), type: current.type }, after: { amount: updated.amount.toString(), type: updated.type } }); return ok({ id: updated.id }); } catch (e) { return serverError(e); } }
+export async function DELETE(_req: NextRequest, { params }: Params) { try { const { id } = await params; const { error, user } = await requireUser(); if (error) return error; if (user.role !== "SUPER_ADMIN") return fail("Only a super admin can delete transactions", 403); const current = await prisma.transaction.findUnique({ where: { id } }); if (!current) return fail("Transaction not found", 404); await prisma.transaction.delete({ where: { id } }); await logAudit({ actorId: user.id, action: "delete", entityType: "Transaction", entityId: id, before: { amount: current.amount.toString(), type: current.type } }); return ok({ id }); } catch (e) { return serverError(e); } }

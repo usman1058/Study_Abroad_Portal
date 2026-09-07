@@ -12,6 +12,7 @@ import { DeleteButton } from "@/components/delete-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ProgramDetailDialog } from "@/components/program-detail-dialog";
 
 export const metadata = { title: "Scholarships" };
 
@@ -131,12 +132,7 @@ export default async function ScholarshipsPage() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-1">
-                            <Link
-                              href={`/scholarships/${p.slug ?? p.id}`}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/40"
-                            >
-                              <ExternalLink className="h-3 w-3" /> View
-                            </Link>
+                            <ProgramDetailDialog program={{ ...p, tuitionFee: Number(p.tuitionFee), applicationFee: p.applicationFee == null ? null : Number(p.applicationFee), commissionRate: Number(p.commissionRate), university: p.university ? { ...p.university, id: p.university.id } : null }} />
                             <a
                               href={`/api/programs/${p.id}/pdf`}
                               target="_blank"
