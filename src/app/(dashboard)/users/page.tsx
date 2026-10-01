@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { creatableRoles } from "@/lib/permissions";
+import { creatableRoles, studentScopeWhere } from "@/lib/permissions";
 import { ROLE_LABELS } from "@/lib/constants";
 import { UserForm } from "@/components/user-form";
 import { InviteLinkForm } from "@/components/invite-link-form";
@@ -23,8 +23,10 @@ export default async function UsersPage() {
   const allowed = creatableRoles(user.role);
 
   const [counselors, studentsForInvites, inviteLinks, visibleUsers] = await Promise.all([
-    prisma.user.findMany({ where: { role: "COUNSELOR" }, select: { id: true, firstName: true, lastName: true } }),
-    prisma.user.findMany({ where: { role: "STUDENT" }, select: { id: true, firstName: true, lastName: true, email: true } }),
+    ["SUPER_ADMIN", "MANAGER"].includes(user.role)
+      ? prisma.user.findMany({ where: { role: "COUNSELOR" }, select: { id: true, firstName: true, lastName: true } })
+      : Promise.resolve([]),
+    prisma.user.findMany({ where: studentScopeWhere(user), select: { id: true, firstName: true, lastName: true, email: true } }),
     prisma.inviteLink.findMany({
       where: { createdById: user.id },
       orderBy: { createdAt: "desc" },
@@ -136,7 +138,7 @@ export default async function UsersPage() {
                     ) : (
                       <Badge tone="green">Active</Badge>
                     )}
-                    {!l.revoked && <DeleteButton endpoint={`/api/invites/${l.id}/revoke`} confirmText="Revoke this invite link?" label="Revoke" />}
+                    {!l.revoked && <DeleteButton endpoint={`/api/invites/${l.id}`} confirmText="Revoke this invite link?" label="Revoke" />}
                   </div>
                 </li>
               ))}
@@ -159,7 +161,7 @@ async function loadVisibleUsers(user: { id: string; role: string }) {
     return prisma.user.findMany({
       where: {
         OR: [
-          { role: "STUDENT", createdById: user.id },
+          { role: "STUDENT", OR: [{ createdById: user.id }, { createdBy: { parentAgencyId: user.id } }] },
           { role: "AGENCY", parentAgencyId: user.id },
         ],
       },

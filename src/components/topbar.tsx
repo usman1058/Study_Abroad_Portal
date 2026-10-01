@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink } from "lucide-react";
+import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, Menu } from "lucide-react";
 import { useTheme, useLang } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/client";
+import { CurrencySwitcher } from "@/components/currency";
 
-export function Topbar({ role, userName, userEmail }: { role: Role; userName: string; userEmail: string }) {
+export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", onOpenNavigation }: { role: Role; userName: string; userEmail: string; preferredCurrency?: string; onOpenNavigation?: () => void }) {
   const { theme, toggle } = useTheme();
   const { t } = useLang();
   const [unread, setUnread] = useState(0);
@@ -28,16 +29,17 @@ export function Topbar({ role, userName, userEmail }: { role: Role; userName: st
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-900/90">
-      <Link
-        href={role === "STUDENT" ? "/my-applications" : "/home"}
-        className="flex items-center gap-2.5"
-        aria-label="Home"
-      >
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">SA</span>
-        <span className="hidden truncate text-base font-semibold sm:block">{t("StudyAbroad")}</span>
-      </Link>
+      <div className="flex min-w-0 items-center gap-1.5"><button type="button" onClick={onOpenNavigation} className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden" aria-label="Open navigation"><Menu className="h-5 w-5" /></button><Link
+          href={role === "STUDENT" ? "/my-applications" : "/home"}
+          className="flex min-w-0 items-center gap-2.5"
+          aria-label="Home"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">SA</span>
+          <span className="hidden truncate text-base font-semibold sm:block">{t("StudyAbroad")}</span>
+        </Link></div>
 
       <div className="flex items-center gap-2">
+        <div className="hidden xl:block"><CurrencySwitcher defaultCurrency={preferredCurrency} /></div>
         <button
           onClick={toggle}
           className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -47,7 +49,7 @@ export function Topbar({ role, userName, userEmail }: { role: Role; userName: st
         </button>
 
         <div className="relative">
-        <button onClick={() => setOpenNotifications((v) => !v)} className="relative flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notifications">
+        <button type="button" onClick={() => setOpenNotifications((v) => !v)} className="relative flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notifications" aria-expanded={openNotifications} aria-controls="notification-menu">
           <Bell className="h-5 w-5" />
           {unread > 0 && (
             <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
@@ -57,7 +59,7 @@ export function Topbar({ role, userName, userEmail }: { role: Role; userName: st
         </button>
         {openNotifications && <>
           <div className="fixed inset-0 z-40" onClick={() => setOpenNotifications(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+          <div id="notification-menu" className="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800"><div><p className="font-semibold">Notifications</p><p className="text-xs text-slate-500">{unread ? `${unread} unread` : "You're all caught up"}</p></div>{unread > 0 && <button className="text-xs text-brand-600 hover:underline" onClick={async () => { await fetch("/api/notifications", { method: "PUT" }); setNotifications((items) => items.map((n) => ({ ...n, readAt: new Date().toISOString() }))); setUnread(0); }}>Mark all read</button>}</div>
             <div className="max-h-96 overflow-y-auto">{notifications.length === 0 ? <p className="p-6 text-center text-sm text-slate-500">No notifications yet.</p> : notifications.slice(0, 8).map((n) => <button key={n.id} className={cn("flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60", !n.readAt && "bg-brand-50/50 dark:bg-brand-900/10")} onClick={async () => { if (!n.readAt) { await fetch(`/api/notifications/${n.id}`, { method: "PUT" }); setNotifications((items) => items.map((x) => x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)); setUnread((v) => Math.max(0, v - 1)); } if (n.data?.href) window.location.href = n.data.href; }}><span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", n.readAt ? "bg-slate-300" : "bg-brand-600")} /><span className="min-w-0 flex-1"><span className="block text-sm font-medium">{n.title}</span>{n.body && <span className="mt-0.5 block text-xs text-slate-500">{n.body}</span>}<span className="mt-1 block text-[11px] text-slate-400">{new Date(n.createdAt).toLocaleString()}</span></span>{n.data?.href && <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400" />}</button>)}</div>
             <Link href="/messages" onClick={() => setOpenNotifications(false)} className="flex items-center justify-center gap-2 p-3 text-xs font-medium text-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800"><CheckCheck className="h-3.5 w-3.5" /> Open message center</Link>

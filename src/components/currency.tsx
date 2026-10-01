@@ -8,11 +8,12 @@ import { Select } from "@/components/ui/select";
 // Module-level pub-sub so every FeeDisplay re-renders when CurrencySwitcher changes.
 const currencyListeners = new Set<() => void>();
 
-function useCurrency() {
+function useCurrency(defaultCurrency = "MYR") {
   const [currency, setCurrency] = useState("MYR");
   useEffect(() => {
     const stored = localStorage.getItem("currency");
     if (stored && CURRENCY_RATES_TO_MYR[stored]) setCurrency(stored);
+    else if (CURRENCY_RATES_TO_MYR[defaultCurrency]) setCurrency(defaultCurrency);
 
     const sync = () => {
       const next = localStorage.getItem("currency") ?? "MYR";
@@ -24,7 +25,7 @@ function useCurrency() {
       currencyListeners.delete(sync);
       window.removeEventListener("storage", sync);
     };
-  }, []);
+  }, [defaultCurrency]);
   const apply = (c: string) => {
     localStorage.setItem("currency", c);
     setCurrency(c);
@@ -43,8 +44,8 @@ export function FeeDisplay({ amount, baseCurrency = "MYR" }: { amount: number; b
   );
 }
 
-export function CurrencySwitcher() {
-  const { currency, apply } = useCurrency();
+export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?: string }) {
+  const { currency, apply } = useCurrency(defaultCurrency);
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-slate-500">Currency</span>

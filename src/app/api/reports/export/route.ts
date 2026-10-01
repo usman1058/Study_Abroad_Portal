@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/api";
+import { studentScopeWhere } from "@/lib/permissions";
 
 // CSV export of student + application data for agency managers.
 export async function GET(req: NextRequest) {
@@ -10,11 +11,9 @@ export async function GET(req: NextRequest) {
     if (user.role === "STUDENT") return new Response("Forbidden", { status: 403 });
 
     const where =
-      user.role === "COUNSELOR"
-        ? { student: { assignedCounselorId: user.id } }
-        : user.role === "AGENCY"
-          ? { student: { createdById: user.id } }
-          : {};
+      user.role === "SUPER_ADMIN" || user.role === "MANAGER"
+        ? {}
+        : { student: studentScopeWhere(user) };
 
     const applications = await prisma.application.findMany({
       where,

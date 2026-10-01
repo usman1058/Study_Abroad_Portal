@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { studentScopeWhere } from "@/lib/permissions";
 import { TransactionForm } from "@/components/transaction-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,12 +15,19 @@ export default async function TransactionsPage() {
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
 
+  const studentScope = studentScopeWhere(user);
   const where =
     user.role === "AGENCY"
-      ? { OR: [{ relatedAgencyId: user.id }, { relatedStudent: { createdById: user.id } }] }
+      ? { OR: [{ relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }, { relatedStudent: studentScope }] }
+      : user.role === "SUPER_ADMIN" || user.role === "MANAGER"
+        ? {}
+        : { relatedStudent: studentScope };
+  const agenciesWhere =
+    user.role === "AGENCY"
+      ? { OR: [{ id: user.id }, { parentAgencyId: user.id }] }
       : user.role === "COUNSELOR"
-        ? { relatedStudent: { assignedCounselorId: user.id } }
-        : {};
+        ? { id: { in: [] as string[] } }
+        : { role: "AGENCY" as const };
 
   const [transactions, students, agencies] = await Promise.all([
     prisma.transaction.findMany({
@@ -32,16 +40,17 @@ export default async function TransactionsPage() {
         enteredBy: { select: { firstName: true, lastName: true } },
       },
     }),
-    prisma.user.findMany({ where: { role: "STUDENT" }, select: { id: true, firstName: true, lastName: true } }),
-    prisma.user.findMany({ where: { role: "AGENCY" }, select: { id: true, firstName: true, lastName: true, companyName: true } }),
+    prisma.user.findMany({ where: studentScope, select: { id: true, firstName: true, lastName: true } }),
+    prisma.user.findMany({ where: agenciesWhere, select: { id: true, firstName: true, lastName: true, companyName: true } }),
   ]);
 
   const totals = transactions.reduce(
     (acc, t) => {
-      acc[t.type] = (acc[t.type] ?? 0) + toNum(t.amount);
+      const key = `${t.type}:${t.currency}`;
+      acc[key] = (acc[key] ?? 0) + toNum(t.amount);
       return acc;
     },
-    {} as Record<TransactionType, number>
+    {} as Record<string, number>
   );
 
   return (
@@ -58,14 +67,15 @@ export default async function TransactionsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Object.entries(totals).map(([type, amount]) => (
-          <Card key={type}>
+        {Object.entries(totals).map(([key, amount]) => {
+          const [type, currency] = key.split(":");
+          return <Card key={key}>
             <CardContent className="p-5">
               <p className="text-xs capitalize text-slate-500">{type.replace(/_/g, " ")}</p>
-              <p className="mt-1 text-lg font-bold">{formatCurrency(amount)}</p>
+              <p className="mt-1 text-lg font-bold">{formatCurrency(amount, currency)}</p>
             </CardContent>
-          </Card>
-        ))}
+          </Card>;
+        })}
       </div>
 
       <Card>

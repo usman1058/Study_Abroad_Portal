@@ -29,14 +29,39 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const { error, user } = await requireUser();
+    if (error) return error;
+
     const course = await prisma.shortCourse.findUnique({
       where: { id },
-      include: {
-        linkedProgram: { include: { university: true } },
-        enrollments: { include: { student: true } },
-      },
+      include: { linkedProgram: { include: { university: true } } },
     });
     if (!course) return fail("Course not found", 404);
+
+    // An enrollment roster is personal data. Only the portal owner receives a
+    // minimal roster; a student receives only their own enrollment status.
+    if (user.role === "SUPER_ADMIN") {
+      const enrollments = await prisma.shortCourseEnrollment.findMany({
+        where: { shortCourseId: id },
+        select: {
+          id: true,
+          status: true,
+          enrolledAt: true,
+          approvedAt: true,
+          student: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+      });
+      return ok({ ...course, enrollments });
+    }
+
+    if (user.role === "STUDENT") {
+      const enrollment = await prisma.shortCourseEnrollment.findUnique({
+        where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
+        select: { id: true, status: true, enrolledAt: true, approvedAt: true },
+      });
+      return ok({ ...course, enrollment });
+    }
+
     return ok(course);
   } catch (e) {
     return serverError(e);

@@ -23,3 +23,7 @@ export async function PUT(_req: NextRequest, { params }: Params) {
     return serverError(e);
   }
 }
+
+export async function DELETE(req: NextRequest, context: Params) {
+  return PUT(req, context);
+}

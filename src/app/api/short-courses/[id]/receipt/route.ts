@@ -10,7 +10,14 @@ const uploadSchema = z.object({
   base64: z.string().min(1),
 });
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_BYTES = 5 * 1024 * 1024;
+
+function dataUrlByteLength(value: string): number {
+  const payload = value.split(",", 2)[1];
+  if (!payload) return 0;
+  const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+  return Math.floor((payload.length * 3) / 4) - padding;
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -33,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { fileName, base64 } = parsed.data;
 
-    if (base64.length > MAX_BYTES) return fail("File is too large (max 10MB)", 413);
+    if (dataUrlByteLength(base64) > MAX_BYTES) return fail("File is too large (max 5 MB)", 413);
 
     const mime = detectMimeFromBase64(base64);
     if (!mime || !isAllowedMimeType(mime)) {
@@ -43,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const updated = await prisma.shortCourseEnrollment.update({
       where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
       data: {
-        fileUrl: base64,
+        receiptUrl: base64,
         status: "pending_approval",
       },
       select: { id: true },

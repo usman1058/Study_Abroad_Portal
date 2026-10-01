@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { optionalText } from "@/lib/validation";
+import { CURRENCIES } from "@/lib/constants";
 
 const profileSchema = z.object({
   userTitle: optionalText(10),
@@ -19,10 +20,9 @@ const profileSchema = z.object({
   address: optionalText(300),
   motherName: optionalText(80),
   fatherName: optionalText(80),
-  preferredCurrency: z.string().length(3).optional(),
+  preferredCurrency: z.enum(CURRENCIES).optional(),
   companyName: optionalText(160),
   licenseNumber: optionalText(60),
-  assignedCounselorId: z.string().max(64).optional().nullable(),
   educationHistory: z
     .array(
       z.object({
@@ -50,12 +50,6 @@ export async function PUT(req: NextRequest) {
 
     const data = parsed.data;
 
-    // Only staff may reassign the counselor on a student they own.
-    if (data.assignedCounselorId !== undefined) {
-      const allowed = user.role !== "STUDENT";
-      if (!allowed) return fail("Students cannot assign counselors", 403);
-    }
-
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -76,7 +70,6 @@ export async function PUT(req: NextRequest) {
         ...(data.preferredCurrency !== undefined ? { preferredCurrency: data.preferredCurrency } : {}),
         ...(data.companyName !== undefined ? { companyName: data.companyName } : {}),
         ...(data.licenseNumber !== undefined ? { licenseNumber: data.licenseNumber } : {}),
-        ...(data.assignedCounselorId !== undefined ? { assignedCounselorId: data.assignedCounselorId } : {}),
         ...(data.educationHistory !== undefined
           ? { educationHistory: data.educationHistory ?? [] }
           : {}),

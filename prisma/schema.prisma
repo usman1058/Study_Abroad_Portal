@@ -128,6 +128,7 @@ model User {
   createdInviteLinks      InviteLink[]        @relation("CreatedInviteLinks")
   scopedStudentInvites    InviteLink[]        @relation("ScopedStudentInvites")
   visitorLeads            VisitorLead[]
+  dashboardAdvertisements DashboardAdvertisement[] @relation("DashboardAdvertisementCreator")
 
   agencyPermissionsGiven    AgencyPermission[] @relation("PermissionGrantor")
   agencyPermissionsReceived AgencyPermission[] @relation("PermissionReceiver")
@@ -438,4 +439,25 @@ model VisitorLead {
   createdAt         DateTime           @default(now())
 
   @@index([status])
+}
+
+// Admin-managed promotional content displayed on the main admin dashboard.
+model DashboardAdvertisement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String?
+  imageUrl    String?
+  linkUrl     String?
+  ctaLabel    String?  @default("Learn more")
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdById String
+  createdBy   User     @relation("DashboardAdvertisementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+  @@index([startsAt, endsAt])
 }

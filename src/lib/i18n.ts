@@ -1,13 +1,10 @@
 export const LANGS = [
   { code: "en", label: "English" },
-  { code: "ar", label: "العربية" },
-  { code: "zh", label: "中文" },
-  { code: "fr", label: "Français" },
 ] as const;
 
 export type LangCode = (typeof LANGS)[number]["code"];
 
-const DICT: Record<string, Record<LangCode, string>> = {
+const DICT: Record<string, Record<string, string>> = {
   "Home": { en: "Home", ar: "الرئيسية", zh: "首页", fr: "Accueil" },
   "My Applications": { en: "My Applications", ar: "طلباتي", zh: "我的申请", fr: "Mes candidatures" },
   "Apply Application": { en: "Apply Application", ar: "تقديم طلب", zh: "申请入学", fr: "Postuler" },
@@ -45,5 +42,5 @@ export function translate(lang: LangCode, key: string): string {
 }
 
 export function dirForLang(lang: LangCode): "ltr" | "rtl" {
-  return lang === "ar" ? "rtl" : "ltr";
+  return "ltr";
 }

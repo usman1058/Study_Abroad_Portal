@@ -12,6 +12,34 @@ const verifySchema = z.object({
   reason: z.string().optional().nullable(),
 });
 
+export async function GET(_req: NextRequest, { params }: Params) {
+  try {
+    const { id } = await params;
+    const { error, user } = await requireUser();
+    if (error) return error;
+
+    const doc = await prisma.document.findUnique({ where: { id }, include: { owner: true } });
+    if (!doc) return fail("Document not found", 404);
+    if (user.role === "STUDENT") {
+      if (doc.ownerId !== user.id) return fail("Forbidden", 403);
+    } else if (!(await canAccessStudent(user, doc.owner))) {
+      return fail("Forbidden", 403);
+    }
+
+    const match = /^data:([^;]+);base64,(.+)$/.exec(doc.fileUrl);
+    if (!match) return Response.redirect(doc.fileUrl, 302);
+    return new Response(Buffer.from(match[2], "base64"), {
+      headers: {
+        "Content-Type": match[1],
+        "Content-Disposition": `inline; filename="${doc.type.toLowerCase()}-document"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (e) {
+    return serverError(e);
+  }
+}
+
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;

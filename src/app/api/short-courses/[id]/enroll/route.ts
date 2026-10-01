@@ -11,6 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const { error, user } = await requireUser();
     if (error) return error;
+    if (user.role !== "STUDENT") return fail("Only students can enroll in short courses", 403);
 
     const course = await prisma.shortCourse.findUnique({
       where: { id },
@@ -49,6 +50,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const { error, user } = await requireUser();
     if (error) return error;
+    if (user.role !== "STUDENT") return fail("Only students can withdraw from short courses", 403);
 
     const enrollment = await prisma.shortCourseEnrollment.findUnique({
       where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },

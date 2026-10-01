@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { creatableRoles, canManageUser } from "@/lib/permissions";
+import { creatableRoles, canManageUser, studentScopeWhere } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
@@ -47,6 +47,14 @@ export async function POST(req: NextRequest) {
     // Target must be below the actor in the hierarchy.
     if (!canManageUser(actor, { id: "placeholder", role: data.role })) {
       return fail("You cannot create this role", 403);
+    }
+
+    if (data.assignedCounselorId) {
+      if (data.role !== "STUDENT") return fail("Only students can have an assigned counselor", 422);
+      const counselor = await prisma.user.findUnique({ where: { id: data.assignedCounselorId }, select: { id: true, role: true } });
+      if (!counselor || counselor.role !== "COUNSELOR") return fail("Invalid counselor", 422);
+      if (actor.role === "COUNSELOR" && counselor.id !== actor.id) return fail("Counselors may only assign students to themselves", 403);
+      if (actor.role === "AGENCY") return fail("Agencies cannot assign an unrelated counselor", 403);
     }
 
     // Agencies always create sub-agencies beneath themselves.
@@ -101,8 +109,8 @@ export async function GET(req: NextRequest) {
         : user.role === "MANAGER"
           ? { role: { not: "SUPER_ADMIN" as const } }
           : user.role === "AGENCY"
-            ? { OR: [{ role: "STUDENT" as const, createdById: user.id }, { role: "AGENCY" as const, parentAgencyId: user.id }] }
-            : { role: "STUDENT" as const, assignedCounselorId: user.id };
+            ? { OR: [studentScopeWhere(user), { role: "AGENCY" as const, parentAgencyId: user.id }] }
+            : studentScopeWhere(user);
 
     const baseQuery = {
       where,

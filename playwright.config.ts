@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = Number(process.env.PORT ?? 3000);
+const PORT = Number(process.env.PORT ?? 3100);
 const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
@@ -8,7 +8,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 1,
-  workers: process.env.CI ? 1 : 3,
+  // The suite mutates shared fixtures in one database, so parallel workers can
+  // race each other and exhaust a hosted connection pool. Opt in explicitly
+  // when the test environment provides isolated data per worker.
+  workers: Number(process.env.PLAYWRIGHT_WORKERS ?? 1),
   reporter: process.env.CI ? [["html", { open: "never" }], ["list"]] : [["list"]],
   expect: { timeout: 10_000 },
   timeout: 60_000,
@@ -56,7 +59,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm start",
+    command: `pnpm exec next start --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

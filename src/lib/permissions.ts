@@ -1,4 +1,4 @@
-import type { Role, User } from "@/generated/prisma/client";
+import type { Prisma, Role, User } from "@/generated/prisma/client";
 import { ROLE_RANK } from "@/lib/constants";
 import { prisma } from "@/lib/db";
 
@@ -54,6 +54,18 @@ export function canManageUser(actor: Pick<User, "id" | "role">, target: Pick<Use
   return ROLE_RANK[actor.role] > ROLE_RANK[target.role];
 }
 
+/** Scope-aware management check for an existing account. */
+export async function canManageExistingUser(
+  actor: Pick<User, "id" | "role">,
+  target: Pick<User, "id" | "role" | "parentAgencyId" | "createdById" | "assignedCounselorId">
+): Promise<boolean> {
+  if (target.role === "SUPER_ADMIN") return false;
+  if (actor.role === "SUPER_ADMIN") return true;
+  if (actor.role === "MANAGER") return canManageUser(actor, target);
+  if (target.role === "STUDENT") return canAccessStudent(actor, target);
+  return actor.role === "AGENCY" && target.role === "AGENCY" && target.parentAgencyId === actor.id;
+}
+
 /**
  * Which roles may `actor` create? (used to build the "create user" form options)
  */
@@ -100,6 +112,19 @@ export async function canAccessStudent(
     }
   }
   return false;
+}
+
+/** Reusable Prisma scope for list and report queries involving students. */
+export function studentScopeWhere(actor: Pick<User, "id" | "role">): Prisma.UserWhereInput {
+  if (actor.role === "SUPER_ADMIN" || actor.role === "MANAGER") return { role: "STUDENT" };
+  if (actor.role === "COUNSELOR") return { role: "STUDENT", assignedCounselorId: actor.id };
+  if (actor.role === "AGENCY") {
+    return {
+      role: "STUDENT",
+      OR: [{ createdById: actor.id }, { createdBy: { parentAgencyId: actor.id } }],
+    };
+  }
+  return { role: "STUDENT", id: actor.id };
 }
 
 export function isPartnerRole(role: Role): boolean {

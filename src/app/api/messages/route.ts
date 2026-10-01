@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
     // Student -> staff message
     if (user.role === "STUDENT") {
       if (recipient.role === "STUDENT") return fail("Students can only message agency staff", 403);
+      const student = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { assignedCounselorId: true, createdById: true },
+      });
+      if (!student || ![student.assignedCounselorId, student.createdById].includes(recipientId)) {
+        return fail("You can only message your assigned agency contact", 403);
+      }
     } else {
       // staff -> student (must have access); staff -> staff allowed for collaboration
       if (recipient.role === "STUDENT") {

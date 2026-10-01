@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { DocumentType } from "@/generated/prisma/client";
+import { studentScopeWhere } from "@/lib/permissions";
 
 const uploadSchema = z.object({
   type: z.nativeEnum(DocumentType),
@@ -14,12 +15,19 @@ const uploadSchema = z.object({
   expiresAt: z.string().optional().nullable(),
 });
 
-const MAX_BYTES = 10 * 1024 * 1024; // ~10MB
+const MAX_BYTES = 5 * 1024 * 1024;
+
+function dataUrlByteLength(value: string): number {
+  const payload = value.split(",", 2)[1];
+  if (!payload) return 0;
+  const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+  return Math.floor((payload.length * 3) / 4) - padding;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (contentLength > 5_500_000) return fail("File is too large (max 3 MB)", 413);
+    if (contentLength > 7_100_000) return fail("File is too large (max 5 MB)", 413);
 
     const { error, user } = await requireUser();
     if (error) return error;
@@ -31,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     const { type, base64, applicationId, expiresAt } = parsed.data;
 
-    if (base64.length > MAX_BYTES) return fail("File is too large (max 10MB)", 413);
+    if (dataUrlByteLength(base64) > MAX_BYTES) return fail("File is too large (max 5 MB)", 413);
 
     const mime = detectMimeFromBase64(base64);
     if (!mime || !isAllowedMimeType(mime)) {
@@ -77,14 +85,21 @@ export async function GET(req: NextRequest) {
     const where =
       user.role === "STUDENT"
         ? { ownerId: user.id }
-        : user.role === "COUNSELOR"
-          ? { owner: { assignedCounselorId: user.id } }
-          : {};
+        : { owner: studentScopeWhere(user) };
 
     const baseQuery = {
       where,
       orderBy: { uploadedAt: "desc" as const },
-      include: { owner: { select: { firstName: true, lastName: true } } },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        rejectionReason: true,
+        expiresAt: true,
+        uploadedAt: true,
+        applicationId: true,
+        owner: { select: { firstName: true, lastName: true } },
+      },
     };
 
     const query = buildPaginatedQuery(baseQuery, { cursor, limit });

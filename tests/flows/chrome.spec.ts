@@ -15,28 +15,11 @@ test.describe("App shell: every persistent control works", () => {
     await expect(html).not.toHaveClass(/dark/);
   });
 
-  test("language switcher translates sidebar labels and sets dir/lang", async ({ page }) => {
+  test("notification control opens its panel and message-center link works", async ({ page }) => {
     await page.goto("/home");
-    const html = page.locator("html");
-
-    await page.getByRole("button", { name: "Change language" }).click();
-    const menu = page.getByRole("button", { name: "Français" });
-    await expect(menu).toBeVisible();
-    await menu.click();
-
-    await expect(html).toHaveAttribute("lang", "fr");
-    await expect(page.locator("aside nav").getByRole("link", { name: "Accueil" })).toBeVisible();
-
-    // switch back via the same control
-    await page.getByRole("button", { name: "Change language" }).click();
-    await page.getByRole("button", { name: "English", exact: true }).click();
-    await expect(html).toHaveAttribute("lang", "en");
-    await expect(page.locator("aside nav").getByRole("link", { name: "Home" })).toBeVisible();
-  });
-
-  test("bell icon navigates to messages", async ({ page }) => {
-    await page.goto("/home");
-    await page.getByRole("link", { name: "Messages and notifications" }).click();
+    await page.getByRole("button", { name: "Notifications" }).click();
+    await expect(page.getByText("Notifications", { exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Open message center" }).click();
     await expect(page).toHaveURL(/\/messages$/);
     await expect(page.getByRole("heading", { level: 1, name: "Messages" })).toBeVisible();
   });
@@ -63,7 +46,7 @@ test.describe("App shell: every persistent control works", () => {
 
   test("WhatsApp quick launch has a wa.me target", async ({ page }) => {
     await page.goto("/home");
-    await expect(page.locator("aside").getByRole("link", { name: /WhatsApp quick launch/ })).toHaveAttribute(
+    await expect(page.getByRole("complementary", { name: "Main navigation" }).getByRole("link", { name: /WhatsApp quick launch/ })).toHaveAttribute(
       "href",
       /^https:\/\/wa\.me\//,
     );
@@ -71,7 +54,7 @@ test.describe("App shell: every persistent control works", () => {
 
   test("sidebar marks the active section", async ({ page }) => {
     await page.goto("/users");
-    const usersLink = page.locator("aside nav").getByRole("link", { name: "Users" });
+    const usersLink = page.getByRole("complementary", { name: "Main navigation" }).getByRole("link", { name: "Users" });
     await expect(usersLink).toHaveClass(/bg-brand-50/);
   });
 

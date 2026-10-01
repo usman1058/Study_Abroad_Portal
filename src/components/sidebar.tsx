@@ -32,7 +32,6 @@ import { ROLE_LABELS } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/providers";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { SidebarUserCreate } from "@/components/sidebar-user-create";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -65,14 +64,18 @@ export function Sidebar({
   userName,
   allowedRoles,
   counselors,
-}: { sections: Section[]; role: Role; userName: string; allowedRoles: Role[]; counselors: { id: string; label: string }[] }) {
+  mobileOpen = false,
+  onClose,
+}: { sections: Section[]; role: Role; userName: string; allowedRoles: Role[]; counselors: { id: string; label: string }[]; mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { t } = useLang();
 
   const isPartner = role !== "STUDENT";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <>
+      {mobileOpen && <button type="button" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={onClose} aria-label="Close navigation" />}
+      <aside aria-label="Main navigation" className={cn("fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 lg:z-40 lg:translate-x-0", mobileOpen && "translate-x-0")}>
       <div className="h-16 border-b border-slate-200 dark:border-slate-800" aria-hidden />
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
@@ -83,6 +86,7 @@ export function Sidebar({
             <Link
               key={section.key}
               href={section.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
                 active
@@ -101,7 +105,6 @@ export function Sidebar({
         {isPartner && (
           <SidebarUserCreate allowedRoles={allowedRoles} counselors={counselors} />
         )}
-        <LanguageSwitcher />
         {role !== "STUDENT" && (
           <a
             href="https://wa.me/?text=StudyAbroad%20Portal"
@@ -122,6 +125,7 @@ export function Sidebar({
           </span>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

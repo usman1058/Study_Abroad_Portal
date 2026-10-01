@@ -16,7 +16,13 @@ export default async function DocumentsPage() {
   const students = await prisma.user.findMany({
     where: { role: "STUDENT", documents: { some: {} } },
     include: {
-      documents: { include: { application: { include: { program: true } } }, orderBy: { uploadedAt: "desc" } },
+      documents: {
+        select: {
+          id: true, type: true, status: true, rejectionReason: true, expiresAt: true, uploadedAt: true,
+          application: { include: { program: true } },
+        },
+        orderBy: { uploadedAt: "desc" },
+      },
       applications: { include: { program: true } },
     },
     orderBy: { createdAt: "desc" },
@@ -62,7 +68,7 @@ export default async function DocumentsPage() {
                         {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}
                         {d.expiresAt && <span> · expires {formatDate(d.expiresAt)}</span>}
                       </p>
-                      <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">Open file</a>
+                      <a href={`/api/documents/${d.id}`} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">Open file</a>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge tone={d.status === "VERIFIED" ? "green" : d.status === "REJECTED" ? "red" : "amber"}>{d.status}</Badge>

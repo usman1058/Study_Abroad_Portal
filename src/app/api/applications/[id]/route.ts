@@ -17,6 +17,29 @@ const updateSchema = z.object({
 // Stages that require all documents to be verified before proceeding.
 const DOC_GATED_STAGES: ApplicationStage[] = ["OFFER", "DEPOSIT_PAID", "VISA", "ENROLLED"];
 
+const ALLOWED_TRANSITIONS: Record<ApplicationStage, ApplicationStage[]> = {
+  DRAFT: ["SUBMITTED", "WITHDRAWN"],
+  SUBMITTED: ["UNDER_REVIEW", "REJECTED", "WITHDRAWN"],
+  UNDER_REVIEW: ["OFFER", "REJECTED", "WITHDRAWN"],
+  OFFER: ["DEPOSIT_PAID", "REJECTED", "WITHDRAWN"],
+  DEPOSIT_PAID: ["VISA", "WITHDRAWN"],
+  VISA: ["ENROLLED", "REJECTED", "WITHDRAWN"],
+  ENROLLED: [],
+  REJECTED: [],
+  WITHDRAWN: [],
+};
+
+function documentMatchesRequirement(type: string, requirement: string): boolean {
+  const normalized = requirement.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const aliases: Record<string, string[]> = {
+    PASSPORT: ["passport"], DIPLOMA: ["diploma", "degree", "certificate"],
+    TRANSCRIPT: ["transcript", "academic record"], SOP: ["sop", "statement of purpose", "personal statement"],
+    IELTS: ["ielts", "english test", "english language"], FINANCIAL: ["financial", "bank statement"],
+    RECOMMENDATION: ["recommendation", "reference"], OTHER: [],
+  };
+  return aliases[type]?.some((alias) => normalized.includes(alias)) ?? false;
+}
+
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
@@ -39,12 +62,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { stage, visaStage } = parsed.data;
     const before = application.stage;
 
+    if (stage !== before && !ALLOWED_TRANSITIONS[before].includes(stage)) {
+      return fail(`Cannot move an application from ${before.replace(/_/g, " ")} to ${stage.replace(/_/g, " ")}`, 422);
+    }
+
     // Document verification gate (§4): cannot progress to offer/deposit/visa/enrolled
     // while any document is pending or rejected.
     if (DOC_GATED_STAGES.includes(stage)) {
+      if (application.documents.length === 0) {
+        return fail("At least one verified document is required before this stage", 422);
+      }
       const hasUnverified = application.documents.some((d) => d.status !== "VERIFIED");
       if (hasUnverified) {
         return fail("All documents must be verified before this stage", 422);
+      }
+      const missingRequirements = application.program.requiredDocuments.filter(
+        (requirement) => !application.documents.some((doc) => documentMatchesRequirement(doc.type, requirement))
+      );
+      if (missingRequirements.length > 0) {
+        return fail(`Missing verified required documents: ${missingRequirements.join(", ")}`, 422);
       }
     }
 
@@ -83,7 +119,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
     const application = await prisma.application.findUnique({
       where: { id },
-      include: { student: true, program: { include: { university: true } }, documents: true },
+      include: {
+        student: {
+          select: {
+            id: true, role: true, email: true, firstName: true, lastName: true, phone: true, country: true,
+            passportNumber: true, nationality: true, countryOfResidence: true, assignedCounselorId: true, createdById: true, parentAgencyId: true,
+          },
+        },
+        program: { include: { university: true } },
+        documents: { select: { id: true, type: true, status: true, rejectionReason: true, expiresAt: true, uploadedAt: true, applicationId: true } },
+      },
     });
     if (!application) return fail("Application not found", 404);
 

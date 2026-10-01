@@ -13,11 +13,13 @@ import {
 } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { studentScopeWhere } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS } from "@/lib/constants";
-import { formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, toNum } from "@/lib/utils";
 import type { ApplicationStage } from "@/generated/prisma/client";
+import { DashboardAdRail } from "@/components/dashboard-ad-rail";
 
 export const metadata = { title: "Home" };
 
@@ -29,16 +31,11 @@ export default async function HomePage() {
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const studentScope =
-    user.role === "COUNSELOR"
-      ? { assignedCounselorId: user.id }
-      : user.role === "AGENCY"
-        ? { createdById: user.id }
-        : {};
+  const studentScope = studentScopeWhere(user);
 
-  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me, totalStudents, activePrograms, courseEnrollments, revenueTransactions] =
+  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me, totalStudents, activePrograms, courseEnrollments, revenueTransactions, advertisements] =
     await Promise.all([
-      prisma.user.count({ where: { role: "STUDENT", createdAt: { gte: weekAgo }, ...studentScope } }),
+      prisma.user.count({ where: { ...studentScope, createdAt: { gte: weekAgo } } }),
       prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
       prisma.document.count({ where: { status: "PENDING", owner: { role: "STUDENT", ...studentScope } } }),
       prisma.application.count({ where: { stage: "VISA", student: studentScope } }),
@@ -62,13 +59,25 @@ export default async function HomePage() {
         where: { id: user.id },
         select: { email: true, phone: true, companyName: true, country: true },
       }),
-      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.user.count({ where: studentScope }),
       prisma.program.count(),
       prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
-      prisma.transaction.findMany({ where: { type: { not: "REFUND" } }, select: { amount: true }, take: 1000 }),
+      prisma.transaction.findMany({ where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, select: { amount: true, currency: true }, take: 1000 }),
+      user.role === "SUPER_ADMIN"
+        ? prisma.dashboardAdvertisement.findMany({
+            select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+          })
+        : Promise.resolve([]),
     ]);
 
-  const trendRows = await prisma.application.findMany({ select: { createdAt: true }, orderBy: { createdAt: "asc" }, take: 1000 });
+  const revenueByCurrency = revenueTransactions.reduce<Record<string, number>>((totals, transaction) => {
+    totals[transaction.currency] = (totals[transaction.currency] ?? 0) + toNum(transaction.amount);
+    return totals;
+  }, {});
+  const revenueSummary = Object.entries(revenueByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(" · ") || "—";
+
+  const trendRows = await prisma.application.findMany({ where: { student: studentScope }, select: { createdAt: true }, orderBy: { createdAt: "asc" }, take: 1000 });
   const trend = Array.from({ length: 6 }, (_, index) => {
     const date = new Date();
     date.setMonth(date.getMonth() - (5 - index), 1);
@@ -144,11 +153,14 @@ export default async function HomePage() {
           <AdminMetric label="Total students" value={totalStudents} hint="All registered students" />
           <AdminMetric label="Active programs" value={activePrograms} hint="Catalog availability" />
           <AdminMetric label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" />
-          <AdminMetric label="Recorded revenue" value={`MYR ${revenueTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0).toLocaleString()}`} hint="Excluding refunds" />
+          <AdminMetric label="Recorded revenue" value={revenueSummary} hint="Excluding refunds; grouped by currency" />
         </div>
-        <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Application trend</CardTitle><Activity className="h-5 w-5 text-brand-600" /></CardHeader><CardContent><TrendChart points={trend} /><div className="mt-5 grid grid-cols-2 gap-3"><Link href="/application" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><Clock3 className="mb-2 h-4 w-4 text-brand-600" />Review pipeline</Link><Link href="/documents" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><ShieldCheck className="mb-2 h-4 w-4 text-amber-600" />Verify documents</Link></div></CardContent></Card>
-          <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
+          <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Application trend</CardTitle><Activity className="h-5 w-5 text-brand-600" /></CardHeader><CardContent><TrendChart points={trend} /><div className="mt-5 grid grid-cols-2 gap-3"><Link href="/application" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><Clock3 className="mb-2 h-4 w-4 text-brand-600" />Review pipeline</Link><Link href="/documents" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><ShieldCheck className="mb-2 h-4 w-4 text-amber-600" />Verify documents</Link></div></CardContent></Card>
+            <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
+          </div>
+          <DashboardAdRail ads={advertisements} canManage />
         </div>
       </>}
 

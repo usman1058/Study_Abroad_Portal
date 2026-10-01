@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { studentScopeWhere } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, fullName, toNum } from "@/lib/utils";
@@ -34,7 +35,11 @@ export default async function PaymentsPage() {
         enteredBy: { select: { id: true, firstName: true, lastName: true } },
       },
     });
-    const total = transactions.reduce((s, t) => s + toNum(t.amount), 0);
+    const totalByCurrency = transactions.reduce<Record<string, number>>((totals, transaction) => {
+      totals[transaction.currency] = (totals[transaction.currency] ?? 0) + (transaction.type === "REFUND" ? -toNum(transaction.amount) : toNum(transaction.amount));
+      return totals;
+    }, {});
+    const total = Object.entries(totalByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(" · ") || "—";
 
     return (
       <div className="space-y-6">
@@ -49,7 +54,7 @@ export default async function PaymentsPage() {
           <Card>
             <CardContent className="p-5">
               <p className="text-xs text-slate-500">Total recorded</p>
-              <p className="mt-1 text-2xl font-bold">{formatCurrency(total)}</p>
+              <p className="mt-1 text-xl font-bold">{total}</p>
             </CardContent>
           </Card>
           <Card>
@@ -60,10 +65,8 @@ export default async function PaymentsPage() {
           </Card>
           <Card>
             <CardContent className="p-5">
-              <p className="text-xs text-slate-500">Balance due (est.)</p>
-              <p className="mt-1 text-2xl font-bold text-amber-600">
-                {formatCurrency(transactions.reduce((s, t) => s + (t.type === "REFUND" ? -toNum(t.amount) : 0), total))}
-              </p>
+              <p className="text-xs text-slate-500">Net recorded</p>
+              <p className="mt-1 text-sm font-medium text-amber-600">Invoice balances are not recorded in this portal.</p>
             </CardContent>
           </Card>
         </div>
@@ -115,12 +118,13 @@ export default async function PaymentsPage() {
   }
 
   // Partner view — payments scoped to the actor's hierarchy.
+  const studentScope = studentScopeWhere(user);
   const where =
     user.role === "AGENCY"
-      ? { OR: [{ relatedStudent: { createdById: user.id } }, { relatedAgencyId: user.id }] }
-      : user.role === "COUNSELOR"
-        ? { relatedStudent: { assignedCounselorId: user.id } }
-        : {};
+      ? { OR: [{ relatedStudent: studentScope }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+      : user.role === "SUPER_ADMIN" || user.role === "MANAGER"
+        ? {}
+        : { relatedStudent: studentScope };
   const transactions = await prisma.transaction.findMany({
     where,
     orderBy: { date: "desc" },

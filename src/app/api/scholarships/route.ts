@@ -40,8 +40,12 @@ async function resolveUniversity(data: z.infer<typeof programSchema>) {
     });
     return u.id;
   }
-  if (data.universityId) return data.universityId;
-  throw new Error("University is required");
+  if (data.universityId) {
+    const university = await prisma.university.findUnique({ where: { id: data.universityId }, select: { id: true } });
+    if (university) return university.id;
+    return null;
+  }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
@@ -56,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     const data = parsed.data;
     const universityId = await resolveUniversity(data);
+    if (!universityId) return fail("A valid university is required", 422);
 
     const universityName =
       data.newUniversity && data.newUniversityName

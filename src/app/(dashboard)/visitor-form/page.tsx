@@ -14,7 +14,11 @@ export default async function VisitorFormPage() {
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
 
-  const leads = await prisma.visitorLead.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+  const leads = await prisma.visitorLead.findMany({
+    where: ["SUPER_ADMIN", "MANAGER"].includes(user.role) ? {} : { createdById: user.id },
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
 
   return (
     <div className="space-y-6">

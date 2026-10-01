@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canAccessStudent } from "@/lib/permissions";
+import { canAccessStudent, studentScopeWhere } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { TransactionType } from "@/generated/prisma/client";
@@ -45,6 +45,19 @@ export async function POST(req: NextRequest) {
       if (!(await canAccessStudent(user, student))) return fail("You do not have access to this student", 403);
     }
 
+    if (data.relatedApplicationId) {
+      const application = await prisma.application.findUnique({
+        where: { id: data.relatedApplicationId },
+        select: { studentId: true },
+      });
+      if (!application) return fail("Invalid application", 404);
+      if (data.relatedStudentId && application.studentId !== data.relatedStudentId) {
+        return fail("The application does not belong to the selected student", 422);
+      }
+      const student = await prisma.user.findUnique({ where: { id: application.studentId } });
+      if (!student || !(await canAccessStudent(user, student))) return fail("Forbidden", 403);
+    }
+
     // An AGENCY may only attach its own sub-agencies (or itself) as the counterparty.
     if (data.relatedAgencyId && user.role === "AGENCY") {
       const agency = await prisma.user.findUnique({ where: { id: data.relatedAgencyId } });
@@ -52,6 +65,9 @@ export async function POST(req: NextRequest) {
       if (agency.id !== user.id && agency.parentAgencyId !== user.id) {
         return fail("You can only record transactions for your own sub-agencies", 403);
       }
+    }
+    if (data.relatedAgencyId && user.role === "COUNSELOR") {
+      return fail("Counselors cannot record transactions for an agency", 403);
     }
 
     const tx = await prisma.transaction.create({
@@ -87,11 +103,9 @@ export async function GET(req: NextRequest) {
     const where =
       user.role === "STUDENT"
         ? { relatedStudentId: user.id }
-        : user.role === "COUNSELOR"
-          ? { relatedStudent: { assignedCounselorId: user.id } }
-          : user.role === "AGENCY"
-            ? { OR: [{ relatedStudent: { createdById: user.id } }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
-            : {};
+        : user.role === "AGENCY"
+          ? { OR: [{ relatedStudent: studentScopeWhere(user) }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+          : { relatedStudent: studentScopeWhere(user) };
 
     const baseQuery = {
       where,

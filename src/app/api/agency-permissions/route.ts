@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
     const { receiverId, canViewCommission, canViewFullChain } = parsed.data;
 
     if (user.role === "STUDENT") return fail("Forbidden", 403);
+    if (user.role !== "AGENCY" && user.role !== "SUPER_ADMIN") return fail("Only a parent agency or portal owner can grant agency permissions", 403);
     if (receiverId === user.id) return fail("Cannot set permissions on yourself", 422);
 
     const target = await prisma.user.findUnique({ where: { id: receiverId } });

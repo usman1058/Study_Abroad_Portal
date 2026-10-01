@@ -292,7 +292,7 @@ async function main() {
   }
 
   console.log("Seed complete.");
-  console.log("Logins (password varies by ADMIN_PASSWORD or default Admin@12345):");
+  console.log("Logins (password varies by ADMIN_PASSWORD or default admin1234):");
   console.log(`  super_admin  ${superAdmin.email}`);
   console.log(`  manager      ${manager.email}`);
   console.log(`  agency       ${agency.email}`);

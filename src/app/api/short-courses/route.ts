@@ -20,6 +20,8 @@ const courseSchema = zod.object({
   prerequisites: optionalText(300),
   description: optionalText(2000),
   linkedProgramId: emptyToNull(zod.string().trim().min(1).max(64)).optional().nullable(),
+  paymentType: zod.enum(["FREE", "PAID", "OTHER"]).default("FREE"),
+  bankDetails: optionalText(2000),
 });
 
 export async function POST(req: NextRequest) {
@@ -51,6 +53,8 @@ export async function POST(req: NextRequest) {
         prerequisites: data.prerequisites ?? null,
         description: data.description ?? null,
         linkedProgramId: data.linkedProgramId ?? null,
+        paymentType: data.paymentType,
+        bankDetails: data.bankDetails ?? null,
       },
       select: { id: true, title: true },
     });

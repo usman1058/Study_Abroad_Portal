@@ -25,13 +25,13 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     test(`${route} renders`, async ({ page }) => {
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
-      await expect(page.locator("aside")).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Main navigation" })).toBeVisible();
     });
   }
 
   test("sidebar shows partner nav only (no student sections)", async ({ page }) => {
     await page.goto("/home");
-    const nav = page.locator("aside nav");
+    const nav = page.getByRole("complementary", { name: "Main navigation" }).getByRole("navigation");
     await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Users" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Application" })).toBeVisible();
@@ -46,7 +46,8 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     await page.goto("/users");
     await expect(page.getByText("student@studyabroad.test")).toBeVisible();
 
-    await page.getByRole("link", { name: "Sam Student" }).click();
+    const studentRow = page.getByRole("row").filter({ hasText: "student@studyabroad.test" });
+    await studentRow.getByRole("link", { name: "Sam Student" }).click();
     await expect(page).toHaveURL(/\/users\/[^/]+$/);
     await expect(page.getByRole("heading", { level: 1, name: "Sam Student" })).toBeVisible();
     await expect(page.getByText("Applications").first()).toBeVisible();
@@ -77,7 +78,7 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     for (const route of ["/my-applications", "/apply", "/my-shortlist"]) {
       await page.goto(route);
       await expect(page).toHaveURL(/\/home\/?$/);
-      await expect(page.locator("aside")).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Main navigation" })).toBeVisible();
     }
   });
 });

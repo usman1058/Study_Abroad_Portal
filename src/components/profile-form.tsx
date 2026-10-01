@@ -63,6 +63,10 @@ export function ProfileForm({
         alert(json.error ?? "Failed to save profile");
         return;
       }
+      if (payload.preferredCurrency) {
+        localStorage.setItem("currency", payload.preferredCurrency);
+        window.dispatchEvent(new StorageEvent("storage", { key: "currency" }));
+      }
       setSaved(true);
       router.refresh();
     } catch {

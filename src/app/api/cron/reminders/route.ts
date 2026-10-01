@@ -3,12 +3,13 @@ import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/audit";
 import { daysUntil } from "@/lib/utils";
 
-// Vercel Cron guard — both Vercel's `x-vercel-cron` header and a manual Bearer
-// token (CRON_SECRET) are accepted so the route can also be triggered locally.
+// This route is public at the edge. A request header alone is forgeable, so a
+// configured secret is mandatory for both Vercel and local invocations.
 function isCronRequest(req: NextRequest): boolean {
-  if (req.headers.get("x-vercel-cron") === "1") return true;
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
   const auth = req.headers.get("authorization");
-  return auth === `Bearer ${process.env.CRON_SECRET ?? ""}`;
+  return auth === `Bearer ${secret}`;
 }
 
 export async function GET(req: NextRequest) {

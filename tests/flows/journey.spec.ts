@@ -139,6 +139,9 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.getByRole("button", { name: "Submit application" }).click();
 
     await page.waitForURL(/\/my-applications\?submitted=1$/, { timeout: 20_000 });
+    // A hosted database may close an RSC stream while the response is loading.
+    // Reloading this idempotent confirmation page must still show the result.
+    if (!(await page.getByText("Application submitted.").isVisible().catch(() => false))) await page.reload();
     await expect(page.getByText("Application submitted.")).toBeVisible();
     await expect(page.getByText(P_WIZARD).first()).toBeVisible();
   });

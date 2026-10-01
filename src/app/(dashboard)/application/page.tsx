@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { studentScopeWhere } from "@/lib/permissions";
 import { APPLICATION_STAGES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,11 +31,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
   const where = {
     ...(validStage ? { stage: validStage } : {}),
-    ...(user.role === "COUNSELOR"
-      ? { student: { assignedCounselorId: user.id } }
-      : user.role === "AGENCY"
-        ? { student: { createdById: user.id } }
-        : {}),
+    ...(user.role === "SUPER_ADMIN" || user.role === "MANAGER" ? {} : { student: studentScopeWhere(user) }),
   };
 
   const applications = await prisma.application.findMany({

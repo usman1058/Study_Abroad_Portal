@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
+import { studentScopeWhere } from "@/lib/permissions";
 import { MessageForm } from "@/components/message-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate, fullName } from "@/lib/utils";
@@ -38,7 +39,18 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
   }
   const list = [...conversations.values()].sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime());
 
-  const selectedId = withId || list[0]?.id || "";
+  let suggestedRecipients: { id: string; firstName: string; lastName: string }[];
+  if (user.role === "STUDENT") {
+    const me = await prisma.user.findUnique({ where: { id: user.id }, select: { assignedCounselorId: true, createdById: true } });
+    const ids = [me?.assignedCounselorId, me?.createdById].filter((id): id is string => Boolean(id));
+    suggestedRecipients = ids.length
+      ? await prisma.user.findMany({ where: { id: { in: ids }, role: { not: "STUDENT" } }, select: { id: true, firstName: true, lastName: true } })
+      : [];
+  } else {
+    suggestedRecipients = await prisma.user.findMany({ where: studentScopeWhere(user), select: { id: true, firstName: true, lastName: true }, take: 50, orderBy: { firstName: "asc" } });
+  }
+  const permittedIds = new Set([...list.map((conversation) => conversation.id), ...suggestedRecipients.map((recipient) => recipient.id)]);
+  const selectedId = withId && permittedIds.has(withId) ? withId : list[0]?.id || "";
   const thread = selectedId
     ? mine
         .filter((m) => m.senderId === selectedId || m.recipientId === selectedId)
@@ -57,8 +69,16 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardContent className="p-2">
+            {suggestedRecipients.filter((person) => !conversations.has(person.id)).length > 0 && (
+              <div className="border-b border-slate-100 px-2 pb-2 dark:border-slate-800">
+                <p className="px-1 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Start a conversation</p>
+                {suggestedRecipients.filter((person) => !conversations.has(person.id)).map((person) => (
+                  <Link key={person.id} href={`/messages?with=${person.id}`} className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800">{fullName(person)}</Link>
+                ))}
+              </div>
+            )}
             {list.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">No conversations yet.</p>
+              <p className="p-4 text-sm text-slate-500">No conversations yet. Choose a contact to send the first message.</p>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {list.map((c) => (

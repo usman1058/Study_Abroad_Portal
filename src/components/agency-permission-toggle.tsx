@@ -33,7 +33,7 @@ export function AgencyPermissionToggle({
   }
 
   return (
-    <button onClick={toggle} disabled={busy} title="Toggle commission visibility for this sub-agency">
+    <button type="button" onClick={toggle} disabled={busy} title="Toggle commission visibility for this sub-agency" aria-label={`${canViewCommission ? "Disable" : "Enable"} commission visibility for this sub-agency`}>
       <Badge tone={canViewCommission ? "green" : "slate"} className="cursor-pointer">
         {canViewCommission ? "Can view commission" : "Cannot view commission"}
       </Badge>

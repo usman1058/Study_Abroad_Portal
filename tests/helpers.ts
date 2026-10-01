@@ -1,6 +1,8 @@
 import { expect, type Page } from "@playwright/test";
 
-export const TEST_PASSWORD = "Admin@12345";
+// Keep the browser fixtures aligned with prisma/seed.ts. Deployments can
+// override this through ADMIN_PASSWORD without hard-coding credentials here.
+export const TEST_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin1234";
 
 export const STUDENT = { email: "student@studyabroad.test", password: TEST_PASSWORD };
 export const ADMIN = { email: "admin@studyabroad.test", password: TEST_PASSWORD };

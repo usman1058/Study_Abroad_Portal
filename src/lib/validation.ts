@@ -34,7 +34,7 @@ export const dateStringArray = (maxItems = 24) =>
 
 /** Treat empty string as null so HTML forms can clear optional URL/text fields. */
 export const emptyToNull = <T extends z.ZodTypeAny>(schema: T) =>
-  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), schema);
+  z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? null : v), schema.nullable());
 
 export const httpUrl = (max = 300) =>
   emptyToNull(
@@ -44,6 +44,31 @@ export const httpUrl = (max = 300) =>
       .max(max)
       .refine((v) => /^https?:\/\/[^\s]+$/i.test(v), "Must be a valid http(s) URL")
   );
+
+const optionalDateTime = z
+  .string()
+  .max(32)
+  .refine((value) => !Number.isNaN(Date.parse(value)), "Invalid date")
+  .nullable()
+  .optional();
+
+export const dashboardAdSchema = z
+  .object({
+    title: requiredName(120),
+    body: optionalText(400),
+    imageUrl: httpUrl(1200).optional(),
+    linkUrl: httpUrl(1200).optional(),
+    ctaLabel: optionalText(40),
+    active: z.boolean().optional(),
+    sortOrder: intRange(0, 999).optional(),
+    startsAt: optionalDateTime,
+    endsAt: optionalDateTime,
+  })
+  .superRefine((value, context) => {
+    if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
+      context.addIssue({ code: "custom", message: "End date must be after start date", path: ["endsAt"] });
+    }
+  });
 
 export const futureExpiry = (maxDays = 90) =>
   z

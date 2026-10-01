@@ -10,7 +10,7 @@ import { idField, futureExpiry } from "@/lib/validation";
 const createSchema = z.object({
   studentId: idField(),
   sections: z.array(z.enum(["applications", "documents", "shortlist", "payments", "profile"])).default(["applications", "documents"]),
-  access: z.record(z.string().max(40), z.enum(["view", "edit"])).optional(),
+  access: z.record(z.string().max(40), z.literal("view")).optional(),
   expiresAt: futureExpiry(90),
 });
 

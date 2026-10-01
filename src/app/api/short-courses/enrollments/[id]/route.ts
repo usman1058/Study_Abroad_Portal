@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { canAccessStudent } from "@/lib/permissions";
 
 const approveSchema = z.object({
   status: z.enum(["enrolled", "rejected"]),
@@ -21,10 +22,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const enrollment = await prisma.shortCourseEnrollment.findUnique({
       where: { id },
-      include: { shortCourse: true },
+      include: { student: true },
     });
 
     if (!enrollment) return fail("Enrollment not found", 404);
+    if (!(await canAccessStudent(user, enrollment.student))) return fail("Forbidden", 403);
+    if (enrollment.status !== "pending_approval") return fail("Only receipts awaiting approval can be reviewed", 409);
 
     const newStatus = parsed.data.status;
     const updated = await prisma.shortCourseEnrollment.update({

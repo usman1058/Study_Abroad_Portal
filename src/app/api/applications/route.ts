@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canAccessStudent } from "@/lib/permissions";
+import { canAccessStudent, studentScopeWhere } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { idField } from "@/lib/validation";
@@ -69,11 +69,7 @@ export async function GET(req: NextRequest) {
     const where =
       user.role === "STUDENT"
         ? { studentId: user.id }
-        : user.role === "COUNSELOR"
-          ? { student: { assignedCounselorId: user.id } }
-          : user.role === "AGENCY"
-            ? { student: { createdById: user.id } }
-            : {};
+        : { student: studentScopeWhere(user) };
 
     const baseQuery = {
       where,

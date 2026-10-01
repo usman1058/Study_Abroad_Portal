@@ -6,10 +6,11 @@ import { EnrollButton } from "@/components/enroll-button";
 import { UploadReceipt } from "@/components/upload-receipt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, ExternalLink, MessageCircle, Calendar, Clock } from "lucide-react";
+import { Download, ExternalLink, MessageCircle, Clock } from "lucide-react";
 import { formatDate, formatCurrency, toNum } from "@/lib/utils";
 import { humanize } from "@/lib/utils";
 import { FeeDisplay } from "@/components/currency";
+import { AddCourseToCalendar } from "@/components/add-course-to-calendar";
 
 export const metadata = { title: "Course Details" };
 
@@ -173,7 +174,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
           <CardTitle>Enrollment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {course.paymentType === "FREE" && !isEnrolled && (
+          {user.role === "STUDENT" && course.paymentType === "FREE" && !isEnrolled && (
             <EnrollButton
               shortCourseId={course.id}
               enrolled={false}
@@ -181,10 +182,10 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             />
           )}
 
-          {course.paymentType === "PAID" && !isEnrolled && !isPendingPayment && !isPendingApproval && (
+          {user.role === "STUDENT" && course.paymentType === "PAID" && !enrollment && (
             <div className="space-y-3">
               <p className="text-sm text-slate-500">
-                This is a paid course. Please complete the bank transfer using the details below, then upload your receipt.
+                This is a paid course. Enroll first, then upload the bank-transfer receipt for review.
               </p>
               {course.bankDetails && (
                 <div className="bg-slate-50 p-4 rounded-lg dark:bg-slate-800/50">
@@ -192,17 +193,20 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                   <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded dark:bg-slate-800">{course.bankDetails}</pre>
                 </div>
               )}
-              <UploadReceipt
+              <EnrollButton
                 shortCourseId={course.id}
-                onUploaded={() => window.location.reload()}
+                enrolled={false}
+                paymentType="PAID"
+                course={{ fee: toNum(course.fee), deliveryMode: course.deliveryMode, classSchedule: course.classSchedule, meetingLink: course.meetingLink, startDates: course.startDates, duration: course.duration }}
               />
             </div>
           )}
 
           {isPendingPayment && (
-            <div className="space-y-2 text-amber-700 bg-amber-50 p-4 rounded-lg dark:bg-amber-900/30">
-              <p className="font-medium">Payment receipt uploaded. Waiting for admin approval.</p>
-              <p className="text-sm">You will be notified once your receipt is reviewed.</p>
+            <div className="space-y-3 text-amber-700 bg-amber-50 p-4 rounded-lg dark:bg-amber-900/30">
+              <p className="font-medium">Upload your payment receipt.</p>
+              <p className="text-sm">Once it is uploaded, an administrator will review it.</p>
+              <UploadReceipt shortCourseId={course.id} onUploaded={() => window.location.reload()} />
             </div>
           )}
 
@@ -222,14 +226,12 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                     <ExternalLink className="h-3 w-3" /> Join Class
                   </a>
                 )}
-                <button className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline">
-                  <Calendar className="h-3 w-3" /> Add to Calendar
-                </button>
+                {nextStart && <AddCourseToCalendar title={course.title} provider={course.provider} startDate={nextStart.toISOString()} duration={course.duration} />}
               </div>
             </div>
           )}
 
-          {isRejected && (
+          {user.role === "STUDENT" && isRejected && (
             <div className="space-y-2 text-red-700 bg-red-50 p-4 rounded-lg dark:bg-red-900/30">
               <p className="font-medium">Your receipt was rejected.</p>
               <p className="text-sm">Please upload a new receipt.</p>

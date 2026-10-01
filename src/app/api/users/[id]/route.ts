@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canManageUser } from "@/lib/permissions";
+import { canManageExistingUser, canManageUser } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const target = await prisma.user.findUnique({ where: { id } });
     if (!target) return fail("User not found", 404);
     if (user.role !== "SUPER_ADMIN" && user.role !== "MANAGER") return fail("Forbidden", 403);
-    if (!canManageUser(user, target)) return fail("Forbidden", 403);
+    if (!(await canManageExistingUser(user, target))) return fail("Forbidden", 403);
 
     const body = await req.json();
     const parsed = statusSchema.safeParse(body);
@@ -71,7 +71,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     const target = await prisma.user.findUnique({ where: { id } });
     if (!target) return fail("User not found", 404);
     if (target.role === "SUPER_ADMIN") return fail("Cannot delete super admin", 403);
-    if (!canManageUser(user, target)) return fail("Forbidden", 403);
+    if (!(await canManageExistingUser(user, target))) return fail("Forbidden", 403);
 
     await prisma.user.delete({ where: { id } });
     await logAudit({ actorId: user.id, action: "delete", entityType: "User", entityId: id, before: { email: target.email, role: target.role } });

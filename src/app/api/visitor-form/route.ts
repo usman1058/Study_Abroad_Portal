@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
     const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
-    const where = user.role === "COUNSELOR" ? { createdById: user.id } : {};
+    const where = ["SUPER_ADMIN", "MANAGER"].includes(user.role) ? {} : { createdById: user.id };
 
     const baseQuery = {
       where,

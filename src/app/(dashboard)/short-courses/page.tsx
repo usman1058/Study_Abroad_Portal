@@ -106,7 +106,7 @@ export default async function ShortCoursesPage() {
                     <>
                       <ShortCourseForm
                         programs={programs.map((p) => ({ id: p.id, label: `${p.university?.name ?? ""} — ${p.name}` }))}
-                        initial={{ id: c.id, title: c.title, provider: c.provider, category: c.category, duration: c.duration, startDates: c.startDates, fee: String(c.fee), deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: c.meetingLink, prerequisites: c.prerequisites, description: c.description, linkedProgramId: c.linkedProgram?.id }}
+                        initial={{ id: c.id, title: c.title, provider: c.provider, category: c.category, duration: c.duration, startDates: c.startDates, fee: String(c.fee), deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: c.meetingLink, prerequisites: c.prerequisites, description: c.description, linkedProgramId: c.linkedProgram?.id, paymentType: c.paymentType as "FREE" | "PAID" | "OTHER", bankDetails: c.bankDetails ?? "" }}
                       />
                       <DeleteButton endpoint={`/api/short-courses/${c.id}`} confirmText="Delete this short course?" label="Delete" />
                     </>
