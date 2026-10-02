@@ -37,7 +37,7 @@ function adToForm(ad: DashboardAd): FormState {
   return { title: ad.title, body: ad.body ?? "", imageUrl: ad.imageUrl ?? "", linkUrl: ad.linkUrl ?? "", ctaLabel: ad.ctaLabel ?? "Learn more", active: ad.active, sortOrder: String(ad.sortOrder), startsAt: toDateInput(ad.startsAt), endsAt: toDateInput(ad.endsAt) };
 }
 
-export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero"; id?: string }) {
+export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero" | "image"; id?: string }) {
   const [allItems, setAllItems] = useState(ads);
   const [index, setIndex] = useState(0);
   const [manageOpen, setManageOpen] = useState(false);
@@ -53,28 +53,33 @@ export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }
 
   const ad = items[index];
   const move = (direction: number) => setIndex((current) => (current + direction + items.length) % items.length);
+  const imageOnly = variant === "image";
 
   return (
     <aside id={id} className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Dashboard carousel">
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      {!imageOnly && <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <div><div className="flex items-center gap-2 text-sm font-semibold"><Megaphone className="h-4 w-4 text-brand-600" /> {variant === "hero" ? "Featured updates" : "Dashboard carousel"}</div>{variant === "hero" && <p className="mt-0.5 text-xs text-slate-500">News, offers, and important deadlines</p>}</div>
         {canManage && <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)} aria-label="Manage advertisements"><Pencil className="h-3.5 w-3.5" /> Manage ads</Button>}
-      </div>
+      </div>}
       {!ad ? (
-        <div className="p-5 text-sm text-slate-500">No active announcements. Add one to highlight an offer, partner, or deadline.</div>
+        <div className={imageOnly ? "flex h-56 items-center justify-center bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500 p-5 text-center text-sm text-white sm:h-64" : "p-5 text-sm text-slate-500"}>{imageOnly ? "New updates will appear here." : "No active announcements. Add one to highlight an offer, partner, or deadline."}</div>
       ) : (
         <div className="relative">
-          {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.title} className={variant === "hero" ? "h-48 w-full object-cover sm:h-60" : "h-28 w-full object-cover"} /> : <div className={variant === "hero" ? "h-48 bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500 sm:h-60" : "h-28 bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500"} />}
-          <div className="space-y-3 p-4">
+          {imageOnly ? (ad.linkUrl ? <a href={ad.linkUrl} target="_blank" rel="noreferrer" aria-label={ad.title} className="block"><AdImage ad={ad} className="h-56 sm:h-64" /></a> : <AdImage ad={ad} className="h-56 sm:h-64" />) : <AdImage ad={ad} className={variant === "hero" ? "h-48 sm:h-60" : "h-28"} />}
+          {!imageOnly && <div className="space-y-3 p-4">
             <div><p className="text-sm font-semibold">{ad.title}</p>{ad.body && <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{ad.body}</p>}</div>
             {ad.linkUrl && <a href={ad.linkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">{ad.ctaLabel || "Learn more"}<ExternalLink className="h-3 w-3" /></a>}
-          </div>
-          {items.length > 1 && <div className="flex items-center justify-between border-t border-slate-100 px-3 py-2 dark:border-slate-800"><button type="button" onClick={() => move(-1)} aria-label="Previous announcement" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronLeft className="h-4 w-4" /></button><span className="text-[11px] text-slate-400">{index + 1} of {items.length}</span><button type="button" onClick={() => move(1)} aria-label="Next announcement" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronRight className="h-4 w-4" /></button></div>}
+          </div>}
+          {items.length > 1 && (imageOnly ? <><button type="button" onClick={() => move(-1)} aria-label="Previous announcement" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/55 p-2 text-white transition hover:bg-slate-950/80"><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => move(1)} aria-label="Next announcement" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-slate-950/55 p-2 text-white transition hover:bg-slate-950/80"><ChevronRight className="h-4 w-4" /></button></> : <div className="flex items-center justify-between border-t border-slate-100 px-3 py-2 dark:border-slate-800"><button type="button" onClick={() => move(-1)} aria-label="Previous announcement" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronLeft className="h-4 w-4" /></button><span className="text-[11px] text-slate-400">{index + 1} of {items.length}</span><button type="button" onClick={() => move(1)} aria-label="Next announcement" className="rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><ChevronRight className="h-4 w-4" /></button></div>)}
         </div>
       )}
       {canManage && <AdvertisementManager open={manageOpen} onClose={() => setManageOpen(false)} ads={allItems} onChange={(next) => { setAllItems(next); setIndex(0); }} />}
     </aside>
   );
+}
+
+function AdImage({ ad, className }: { ad: DashboardAd; className: string }) {
+  return ad.imageUrl ? <img src={ad.imageUrl} alt={ad.title} className={`w-full object-cover ${className}`} /> : <div className={`bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500 ${className}`} />;
 }
 
 function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean; onClose: () => void; ads: DashboardAd[]; onChange: (ads: DashboardAd[]) => void }) {

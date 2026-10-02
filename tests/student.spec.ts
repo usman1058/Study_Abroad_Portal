@@ -44,11 +44,21 @@ test.describe("Student dashboard", () => {
     await expect(page.getByText("IELTS Preparation (6-week intensive)").first()).toBeVisible();
     const carousel = page.getByRole("complementary", { name: "Dashboard carousel" });
     await expect(carousel).toBeVisible();
-    await expect(carousel.getByText("Discover your next global program")).toBeVisible();
+    const firstPromotion = carousel.getByRole("link", { name: "Discover your next global program" });
+    await expect(firstPromotion).toBeVisible();
+    await expect(firstPromotion).toHaveAttribute("href", "https://study-abroad-portal-brown.vercel.app/programs");
     await carousel.getByRole("button", { name: "Next announcement" }).click();
-    await expect(carousel.getByText("IELTS preparation is open")).toBeVisible();
+    await expect(carousel.getByRole("link", { name: "IELTS preparation is open" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Monthly application activity chart" })).toBeVisible();
     await expect(page.getByRole("img", { name: "Application stages distribution chart" })).toBeVisible();
+  });
+
+  test("desktop sidebar can collapse and expand", async ({ page }) => {
+    await page.goto("/my-applications");
+    await page.getByRole("button", { name: "Collapse navigation" }).click();
+    await expect(page.getByRole("button", { name: "Expand navigation" })).toBeVisible();
+    await page.getByRole("button", { name: "Expand navigation" }).click();
+    await expect(page.getByRole("button", { name: "Collapse navigation" })).toBeVisible();
   });
 
   test("programs page lists seeded program and supports search input", async ({ page }) => {
