@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
 import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
+import { ArrowRight, BookOpen, ClipboardList, FileCheck2, GraduationCap, Sparkles } from "lucide-react";
 
 export const metadata = { title: "My Applications" };
 
@@ -87,18 +88,13 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">My Applications</h1>
-          <p className="text-sm text-slate-500">Track your applications and their progress.</p>
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-600 px-5 py-6 text-white shadow-lg shadow-brand-900/10 sm:px-7 sm:py-8">
+        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-100"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Your study journey, in one place.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-brand-50">Track applications, find your next course, and keep every required step moving forward.</p></div>
+          <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
         </div>
-        <Link
-          href="/apply"
-          className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          + New application
-        </Link>
-      </div>
+      </section>
 
       {submitted && (
         <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
@@ -106,11 +102,11 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Total applications</p><p className="mt-1 text-2xl font-bold">{total}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Offers received</p><p className="mt-1 text-2xl font-bold text-green-600">{offered}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">In progress</p><p className="mt-1 text-2xl font-bold text-brand-600">{inProgress}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Documents pending</p><p className="mt-1 text-2xl font-bold text-amber-600">{pendingDocs}</p></CardContent></Card>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StudentMetric label="Total applications" value={total} hint="Your complete portfolio" icon={ClipboardList} tone="brand" />
+        <StudentMetric label="Offers received" value={offered} hint="Great news worth reviewing" icon={GraduationCap} tone="green" />
+        <StudentMetric label="In progress" value={inProgress} hint="Currently being processed" icon={ArrowRight} tone="cyan" />
+        <StudentMetric label="Documents pending" value={pendingDocs} hint="Complete these to avoid delays" icon={FileCheck2} tone="amber" />
       </div>
 
       <Card>
@@ -119,8 +115,8 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       </Card>
 
       {rows.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Applications by stage</CardTitle></CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-slate-500">A live overview of where your applications are in the process.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader>
           <CardContent>
             <div className="flex h-40 items-end gap-2">
               {APPLICATION_STAGE_ORDER.map((stage) => {
@@ -149,7 +145,8 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       )}
 
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-slate-500">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
+        <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
           {TABS.map((t) => {
             const count = rows.filter((r) => t.match({ stage: r.stage, docsOk: r.docsOk })).length;
             return (
@@ -181,7 +178,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((a) => (
-              <Card key={a.id}>
+              <Card key={a.id} className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
 <CardContent className="p-5">
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <div>
@@ -242,4 +239,9 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       </div>
     </div>
   );
+}
+
+function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string; value: number; hint: string; icon: typeof ClipboardList; tone: "brand" | "green" | "cyan" | "amber" }) {
+  const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200", cyan: "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
+  return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
 }
