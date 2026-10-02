@@ -42,6 +42,9 @@ test.describe("Student dashboard", () => {
     await expect(page.getByText("Total applications")).toBeVisible();
     await expect(page.getByRole("heading", { name: "My course list" })).toBeVisible();
     await expect(page.getByText("IELTS Preparation (6-week intensive)").first()).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Dashboard carousel" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Monthly application activity chart" })).toBeVisible();
+    await expect(page.getByRole("img", { name: "Application stages distribution chart" })).toBeVisible();
   });
 
   test("programs page lists seeded program and supports search input", async ({ page }) => {

@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
 import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
-import { ArrowRight, BookOpen, ClipboardList, FileCheck2, GraduationCap, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, ClipboardList, FileCheck2, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
+import { DashboardAdRail } from "@/components/dashboard-ad-rail";
 
 export const metadata = { title: "My Applications" };
 
@@ -44,8 +45,9 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   if (user.role !== "STUDENT") redirect("/home");
 
   const { tab = "all", submitted } = await searchParams;
+  const now = new Date();
 
-  const [applications, courseEnrollments, availableCourses] = await Promise.all([
+  const [applications, courseEnrollments, availableCourses, advertisements] = await Promise.all([
     prisma.application.findMany({
       where: { studentId: user.id },
       orderBy: { createdAt: "desc" },
@@ -62,6 +64,11 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       orderBy: { createdAt: "desc" },
       take: 4,
       select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true },
+    }),
+    prisma.dashboardAdvertisement.findMany({
+      where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     }),
   ]);
 
@@ -85,6 +92,11 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   const maxCount = Math.max(1, ...stageCounts.values());
   const totalFees = rows.reduce((s, a) => s + toNum(a.program.tuitionFee), 0);
   const draftCount = rows.filter((r) => r.stage === "DRAFT").length;
+  const monthlyActivity = Array.from({ length: 6 }, (_, index) => {
+    const start = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - (4 - index), 1);
+    return { label: start.toLocaleString("en", { month: "short" }), value: rows.filter((application) => application.createdAt >= start && application.createdAt < end).length };
+  });
 
   return (
     <div className="space-y-6">
@@ -95,6 +107,8 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
           <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
         </div>
       </section>
+
+      <DashboardAdRail ads={advertisements} variant="hero" />
 
       {submitted && (
         <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
@@ -114,35 +128,10 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group rounded-xl border border-slate-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-slate-500">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-slate-500">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group rounded-xl border border-slate-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-slate-500">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-slate-500">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-slate-300 px-4 py-7 text-center text-sm text-slate-500 dark:border-slate-700">No active short courses are available yet.</div>}</CardContent>
       </Card>
 
-      {rows.length > 0 && (
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-slate-500">A live overview of where your applications are in the process.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader>
-          <CardContent>
-            <div className="flex h-40 items-end gap-2">
-              {APPLICATION_STAGE_ORDER.map((stage) => {
-                const count = stageCounts.get(stage) ?? 0;
-                const pct = count === 0 ? 0 : Math.max(6, Math.round((count / maxCount) * 100));
-                return (
-                  <div key={stage} className="flex flex-1 flex-col items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-600">{count}</span>
-                    <div className="flex w-full flex-1 items-end">
-                      <div
-                        className="w-full rounded-t-md bg-brand-500 transition-all dark:bg-brand-600"
-                        style={{ height: `${pct}%` }}
-                        title={`${count} application(s) ${stage.replace(/_/g, " ").toLowerCase()}`}
-                      />
-                    </div>
-                    <span className="text-center text-[10px] leading-tight text-slate-500">
-                      {APPLICATION_STAGES.find((s) => s.value === stage)?.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-xs text-slate-500">Combined tuition of active applications: {formatCurrency(totalFees)}</p>
-          </CardContent>
-        </Card>
-      )}
+      <section aria-label="Application analytics" className="grid gap-5 xl:grid-cols-2">
+        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><p className="mt-1 text-sm text-slate-500">Applications started over the last six months.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-5 w-5" /></span></CardHeader><CardContent><MonthlyActivityChart points={monthlyActivity} /></CardContent></Card>
+        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-slate-500">A clear breakdown of where your portfolio stands.</p></div><span className="rounded-xl bg-cyan-50 p-2.5 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200"><BarChart3 className="h-5 w-5" /></span></CardHeader><CardContent><StageDistributionChart counts={stageCounts} max={maxCount} /><p className="mt-5 text-xs text-slate-500">Combined tuition of active applications: {formatCurrency(totalFees)}</p></CardContent></Card>
+      </section>
 
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-slate-500">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
@@ -244,4 +233,16 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string; value: number; hint: string; icon: typeof ClipboardList; tone: "brand" | "green" | "cyan" | "amber" }) {
   const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200", cyan: "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
   return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
+}
+
+function MonthlyActivityChart({ points }: { points: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...points.map((point) => point.value));
+  return <div role="img" aria-label="Monthly application activity chart"><div className="flex h-56 items-end gap-3 border-b border-slate-200 pb-8 dark:border-slate-700">{points.map((point) => <div key={point.label} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-slate-600 dark:text-slate-300">{point.value}</span><div className="flex h-[calc(100%-3rem)] w-full items-end rounded-t-lg bg-slate-100 px-1 dark:bg-slate-800"><div className="w-full rounded-t-md bg-gradient-to-t from-brand-700 to-cyan-400 transition-all" style={{ height: point.value ? `${Math.max(8, Math.round((point.value / max) * 100))}%` : "3px" }} title={`${point.label}: ${point.value} application${point.value === 1 ? "" : "s"}`} /></div><span className="text-xs font-medium text-slate-500">{point.label}</span></div>)}</div><div className="mt-4 flex items-center justify-between text-xs text-slate-500"><span>Monthly application starts</span><span>{max} monthly peak</span></div></div>;
+}
+
+function StageDistributionChart({ counts, max }: { counts: Map<ApplicationStage, number>; max: number }) {
+  return <div role="img" aria-label="Application stages distribution chart" className="space-y-3">{APPLICATION_STAGE_ORDER.map((stage) => {
+    const count = counts.get(stage) ?? 0;
+    const label = APPLICATION_STAGES.find((item) => item.value === stage)?.label ?? stage.replace(/_/g, " ");
+    return <div key={stage}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-slate-600 dark:text-slate-300">{label}</span><span className="font-bold text-slate-700 dark:text-slate-200">{count}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-brand-600 transition-all" style={{ width: count ? `${Math.max(7, Math.round((count / max) * 100))}%` : "0%" }} /></div></div>; })}</div>;
 }
