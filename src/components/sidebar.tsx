@@ -76,7 +76,10 @@ export function Sidebar({
     <>
       {mobileOpen && <button type="button" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={onClose} aria-label="Close navigation" />}
       <aside aria-label="Main navigation" className={cn("fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col border-r border-slate-200 bg-white transition-transform duration-200 dark:border-slate-800 dark:bg-slate-900 lg:z-40 lg:translate-x-0", mobileOpen && "translate-x-0")}>
-      <div className="h-16 border-b border-slate-200 dark:border-slate-800" aria-hidden />
+      <Link href={role === "STUDENT" ? "/my-applications" : "/home"} onClick={onClose} className="flex h-16 items-center gap-3 border-b border-slate-200 px-4 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/60">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm">SA</span>
+        <span className="min-w-0"><span className="block truncate text-sm font-bold">{t("StudyAbroad")}</span><span className="block truncate text-[11px] font-medium text-slate-500">{isPartner ? "Partner workspace" : "Student workspace"}</span></span>
+      </Link>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {sections.map((section) => {

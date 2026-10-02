@@ -37,7 +37,7 @@ function adToForm(ad: DashboardAd): FormState {
   return { title: ad.title, body: ad.body ?? "", imageUrl: ad.imageUrl ?? "", linkUrl: ad.linkUrl ?? "", ctaLabel: ad.ctaLabel ?? "Learn more", active: ad.active, sortOrder: String(ad.sortOrder), startsAt: toDateInput(ad.startsAt), endsAt: toDateInput(ad.endsAt) };
 }
 
-export function DashboardAdRail({ ads, canManage = false, variant = "rail" }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero" }) {
+export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero"; id?: string }) {
   const [allItems, setAllItems] = useState(ads);
   const [index, setIndex] = useState(0);
   const [manageOpen, setManageOpen] = useState(false);
@@ -55,7 +55,7 @@ export function DashboardAdRail({ ads, canManage = false, variant = "rail" }: { 
   const move = (direction: number) => setIndex((current) => (current + direction + items.length) % items.length);
 
   return (
-    <aside id="dashboard-advertisements" className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Dashboard carousel">
+    <aside id={id} className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Dashboard carousel">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
         <div><div className="flex items-center gap-2 text-sm font-semibold"><Megaphone className="h-4 w-4 text-brand-600" /> {variant === "hero" ? "Featured updates" : "Dashboard carousel"}</div>{variant === "hero" && <p className="mt-0.5 text-xs text-slate-500">News, offers, and important deadlines</p>}</div>
         {canManage && <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)} aria-label="Manage advertisements"><Pencil className="h-3.5 w-3.5" /> Manage ads</Button>}

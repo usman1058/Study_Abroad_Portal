@@ -40,6 +40,8 @@ test.describe("Student dashboard", () => {
     await page.goto("/my-applications");
     await expect(page.getByText("Bachelor of Computer Science").first()).toBeVisible();
     await expect(page.getByText("Total applications")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "My course list" })).toBeVisible();
+    await expect(page.getByText("IELTS Preparation (6-week intensive)").first()).toBeVisible();
   });
 
   test("programs page lists seeded program and supports search input", async ({ page }) => {

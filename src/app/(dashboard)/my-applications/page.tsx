@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { DraftSubmitButton } from "@/components/draft-submit-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum } from "@/lib/utils";
+import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
 import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
 
@@ -44,14 +44,25 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
   const { tab = "all", submitted } = await searchParams;
 
-  const applications = await prisma.application.findMany({
-    where: { studentId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      program: { include: { university: true } },
-      documents: true,
-    },
-  });
+  const [applications, courseEnrollments, availableCourses] = await Promise.all([
+    prisma.application.findMany({
+      where: { studentId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: { program: { include: { university: true } }, documents: true },
+    }),
+    prisma.shortCourseEnrollment.findMany({
+      where: { studentId: user.id, status: { notIn: ["withdrawn", "rejected"] } },
+      orderBy: { enrolledAt: "desc" },
+      take: 4,
+      include: { shortCourse: { select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true } } },
+    }),
+    prisma.shortCourse.findMany({
+      where: { status: "active" },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true },
+    }),
+  ]);
 
   type Row = (typeof applications)[number] & { docsOk: boolean };
   const rows: Row[] = applications.map((a) => ({
@@ -101,6 +112,11 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         <Card><CardContent className="p-5"><p className="text-xs text-slate-500">In progress</p><p className="mt-1 text-2xl font-bold text-brand-600">{inProgress}</p></CardContent></Card>
         <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Documents pending</p><p className="mt-1 text-2xl font-bold text-amber-600">{pendingDocs}</p></CardContent></Card>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>My course list</CardTitle><p className="mt-1 text-sm text-slate-500">Your current learning, or active courses ready to join.</p></div><Link href="/short-courses" className="shrink-0 text-sm font-semibold text-brand-600 hover:underline">Browse courses</Link></CardHeader>
+        <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group rounded-xl border border-slate-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-slate-500">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-slate-500">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group rounded-xl border border-slate-200 p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-slate-500">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-slate-500">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-slate-300 px-4 py-7 text-center text-sm text-slate-500 dark:border-slate-700">No active short courses are available yet.</div>}</CardContent>
+      </Card>
 
       {rows.length > 0 && (
         <Card>

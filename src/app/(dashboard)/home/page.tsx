@@ -1,20 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
-  Users,
-  ClipboardList,
-  ShieldCheck,
-  Plane,
-  Activity,
   ArrowRight,
-  Plus,
-  UserPlus,
-  Clock3,
+  ArrowUpRight,
+  BarChart3,
+  BookOpen,
+  CheckCircle2,
+  ClipboardList,
+  FileCheck2,
+  GraduationCap,
+  MessageSquare,
+  ShieldCheck,
+  TrendingUp,
+  Users,
+  WalletCards,
 } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { studentScopeWhere } from "@/lib/permissions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate, toNum } from "@/lib/utils";
@@ -29,209 +33,134 @@ export default async function HomePage() {
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
 
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const studentScope = studentScopeWhere(user);
+  const canManageUsers = user.role === "SUPER_ADMIN" || user.role === "MANAGER";
+  const canSeeReports = user.role !== "COUNSELOR";
 
-  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, recentUsers, unreadNotifs, me, totalStudents, activePrograms, courseEnrollments, revenueTransactions, advertisements] =
-    await Promise.all([
-      prisma.user.count({ where: { ...studentScope, createdAt: { gte: weekAgo } } }),
-      prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
-      prisma.document.count({ where: { status: "PENDING", owner: { role: "STUDENT", ...studentScope } } }),
-      prisma.application.count({ where: { stage: "VISA", student: studentScope } }),
-      prisma.application.findMany({
-        where: { student: studentScope },
-        take: 8,
-        orderBy: { updatedAt: "desc" },
-        include: {
-          student: { select: { id: true, firstName: true, lastName: true, email: true } },
-          program: { select: { name: true, university: { select: { name: true } } } },
-        },
-      }),
-      prisma.user.findMany({
-        take: 8,
-        where: { role: "STUDENT", ...studentScope },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, firstName: true, lastName: true, country: true, createdAt: true },
-      }),
-      prisma.notification.count({ where: { userId: user.id, readAt: null } }),
-      prisma.user.findUnique({
-        where: { id: user.id },
-        select: { email: true, phone: true, companyName: true, country: true },
-      }),
-      prisma.user.count({ where: studentScope }),
-      prisma.program.count(),
-      prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
-      prisma.transaction.findMany({ where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, select: { amount: true, currency: true }, take: 1000 }),
-      prisma.dashboardAdvertisement.findMany({
-        where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] }] },
-        select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-      }),
-    ]);
+  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, unreadNotifs, totalStudents, activePrograms, courseEnrollments, revenueTransactions, advertisements, stageStats, trendRows] = await Promise.all([
+    prisma.user.count({ where: { ...studentScope, createdAt: { gte: weekAgo } } }),
+    prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
+    prisma.document.count({ where: { status: "PENDING", owner: { role: "STUDENT", ...studentScope } } }),
+    prisma.application.count({ where: { stage: "VISA", student: studentScope } }),
+    prisma.application.findMany({
+      where: { student: studentScope }, take: 6, orderBy: { updatedAt: "desc" },
+      include: { student: { select: { id: true, firstName: true, lastName: true } }, program: { select: { name: true, university: { select: { name: true } } } } },
+    }),
+    prisma.notification.count({ where: { userId: user.id, readAt: null } }),
+    prisma.user.count({ where: studentScope }),
+    prisma.program.count(),
+    prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
+    prisma.transaction.findMany({ where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, select: { amount: true, currency: true }, take: 1000 }),
+    prisma.dashboardAdvertisement.findMany({
+      where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    }),
+    prisma.application.groupBy({ by: ["stage"], where: { student: studentScope }, _count: { _all: true } }),
+    prisma.application.findMany({ where: { student: studentScope }, select: { createdAt: true }, orderBy: { createdAt: "asc" }, take: 1000 }),
+  ]);
 
   const revenueByCurrency = revenueTransactions.reduce<Record<string, number>>((totals, transaction) => {
     totals[transaction.currency] = (totals[transaction.currency] ?? 0) + toNum(transaction.amount);
     return totals;
   }, {});
   const revenueSummary = Object.entries(revenueByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(" · ") || "—";
-
-  const trendRows = await prisma.application.findMany({ where: { student: studentScope }, select: { createdAt: true }, orderBy: { createdAt: "asc" }, take: 1000 });
+  const stageCount = new Map(stageStats.map((item) => [item.stage, item._count._all]));
+  const pipeline = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "OFFER", "VISA", "ENROLLED"] as ApplicationStage[];
+  const pipelineMax = Math.max(1, ...pipeline.map((stage) => stageCount.get(stage) ?? 0));
   const trend = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - (5 - index), 1);
-    const next = new Date(date); next.setMonth(date.getMonth() + 1);
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const next = new Date(now.getFullYear(), now.getMonth() - (4 - index), 1);
     return { label: date.toLocaleString("en", { month: "short" }), value: trendRows.filter((row) => row.createdAt >= date && row.createdAt < next).length };
   });
 
-  const kpis: { label: string; value: number; icon: typeof Users; href: string | null }[] = [
-    { label: "Leads this week", value: leadsThisWeek, icon: Users, href: user.role === "COUNSELOR" ? null : "/users" },
-    { label: "Applications in progress", value: appsInProgress, icon: ClipboardList, href: "/application" },
-    { label: "Pending doc verifications", value: pendingDocs, icon: ShieldCheck, href: "/documents" },
-    { label: "Applications at Visa stage", value: visaApps, icon: Plane, href: "/application" },
+  const quickActions = [
+    { href: "/application", label: "Review applications", detail: "Pipeline and decisions", icon: ClipboardList },
+    { href: "/documents", label: "Verify documents", detail: `${pendingDocs} pending review`, icon: ShieldCheck },
+    { href: "/messages", label: "Open messages", detail: unreadNotifs ? `${unreadNotifs} unread updates` : "Inbox and notifications", icon: MessageSquare },
+    ...(canManageUsers ? [{ href: "/users", label: "Manage students", detail: "Accounts and assignments", icon: Users }] : []),
+    ...(canSeeReports ? [{ href: "/reports", label: "Open reports", detail: "Export and performance", icon: BarChart3 }] : []),
+    { href: "/short-courses", label: "Short courses", detail: "Course catalog", icon: BookOpen },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user.name.split(" ")[0]} 👋</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {unreadNotifs > 0 ? `${unreadNotifs} unread notification${unreadNotifs > 1 ? "s" : ""}` : "You're all caught up."}
-          </p>
-        </div>
-      </div>
-
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-lg font-bold text-white">
-            {user.name?.[0]?.toUpperCase() ?? "?"}
-          </span>
-          <div>
-            <p className="font-semibold">{user.name}</p>
-            <p className="text-sm text-slate-500">{me?.email}</p>
+    <div className="space-y-5 sm:space-y-6">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-600 text-white shadow-lg shadow-brand-900/10">
+        <div className="relative p-5 sm:p-7">
+          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-brand-100">{ROLE_LABELS[user.role]} workspace</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Good to see you, {user.name.split(" ")[0]}.</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-50">{unreadNotifs ? `You have ${unreadNotifs} update${unreadNotifs === 1 ? "" : "s"} waiting. ` : "Everything is up to date. "}Here is your live admissions overview.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/application" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> Applications</Link>
+              <Link href="/search" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"><Users className="h-4 w-4" /> Find a student</Link>
+            </div>
           </div>
-          <Badge tone={user.role === "AGENCY" ? "brand" : "slate"}>{ROLE_LABELS[user.role]}</Badge>
-          {me?.companyName && (
-            <div className="text-sm"><span className="text-slate-500">Company: </span>{me.companyName}</div>
-          )}
-          {me?.phone && (
-            <div className="text-sm"><span className="text-slate-500">Phone: </span>{me.phone}</div>
-          )}
-          {me?.country && (
-            <div className="text-sm"><span className="text-slate-500">Country: </span>{me.country}</div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className="xl:hidden"><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => {
-          const card = (
-            <Card className="transition hover:border-brand-400">
-              <CardContent className="flex items-center justify-between p-5">
-                <div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{k.label}</p>
-                  <p className="mt-1 text-2xl font-bold">{k.value}</p>
-                </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-200">
-                  <k.icon className="h-5 w-5" />
-                </span>
-              </CardContent>
+      <section aria-label="Dashboard metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Applications in progress" value={appsInProgress} hint="Across your accessible students" icon={ClipboardList} tone="brand" href="/application" />
+        <MetricCard label="Pending documents" value={pendingDocs} hint="Needs verification" icon={FileCheck2} tone="amber" href="/documents" />
+        <MetricCard label="New leads" value={leadsThisWeek} hint="Created in the last 7 days" icon={Users} tone="cyan" href={canManageUsers ? "/users" : null} />
+        <MetricCard label="Visa-stage cases" value={visaApps} hint="Ready for attention" icon={GraduationCap} tone="violet" href="/application" />
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-5">
+          <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><CardDescription>New applications over the last six months</CardDescription></div><span className="rounded-lg bg-brand-50 p-2 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-4 w-4" /></span></CardHeader>
+              <CardContent><TrendChart points={trend} /><Link href="/application" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">View application pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
             </Card>
-          );
-          return k.href ? (
-            <Link key={k.label} href={k.href}>{card}</Link>
-          ) : (
-            <div key={k.label}>{card}</div>
-          );
-        })}
-      </div>
-
-      {user.role === "SUPER_ADMIN" && <>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <AdminMetric label="Total students" value={totalStudents} hint="All registered students" />
-          <AdminMetric label="Active programs" value={activePrograms} hint="Catalog availability" />
-          <AdminMetric label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" />
-          <AdminMetric label="Recorded revenue" value={revenueSummary} hint="Excluding refunds; grouped by currency" />
-        </div>
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
-          <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-            <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Application trend</CardTitle><Activity className="h-5 w-5 text-brand-600" /></CardHeader><CardContent><TrendChart points={trend} /><div className="mt-5 grid grid-cols-2 gap-3"><Link href="/application" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><Clock3 className="mb-2 h-4 w-4 text-brand-600" />Review pipeline</Link><Link href="/documents" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><ShieldCheck className="mb-2 h-4 w-4 text-amber-600" />Verify documents</Link></div></CardContent></Card>
-            <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><a href="#dashboard-advertisements" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Activity className="h-4 w-4 text-brand-600" /> Manage dashboard ads</a><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
+            <Card>
+              <CardHeader><CardTitle>Pipeline health</CardTitle><CardDescription>Where your active cases are now</CardDescription></CardHeader>
+              <CardContent className="space-y-3">{pipeline.map((stage) => <PipelineRow key={stage} label={stage.replace(/_/g, " ")} value={stageCount.get(stage) ?? 0} max={pipelineMax} />)}<Link href="/application" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Manage pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
+            </Card>
           </div>
-          <DashboardAdRail ads={advertisements} canManage />
+
+          <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Recent application activity</CardTitle><CardDescription>Latest updates across your portfolio</CardDescription></div><Link href="/application" className="text-sm font-semibold text-brand-600 hover:underline">View all</Link></CardHeader>
+              <CardContent>{recentApps.length === 0 ? <EmptyState text="Applications will appear here as soon as students start applying." href="/application" label="Open applications" /> : <ul className="divide-y divide-slate-100 dark:divide-slate-800">{recentApps.map((application) => <li key={application.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{application.student.firstName} {application.student.lastName}</p><p className="truncate text-xs text-slate-500">{application.program.name} · {application.program.university.name}</p></div><div className="text-right"><Badge tone={application.stage === "REJECTED" ? "red" : application.stage === "OFFER" || application.stage === "ENROLLED" ? "green" : "brand"}>{application.stage.replace(/_/g, " ")}</Badge><p className="mt-1 text-[11px] text-slate-400">{formatDate(application.updatedAt)}</p></div></li>)}</ul>}</CardContent>
+            </Card>
+            <Card>
+              <CardHeader><CardTitle>Workspace tools</CardTitle><CardDescription>Common actions for today</CardDescription></CardHeader>
+              <CardContent className="grid gap-2">{quickActions.map((action) => <Link key={action.href} href={action.href} className="group flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-slate-100 p-2 text-slate-600 transition group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-slate-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><action.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{action.label}</span><span className="block truncate text-xs text-slate-500">{action.detail}</span></span><ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent>
+            </Card>
+          </div>
+
+          {user.role === "SUPER_ADMIN" && <section aria-label="Administration metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="cyan" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></section>}
         </div>
-      </>}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent applications</CardTitle>
-            <Link href="/application" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
-              View all <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {recentApps.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">No applications yet.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recentApps.map((a) => (
-                  <li key={a.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {a.student.firstName} {a.student.lastName} · {a.program.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {a.program.university.name} · updated {formatDate(a.updatedAt)}
-                      </p>
-                    </div>
-                    <Badge tone={a.stage === "REJECTED" ? "red" : a.stage === "OFFER" ? "green" : "brand"}>
-                      {a.stage.replace(/_/g, " ")}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>New leads</CardTitle>
-            <Link href="/users" className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
-              Manage users <ArrowRight className="h-3 w-3" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            {recentUsers.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">No student accounts yet.</p>
-            ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recentUsers.map((s) => (
-                  <li key={s.id} className="flex items-center justify-between gap-3 py-3">
-                    <Link href={`/users/${s.id}`} className="min-w-0 hover:underline">
-                      <p className="truncate text-sm font-medium">
-                        {s.firstName} {s.lastName}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {s.country ?? "—"} · joined {formatDate(s.createdAt)}
-                      </p>
-                    </Link>
-                    <Badge tone="slate">New</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <aside className="hidden xl:block"><DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} /></aside>
       </div>
     </div>
   );
 }
 
-function AdminMetric({ label, value, hint }: { label: string; value: string | number; hint: string }) { return <Card><CardContent className="p-5"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></CardContent></Card>; }
-function Bar({ label, value, max, tone }: { label: string; value: number; max: number; tone: string }) { return <div><div className="mb-1 flex justify-between text-sm"><span>{label}</span><span className="font-semibold">{value}</span></div><div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className={`h-2 rounded-full ${tone}`} style={{ width: `${Math.max(4, Math.round(value / max * 100))}%` }} /></div></div>; }
-function TrendChart({ points }: { points: { label: string; value: number }[] }) { const max = Math.max(...points.map((point) => point.value), 1); const coords = points.map((point, index) => `${index * 20 + 5},${92 - point.value / max * 70}`).join(" "); return <div aria-label="Applications over the last six months" role="img"><svg viewBox="0 0 110 110" className="h-48 w-full overflow-visible" preserveAspectRatio="none"><defs><linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#2563eb" stopOpacity=".24"/><stop offset="1" stopColor="#2563eb" stopOpacity="0"/></linearGradient></defs><polyline points={`5,92 ${coords} 105,92`} fill="url(#trend-fill)" stroke="none"/><polyline points={coords} fill="none" stroke="#2563eb" strokeWidth="2" vectorEffect="non-scaling-stroke"/>{points.map((point, index) => <g key={point.label}><circle cx={index * 20 + 5} cy={92 - point.value / max * 70} r="2.5" fill="#2563eb"/><text x={index * 20 + 5} y="106" textAnchor="middle" fontSize="6" fill="currentColor">{point.label}</text></g>)}</svg><div className="mt-1 flex justify-between text-xs text-slate-500"><span>0 applications</span><span>{max} peak</span></div></div>; }
+function MetricCard({ label, value, hint, icon: Icon, tone, href }: { label: string; value: string | number; hint: string; icon: typeof Users; tone: "brand" | "amber" | "cyan" | "violet"; href: string | null }) {
+  const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200", cyan: "bg-cyan-50 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200", violet: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-200" };
+  const content = <Card className="h-full transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
+  return href ? <Link href={href}>{content}</Link> : content;
+}
+
+function PipelineRow({ label, value, max }: { label: string; value: number; max: number }) {
+  return <div><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="font-medium text-slate-600 dark:text-slate-300">{label}</span><span className="font-semibold">{value}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-cyan-500" style={{ width: `${value ? Math.max(8, Math.round((value / max) * 100)) : 0}%` }} /></div></div>;
+}
+
+function TrendChart({ points }: { points: { label: string; value: number }[] }) {
+  const max = Math.max(...points.map((point) => point.value), 1);
+  const coords = points.map((point, index) => `${index * 20 + 5},${90 - (point.value / max) * 66}`).join(" ");
+  return <div aria-label="Applications over the last six months" role="img"><svg viewBox="0 0 110 108" className="h-44 w-full overflow-visible sm:h-52" preserveAspectRatio="none"><defs><linearGradient id="home-trend-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#2563eb" stopOpacity=".28" /><stop offset="1" stopColor="#2563eb" stopOpacity="0" /></linearGradient></defs><line x1="5" x2="105" y1="90" y2="90" stroke="currentColor" className="text-slate-200 dark:text-slate-700" strokeDasharray="2 3" /><polyline points={`5,90 ${coords} 105,90`} fill="url(#home-trend-fill)" stroke="none" /><polyline points={coords} fill="none" stroke="#2563eb" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />{points.map((point, index) => <g key={point.label}><circle cx={index * 20 + 5} cy={90 - (point.value / max) * 66} r="2.5" fill="#2563eb" /><text x={index * 20 + 5} y="104" textAnchor="middle" fontSize="6" fill="currentColor">{point.label}</text></g>)}</svg><div className="mt-1 flex justify-between text-xs text-slate-500"><span>0 applications</span><span>{max} monthly peak</span></div></div>;
+}
+
+function EmptyState({ text, href, label }: { text: string; href: string; label: string }) {
+  return <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center dark:border-slate-700"><CheckCircle2 className="mx-auto h-6 w-6 text-slate-400" /><p className="mx-auto mt-2 max-w-xs text-sm text-slate-500">{text}</p><Link href={href} className="mt-3 inline-flex text-sm font-semibold text-brand-600 hover:underline">{label}</Link></div>;
+}
