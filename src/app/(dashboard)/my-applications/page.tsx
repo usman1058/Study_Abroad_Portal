@@ -108,7 +108,10 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         </div>
       </section>
 
-      <DashboardAdRail ads={advertisements} variant="hero" />
+      <section aria-label="Student dashboard updates" className="grid gap-5 xl:grid-cols-2">
+        <DashboardAdRail ads={advertisements} variant="rail" />
+        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Keep your journey moving</CardTitle><p className="mt-1 text-sm text-slate-500">Three quick checks to stay on track.</p></div><span className="rounded-xl bg-cyan-50 p-2.5 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-200"><GraduationCap className="h-5 w-5" /></span></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{[{ href: "/documents", title: "Check documents", detail: pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are up to date", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: ClipboardList }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-slate-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-slate-100 p-2 text-slate-600 group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-slate-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-slate-500">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card>
+      </section>
 
       {submitted && (
         <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
