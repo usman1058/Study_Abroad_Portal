@@ -1,4 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config } from "dotenv";
+
+// Playwright runs outside Next's environment loader. Keep test credentials and
+// the app server on the same configured values.
+config({ path: ".env" });
 
 const PORT = Number(process.env.PORT ?? 3100);
 const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;

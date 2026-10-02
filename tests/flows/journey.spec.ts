@@ -364,16 +364,11 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await expect(page.getByText("Rejected by staff").first()).toBeVisible();
   });
 
-  test("admin flips pipeline stage on application detail and reverts", async ({ page }) => {
+  test("pipeline hides document-gated stages until required documents are verified", async ({ page }) => {
     await page.goto("/application/sample-app-1");
-
-    await controlFor(page, "Pipeline stage").selectOption({ label: "Offer" });
-    await page.getByRole("button", { name: "Save stage" }).click();
-    await expect(page.getByText("OFFER", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-
-    await controlFor(page, "Pipeline stage").selectOption({ label: "Under Review" });
-    await page.getByRole("button", { name: "Save stage" }).click();
-    await expect(page.getByText("UNDER REVIEW", { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+    const pipeline = controlFor(page, "Pipeline stage");
+    await expect(pipeline.locator("option", { hasText: "Offer" })).toHaveCount(0);
+    await expect(page.getByText("Complete all required document uploads and verification to unlock the next decision stage.")).toBeVisible();
   });
 
   test("admin creates a user, hits duplicate-email validation", async ({ page }) => {

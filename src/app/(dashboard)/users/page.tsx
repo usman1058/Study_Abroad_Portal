@@ -74,10 +74,10 @@ export default async function UsersPage() {
                 {visibleUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="py-2.5 pr-4">
-                      <Link href={`/users/${u.id}`} className="font-medium hover:underline">
+                      <a href={`/users/${u.id}`} className="font-medium hover:underline">
                         {u.userTitle ? `${u.userTitle} ` : ""}
                         {fullName(u)}
-                      </Link>
+                      </a>
                     </td>
                     <td className="py-2.5 pr-4 text-slate-500">{u.email}</td>
                     <td className="py-2.5 pr-4">

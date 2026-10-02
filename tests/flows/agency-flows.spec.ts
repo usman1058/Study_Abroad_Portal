@@ -6,7 +6,7 @@ test.describe("Agency role: sub-agency management", () => {
     await page.goto("/sub-agencies");
     await expect(page.getByRole("heading", { level: 1, name: "Sub Agencies" })).toBeVisible();
 
-    const row = rowForAction(page, "NextStep Consultancy", { name: /view commission/ });
+    const row = page.getByRole("row").filter({ hasText: "NextStep Consultancy" });
     const toggle = row.getByRole("button", { name: /commission visibility/i });
     await expect(toggle).toBeVisible();
 

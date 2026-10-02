@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, toNum, fullName, humanize } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import type { DocumentStatus } from "@/generated/prisma/client";
+import { hasVerifiedRequiredDocuments } from "@/lib/application-stages";
 
 export const metadata = { title: "Application Detail" };
 
@@ -45,6 +46,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
   const verifiedDocs = application.documents.filter((d) => d.status === "VERIFIED").length;
   const hasPendingVerification = application.documents.some((d) => d.status === "PENDING");
+  const documentsReady = hasVerifiedRequiredDocuments(application.documents, application.program.requiredDocuments);
 
   return (
     <div className="space-y-6">
@@ -76,6 +78,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                 stage={application.stage}
                 visaStage={application.visaStage}
                 visaRequired={application.program.visaRequired}
+                documentsReady={documentsReady}
               />
             </CardContent>
           </Card>

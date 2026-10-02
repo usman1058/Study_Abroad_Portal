@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Megaphone, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ function adToForm(ad: DashboardAd): FormState {
   return { title: ad.title, body: ad.body ?? "", imageUrl: ad.imageUrl ?? "", linkUrl: ad.linkUrl ?? "", ctaLabel: ad.ctaLabel ?? "Learn more", active: ad.active, sortOrder: String(ad.sortOrder), startsAt: toDateInput(ad.startsAt), endsAt: toDateInput(ad.endsAt) };
 }
 
-export function DashboardAdRail({ ads, canManage = false }: { ads: DashboardAd[]; canManage?: boolean }) {
+export function DashboardAdRail({ ads, canManage = false, variant = "rail" }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero" }) {
   const [allItems, setAllItems] = useState(ads);
   const [index, setIndex] = useState(0);
   const [manageOpen, setManageOpen] = useState(false);
@@ -55,16 +55,16 @@ export function DashboardAdRail({ ads, canManage = false }: { ads: DashboardAd[]
   const move = (direction: number) => setIndex((current) => (current + direction + items.length) % items.length);
 
   return (
-    <aside className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Dashboard announcements">
+    <aside id="dashboard-advertisements" className="h-fit overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900" aria-label="Dashboard carousel">
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-        <div className="flex items-center gap-2 text-sm font-semibold"><Megaphone className="h-4 w-4 text-brand-600" /> Notices</div>
-        {canManage && <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)}><Pencil className="h-3.5 w-3.5" /> Manage</Button>}
+        <div><div className="flex items-center gap-2 text-sm font-semibold"><Megaphone className="h-4 w-4 text-brand-600" /> {variant === "hero" ? "Featured updates" : "Dashboard carousel"}</div>{variant === "hero" && <p className="mt-0.5 text-xs text-slate-500">News, offers, and important deadlines</p>}</div>
+        {canManage && <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)} aria-label="Manage advertisements"><Pencil className="h-3.5 w-3.5" /> Manage ads</Button>}
       </div>
       {!ad ? (
         <div className="p-5 text-sm text-slate-500">No active announcements. Add one to highlight an offer, partner, or deadline.</div>
       ) : (
         <div className="relative">
-          {ad.imageUrl ? <img src={ad.imageUrl} alt="" className="h-28 w-full object-cover" /> : <div className="h-28 bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500" />}
+          {ad.imageUrl ? <img src={ad.imageUrl} alt={ad.title} className={variant === "hero" ? "h-48 w-full object-cover sm:h-60" : "h-28 w-full object-cover"} /> : <div className={variant === "hero" ? "h-48 bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500 sm:h-60" : "h-28 bg-gradient-to-br from-brand-700 via-brand-600 to-cyan-500"} />}
           <div className="space-y-3 p-4">
             <div><p className="text-sm font-semibold">{ad.title}</p>{ad.body && <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{ad.body}</p>}</div>
             {ad.linkUrl && <a href={ad.linkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">{ad.ctaLabel || "Learn more"}<ExternalLink className="h-3 w-3" /></a>}
@@ -86,6 +86,18 @@ function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean;
   function startCreate() { setEditing(null); setForm(blankForm); setError(null); }
   function startEdit(ad: DashboardAd) { setEditing(ad); setForm(adToForm(ad)); setError(null); }
   function field(key: keyof FormState, value: string | boolean) { setForm((current) => ({ ...current, [key]: value })); }
+
+  function selectImage(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]).has(file.type)) { setError("Choose a PNG, JPEG, WebP, or GIF image."); return; }
+    if (file.size > 1_000_000) { setError("Image must be 1 MB or smaller."); return; }
+    const reader = new FileReader();
+    reader.onload = () => { field("imageUrl", String(reader.result)); setError(null); };
+    reader.onerror = () => setError("The image could not be read. Please try another file.");
+    reader.readAsDataURL(file);
+  }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -121,7 +133,7 @@ function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean;
       <form onSubmit={save} className="space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700"><p className="font-medium">{editing ? "Edit announcement" : "New announcement"}</p>{error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
         <div><Label>Title</Label><Input value={form.title} onChange={(event) => field("title", event.target.value)} maxLength={120} required /></div>
         <div><Label>Message</Label><Textarea value={form.body} onChange={(event) => field("body", event.target.value)} maxLength={400} /></div>
-        <div><Label>Image URL (optional)</Label><Input type="url" value={form.imageUrl} onChange={(event) => field("imageUrl", event.target.value)} placeholder="https://…" /></div>
+        <div className="space-y-2"><Label htmlFor="dashboard-ad-image">Advertisement image (optional)</Label><div className="flex flex-wrap items-center gap-2"><Input id="dashboard-ad-image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={selectImage} className="max-w-xs" aria-label="Upload advertisement image" /><span className="text-xs text-slate-500">PNG, JPEG, WebP, or GIF · up to 1 MB</span></div><Input type="url" value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl} onChange={(event) => field("imageUrl", event.target.value)} placeholder="Or paste an https:// image URL" aria-label="Advertisement image URL" />{form.imageUrl && <div className="relative overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700"><img src={form.imageUrl} alt="Advertisement preview" className="h-28 w-full object-cover" /><Button type="button" size="sm" variant="secondary" className="absolute right-2 top-2" onClick={() => field("imageUrl", "")}><X className="h-3.5 w-3.5" /> Remove image</Button></div>}</div>
         <div className="grid gap-3 sm:grid-cols-2"><div><Label>Destination URL</Label><Input type="url" value={form.linkUrl} onChange={(event) => field("linkUrl", event.target.value)} placeholder="https://…" /></div><div><Label>Button label</Label><Input value={form.ctaLabel} onChange={(event) => field("ctaLabel", event.target.value)} maxLength={40} /></div></div>
         <div className="grid gap-3 sm:grid-cols-3"><div><Label>Order</Label><Input type="number" min="0" max="999" value={form.sortOrder} onChange={(event) => field("sortOrder", event.target.value)} /></div><div><Label>Starts</Label><Input type="date" value={form.startsAt} onChange={(event) => field("startsAt", event.target.value)} /></div><div><Label>Ends</Label><Input type="date" value={form.endsAt} onChange={(event) => field("endsAt", event.target.value)} /></div></div>
         <div className="flex items-center gap-2"><input id="ad-active" type="checkbox" checked={form.active} onChange={(event) => field("active", event.target.checked)} /><Label htmlFor="ad-active">Show this announcement</Label></div>

@@ -38,7 +38,17 @@ async function ensureSession(
   landing: RegExp,
 ) {
   let loggedIn = false;
-  if (!isFresh(file)) {
+  let cachedSessionIsValid = false;
+  if (isFresh(file)) {
+    const cached = await page.context().browser()!.newContext({ storageState: file });
+    try {
+      cachedSessionIsValid = (await cached.request.get("/api/notifications/unread-count")).status() === 200;
+    } finally {
+      await cached.close();
+    }
+  }
+
+  if (!cachedSessionIsValid) {
     mkdirSync(".auth", { recursive: true });
     setup.setTimeout(90_000);
     loggedIn = await uiLogin(page, path, email, password, landing);

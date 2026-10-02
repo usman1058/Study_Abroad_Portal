@@ -63,12 +63,11 @@ export default async function HomePage() {
       prisma.program.count(),
       prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
       prisma.transaction.findMany({ where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, select: { amount: true, currency: true }, take: 1000 }),
-      user.role === "SUPER_ADMIN"
-        ? prisma.dashboardAdvertisement.findMany({
-            select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-          })
-        : Promise.resolve([]),
+      prisma.dashboardAdvertisement.findMany({
+        where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] }] },
+        select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+      }),
     ]);
 
   const revenueByCurrency = revenueTransactions.reduce<Record<string, number>>((totals, transaction) => {
@@ -125,6 +124,8 @@ export default async function HomePage() {
         </CardContent>
       </Card>
 
+      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className="xl:hidden"><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => {
           const card = (
@@ -158,7 +159,7 @@ export default async function HomePage() {
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_19rem]">
           <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
             <Card><CardHeader className="flex flex-row items-center justify-between"><CardTitle>Application trend</CardTitle><Activity className="h-5 w-5 text-brand-600" /></CardHeader><CardContent><TrendChart points={trend} /><div className="mt-5 grid grid-cols-2 gap-3"><Link href="/application" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><Clock3 className="mb-2 h-4 w-4 text-brand-600" />Review pipeline</Link><Link href="/documents" className="rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-400 dark:border-slate-700"><ShieldCheck className="mb-2 h-4 w-4 text-amber-600" />Verify documents</Link></div></CardContent></Card>
-            <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
+            <Card><CardHeader><CardTitle>Quick actions</CardTitle></CardHeader><CardContent className="grid gap-2"><Link href="/scholarships" className="flex items-center gap-3 rounded-lg bg-brand-600 px-4 py-3 text-sm font-medium text-white hover:bg-brand-700"><Plus className="h-4 w-4" /> Add program</Link><Link href="/users" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><UserPlus className="h-4 w-4" /> Add user</Link><a href="#dashboard-advertisements" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Activity className="h-4 w-4 text-brand-600" /> Manage dashboard ads</a><Link href="/short-courses" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><Plus className="h-4 w-4" /> Create short course</Link><Link href="/reports" className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-medium hover:border-brand-400 dark:border-slate-700"><ArrowRight className="h-4 w-4" /> Open reports</Link></CardContent></Card>
           </div>
           <DashboardAdRail ads={advertisements} canManage />
         </div>

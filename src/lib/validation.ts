@@ -45,6 +45,15 @@ export const httpUrl = (max = 300) =>
       .refine((v) => /^https?:\/\/[^\s]+$/i.test(v), "Must be a valid http(s) URL")
   );
 
+/** Dashboard art may be a remote URL or a small file selected in the admin. */
+const dashboardImageUrl = emptyToNull(
+  z.string().trim().max(1_400_000, "Image must be smaller than 1 MB").refine((value) => {
+    if (/^https?:\/\/[^\s]+$/i.test(value)) return true;
+    const match = value.match(/^data:image\/(?:png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$/i);
+    return !!match && Math.floor((match[1].length * 3) / 4) <= 1_000_000;
+  }, "Use an http(s) image URL or a PNG, JPEG, WebP, or GIF smaller than 1 MB")
+);
+
 const optionalDateTime = z
   .string()
   .max(32)
@@ -56,7 +65,7 @@ export const dashboardAdSchema = z
   .object({
     title: requiredName(120),
     body: optionalText(400),
-    imageUrl: httpUrl(1200).optional(),
+    imageUrl: dashboardImageUrl.optional(),
     linkUrl: httpUrl(1200).optional(),
     ctaLabel: optionalText(40),
     active: z.boolean().optional(),

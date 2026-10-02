@@ -70,7 +70,7 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
   test("transactions list shows seeded transaction", async ({ page }) => {
     await page.goto("/transaction");
     await expect(
-      page.getByText("Service fee for the Bachelor of Computer Science application"),
+      page.getByText("Service fee for the Bachelor of Computer Science application").first(),
     ).toBeVisible();
   });
 
@@ -80,5 +80,31 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
       await expect(page).toHaveURL(/\/home\/?$/);
       await expect(page.getByRole("complementary", { name: "Main navigation" })).toBeVisible();
     }
+  });
+
+  test("admin can upload, publish, and remove a dashboard carousel image", async ({ page }) => {
+    const title = `E2E carousel ${Date.now()}`;
+    await page.goto("/home");
+    await page.getByRole("button", { name: "Manage advertisements" }).click();
+    await page.getByRole("button", { name: "New" }).click();
+    await page.locator("input[required]").fill(title);
+    await page.getByLabel("Upload advertisement image").setInputFiles({
+      name: "carousel.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADElEQVR42mNk+M/wHwAF/gL+4bY5WQAAAABJRU5ErkJggg==", "base64"),
+    });
+    await expect(page.getByAltText("Advertisement preview")).toBeVisible();
+    await page.getByRole("button", { name: "Create announcement" }).click();
+    const deleteButton = page.getByRole("button", { name: `Delete ${title}` });
+    await expect(deleteButton).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
+    await deleteButton.click();
+    await expect(deleteButton).toHaveCount(0);
+  });
+
+  test("main dashboard renders the application trend graph", async ({ page }) => {
+    await page.goto("/home");
+    await expect(page.getByRole("img", { name: "Applications over the last six months" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Dashboard carousel" })).toBeVisible();
   });
 });
