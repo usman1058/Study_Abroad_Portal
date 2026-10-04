@@ -12,7 +12,7 @@ const updateSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   level: z.string().trim().min(1).max(50).optional(),
   field: z.string().trim().max(120).optional(),
-  location: optionalText(160),
+  location: optionalText(160).optional(),
   tuitionFee: money().optional(),
   applicationFee: money().optional().nullable(),
   intakeDates: dateStringArray(24).optional(),
@@ -23,7 +23,7 @@ const updateSchema = z.object({
   tags: z.array(z.string().trim().min(1).max(40)).max(10).optional(),
   eligibilityCriteria: z.array(z.string().trim().min(1).max(300)).max(15).optional(),
   offerTurnaroundDays: intRange(0, 365).optional().nullable(),
-  collegeRank: optionalText(160),
+  collegeRank: optionalText(160).optional(),
   courseDurationMonths: intRange(0, 240).optional().nullable(),
   universityLogoUrl: optionalText(500),
 });

@@ -74,6 +74,21 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     ).toBeVisible();
   });
 
+  test("super admin can edit a partner commission rate", async ({ page }) => {
+    await page.goto("/partner-commissions");
+    const row = page.getByRole("row").filter({ hasText: "Bachelor of Computer Science" });
+    await row.getByRole("button", { name: /Edit commission/ }).click();
+    const rate = page.getByLabel("Commission rate (%)");
+    const original = await rate.inputValue();
+    await rate.fill("12.5");
+    await page.getByRole("button", { name: "Save rate" }).click();
+    await expect(row.getByText("12.5%")).toBeVisible();
+
+    await row.getByRole("button", { name: /Edit commission/ }).click();
+    await page.getByLabel("Commission rate (%)").fill(original);
+    await page.getByRole("button", { name: "Save rate" }).click();
+  });
+
   test("admin cannot open student pages", async ({ page }) => {
     for (const route of ["/my-applications", "/apply", "/my-shortlist"]) {
       await page.goto(route);

@@ -6,6 +6,7 @@ import { serializeProgram } from "@/lib/queries";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CommissionRateEditor } from "@/components/commission-rate-editor";
 
 export const metadata = { title: "Partner Commissions" };
 
@@ -34,7 +35,7 @@ export default async function PartnerCommissionsPage() {
       <div>
         <h1 className="text-2xl font-bold">Partner Commissions</h1>
         <p className="text-sm text-slate-500">
-          Commission rates are set by the portal owner. Shown per program.
+          {user.role === "SUPER_ADMIN" ? "Set and update the partner commission rate for each program." : "Commission rates are set by the portal owner. Shown per program."}
         </p>
       </div>
 
@@ -57,6 +58,7 @@ export default async function PartnerCommissionsPage() {
                   <th className="p-4">University</th>
                   <th className="p-4">Tuition</th>
                   <th className="p-4">Rate</th>
+                  {user.role === "SUPER_ADMIN" && <th className="p-4 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -70,6 +72,7 @@ export default async function PartnerCommissionsPage() {
                     <td className="p-4">
                       <Badge tone="green">{Number(p.commissionRate)}%</Badge>
                     </td>
+                    {user.role === "SUPER_ADMIN" && <td className="p-4 text-right"><CommissionRateEditor programId={p.id} programName={p.name} initialRate={Number(p.commissionRate)} /></td>}
                   </tr>
                 ))}
               </tbody>
