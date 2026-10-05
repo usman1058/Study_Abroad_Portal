@@ -57,14 +57,10 @@ export async function POST(req: NextRequest) {
       const student = await prisma.user.findUnique({ where: { id: application.studentId } });
       if (!student || !(await canAccessStudent(user, student))) return fail("Forbidden", 403);
     }
-
-    // An AGENCY may only attach its own sub-agencies (or itself) as the counterparty.
     if (data.relatedAgencyId && user.role === "AGENCY") {
       const agency = await prisma.user.findUnique({ where: { id: data.relatedAgencyId } });
       if (!agency || agency.role !== "AGENCY") return fail("Invalid agency", 404);
-      if (agency.id !== user.id && agency.parentAgencyId !== user.id) {
-        return fail("You can only record transactions for your own sub-agencies", 403);
-      }
+      if (agency.id !== user.id) return fail("You can only record transactions for your own agency", 403);
     }
     if (data.relatedAgencyId && user.role === "COUNSELOR") {
       return fail("Counselors cannot record transactions for an agency", 403);
@@ -104,7 +100,7 @@ export async function GET(req: NextRequest) {
       user.role === "STUDENT"
         ? { relatedStudentId: user.id }
         : user.role === "AGENCY"
-          ? { OR: [{ relatedStudent: studentScopeWhere(user) }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+          ? { OR: [{ relatedStudent: studentScopeWhere(user) }, { relatedAgencyId: user.id }] }
           : { relatedStudent: studentScopeWhere(user) };
 
     const baseQuery = {

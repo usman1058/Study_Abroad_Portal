@@ -5,10 +5,10 @@ import type { Role } from "@/generated/prisma/client";
 const STUDENT_ONLY = ["/my-shortlist", "/my-applications", "/apply"];
 const PARTNER_ONLY = [
   "/home",
+  "/advertisements",
   "/users",
   "/search",
   "/application",
-  "/sub-agencies",
   "/partner-commissions",
   "/transaction",
   "/documents",
@@ -66,12 +66,12 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/home/:path*",
+    "/advertisements/:path*",
     "/users/:path*",
     "/scholarships/:path*",
     "/short-courses/:path*",
     "/search/:path*",
     "/application/:path*",
-    "/sub-agencies/:path*",
     "/partner-commissions/:path*",
     "/transaction/:path*",
     "/documents/:path*",

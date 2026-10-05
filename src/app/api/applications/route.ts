@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent, studentScopeWhere } from "@/lib/permissions";
-import { logAudit } from "@/lib/audit";
+import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { idField } from "@/lib/validation";
 
@@ -52,6 +52,24 @@ export async function POST(req: NextRequest) {
     });
 
     await logAudit({ actorId: user.id, action: "create", entityType: "Application", entityId: application.id, after: { studentId, programId, submit: Boolean(parsed.data.submit) } });
+    const studentContacts = await prisma.user.findUnique({
+      where: { id: studentId },
+      select: { firstName: true, lastName: true, assignedCounselorId: true, createdById: true },
+    });
+    const recipients = new Set<string>();
+    for (const recipientId of [studentContacts?.assignedCounselorId, studentContacts?.createdById]) {
+      if (recipientId) recipients.add(recipientId);
+    }
+    const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
+    for (const admin of admins) recipients.add(admin.id);
+    await Promise.all([...recipients].map((recipientId) => createNotification({
+      userId: recipientId,
+      type: "application",
+      title: "Application processed",
+      body: "A new application was created for " + (studentContacts ? studentContacts.firstName + " " + studentContacts.lastName : "a student") + ".",
+      data: { applicationId: application.id, studentId },
+    })));
+
 
     return ok({ id: application.id }, { status: 201 });
   } catch (e) {

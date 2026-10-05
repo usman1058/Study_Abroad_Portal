@@ -6,7 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { DocumentType } from "@/generated/prisma/client";
-import { studentScopeWhere } from "@/lib/permissions";
+import { directDocumentStudentScopeWhere } from "@/lib/permissions";
 
 const uploadSchema = z.object({
   type: z.nativeEnum(DocumentType),
@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     const where =
       user.role === "STUDENT"
         ? { ownerId: user.id }
-        : { owner: studentScopeWhere(user) };
+        : { owner: directDocumentStudentScopeWhere(user) };
 
     const baseQuery = {
       where,

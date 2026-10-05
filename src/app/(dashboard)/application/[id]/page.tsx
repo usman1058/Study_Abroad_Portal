@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { canAccessStudent } from "@/lib/permissions";
+import { canAccessStudent, canAccessStudentDocuments } from "@/lib/permissions";
 import { ApplicationStageForm } from "@/components/application-stage-form";
 import { VerifyDocument } from "@/components/verify-document";
 import { MessageForm } from "@/components/message-form";
@@ -44,8 +44,11 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   const allowed = await canAccessStudent(user, application.student);
   if (!allowed) redirect("/application");
 
-  const verifiedDocs = application.documents.filter((d) => d.status === "VERIFIED").length;
-  const hasPendingVerification = application.documents.some((d) => d.status === "PENDING");
+  const canViewDocuments = await canAccessStudentDocuments(user, application.student);
+  const visibleDocuments = canViewDocuments ? application.documents : [];
+
+  const verifiedDocs = visibleDocuments.filter((d) => d.status === "VERIFIED").length;
+  const hasPendingVerification = visibleDocuments.some((d) => d.status === "PENDING");
   const documentsReady = hasVerifiedRequiredDocuments(application.documents, application.program.requiredDocuments);
 
   return (
@@ -93,11 +96,11 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {application.documents.length === 0 ? (
-                <p className="text-sm text-slate-500">No documents uploaded for this application.</p>
+              {visibleDocuments.length === 0 ? (
+                <p className="text-sm text-slate-500">{canViewDocuments ? "No documents uploaded for this application." : "Documents are restricted to the student’s assigned counselor or owner."}</p>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {application.documents.map((d) => (
+                  {visibleDocuments.map((d) => (
                     <li key={d.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{humanize(d.type)}</p>
@@ -105,7 +108,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                           Uploaded {formatDate(d.uploadedAt)}
                           {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}
                         </p>
-                        <a href={d.fileUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">
+                        <a href={"/api/documents/" + d.id} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">
                           Open file
                         </a>
                       </div>

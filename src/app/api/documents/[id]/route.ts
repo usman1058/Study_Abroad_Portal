@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canAccessStudent } from "@/lib/permissions";
+import { canAccessStudentDocuments } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (!doc) return fail("Document not found", 404);
     if (user.role === "STUDENT") {
       if (doc.ownerId !== user.id) return fail("Forbidden", 403);
-    } else if (!(await canAccessStudent(user, doc.owner))) {
+    } else if (!(await canAccessStudentDocuments(user, doc.owner))) {
       return fail("Forbidden", 403);
     }
 
@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const doc = await prisma.document.findUnique({ where: { id }, include: { owner: true } });
     if (!doc) return fail("Document not found", 404);
 
-    if (!(await canAccessStudent(user, doc.owner))) return fail("Forbidden", 403);
+    if (!(await canAccessStudentDocuments(user, doc.owner))) return fail("Forbidden", 403);
 
     const body = await req.json();
     const parsed = verifySchema.safeParse(body);
@@ -96,7 +96,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       if (doc.ownerId !== user.id) return fail("Forbidden", 403);
     } else {
       const owner = await prisma.user.findUnique({ where: { id: doc.ownerId } });
-      if (!owner || !(await canAccessStudent(user, owner))) return fail("Forbidden", 403);
+      if (!owner || !(await canAccessStudentDocuments(user, owner))) return fail("Forbidden", 403);
     }
 
     await prisma.document.delete({ where: { id } });

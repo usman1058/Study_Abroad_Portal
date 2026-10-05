@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { studentScopeWhere } from "@/lib/permissions";
+import { ApplicationCreateForm } from "@/components/application-create-form";
 import { APPLICATION_STAGES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,6 +35,17 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
     ...(user.role === "SUPER_ADMIN" || user.role === "MANAGER" ? {} : { student: studentScopeWhere(user) }),
   };
 
+  const [applicationStudents, applicationPrograms] = await Promise.all([
+    prisma.user.findMany({
+      where: studentScopeWhere(user),
+      select: { id: true, firstName: true, lastName: true, email: true },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    }),
+    prisma.program.findMany({
+      select: { id: true, name: true, university: { select: { name: true } } },
+      orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
+    }),
+  ]);
   const applications = await prisma.application.findMany({
     where,
     orderBy: { updatedAt: "desc" },
@@ -53,6 +65,10 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         <StageFilter current={stage} />
       </div>
 
+      <ApplicationCreateForm
+        students={applicationStudents.map((student) => ({ id: student.id, label: student.firstName + " " + student.lastName + " (" + student.email + ")" }))}
+        programs={applicationPrograms.map((program) => ({ id: program.id, label: program.university.name + " — " + program.name }))}
+      />
       <Card>
         <CardContent className="p-0">
           {applications.length === 0 ? (

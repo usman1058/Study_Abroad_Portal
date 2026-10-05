@@ -12,7 +12,7 @@ export const metadata = { title: "Visitor Form" };
 
 export default async function VisitorFormPage() {
   const user = await currentUser();
-  if (!user || user.role === "STUDENT") redirect("/");
+  if (!user || user.role !== "SUPER_ADMIN") redirect("/");
 
   const leads = await prisma.visitorLead.findMany({
     where: ["SUPER_ADMIN", "MANAGER"].includes(user.role) ? {} : { createdById: user.id },

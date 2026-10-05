@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { creatableRoles, canManageUser, studentScopeWhere } from "@/lib/permissions";
-import { logAudit } from "@/lib/audit";
+import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
 import { requiredName, emailField, passwordField, optionalText } from "@/lib/validation";
@@ -49,6 +49,15 @@ export async function POST(req: NextRequest) {
       return fail("You cannot create this role", 403);
     }
 
+    let assignedCounselorId = data.assignedCounselorId || null;
+    if (data.role === "STUDENT" && !assignedCounselorId) {
+      if (actor.role === "COUNSELOR") {
+        assignedCounselorId = actor.id;
+      } else {
+        const admin = await prisma.user.findFirst({ where: { role: "SUPER_ADMIN" }, select: { id: true }, orderBy: { createdAt: "asc" } });
+        assignedCounselorId = admin?.id ?? null;
+      }
+    }
     if (data.assignedCounselorId) {
       if (data.role !== "STUDENT") return fail("Only students can have an assigned counselor", 422);
       const counselor = await prisma.user.findUnique({ where: { id: data.assignedCounselorId }, select: { id: true, role: true } });
@@ -56,9 +65,6 @@ export async function POST(req: NextRequest) {
       if (actor.role === "COUNSELOR" && counselor.id !== actor.id) return fail("Counselors may only assign students to themselves", 403);
       if (actor.role === "AGENCY") return fail("Agencies cannot assign an unrelated counselor", 403);
     }
-
-    // Agencies always create sub-agencies beneath themselves.
-    const parentAgencyId = data.role === "AGENCY" && actor.role === "AGENCY" ? actor.id : undefined;
 
     const passwordHash = await bcrypt.hash(data.password, 12);
     const created = await prisma.user.create({
@@ -73,14 +79,24 @@ export async function POST(req: NextRequest) {
         phone: data.phone || null,
         country: data.country || null,
         companyName: data.companyName || null,
-        assignedCounselorId: data.assignedCounselorId || null,
+        assignedCounselorId: assignedCounselorId || null,
         createdById: actor.id,
-        parentAgencyId,
+
         status: "active",
       },
       select: { id: true, email: true, role: true },
     });
 
+    if (created.role === "STUDENT") {
+      const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
+      await Promise.all(admins.map((admin) => createNotification({
+        userId: admin.id,
+        type: "student",
+        title: "New student arrived",
+        body: data.firstName + " " + data.lastName + " was added and is assigned to the admin admissions desk.",
+        data: { studentId: created.id },
+      })));
+    }
     await logAudit({
       actorId: actor.id,
       action: "create",
@@ -109,7 +125,7 @@ export async function GET(req: NextRequest) {
         : user.role === "MANAGER"
           ? { role: { not: "SUPER_ADMIN" as const } }
           : user.role === "AGENCY"
-            ? { OR: [studentScopeWhere(user), { role: "AGENCY" as const, parentAgencyId: user.id }] }
+            ? studentScopeWhere(user)
             : studentScopeWhere(user);
 
     const baseQuery = {

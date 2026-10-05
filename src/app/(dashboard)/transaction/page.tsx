@@ -18,13 +18,13 @@ export default async function TransactionsPage() {
   const studentScope = studentScopeWhere(user);
   const where =
     user.role === "AGENCY"
-      ? { OR: [{ relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }, { relatedStudent: studentScope }] }
+      ? { OR: [{ relatedAgencyId: user.id }, { relatedStudent: studentScope }] }
       : user.role === "SUPER_ADMIN" || user.role === "MANAGER"
         ? {}
         : { relatedStudent: studentScope };
   const agenciesWhere =
     user.role === "AGENCY"
-      ? { OR: [{ id: user.id }, { parentAgencyId: user.id }] }
+      ? { id: user.id }
       : user.role === "COUNSELOR"
         ? { id: { in: [] as string[] } }
         : { role: "AGENCY" as const };

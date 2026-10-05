@@ -17,7 +17,7 @@ enum Role {
   SUPER_ADMIN
   MANAGER
   COUNSELOR
-  AGENCY // sub_agency distinguished via parentAgencyId, not a separate enum value
+  AGENCY
   STUDENT
 }
 
@@ -84,17 +84,13 @@ model User {
   country          String?
   gender           String?
   status           String   @default("active") // active / inactive
-  companyName      String? // agency / sub-agency extra field
-  licenseNumber    String? // agency / sub-agency extra field
+  companyName      String? // agency extra field
+  licenseNumber    String? // agency extra field
   preferredCurrency String  @default("MYR") // currency toggle, §6
 
   createdById     String?
   createdBy       User?    @relation("CreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers    User[]   @relation("CreatedUsers")
-
-  parentAgencyId  String?
-  parentAgency    User?    @relation("AgencyHierarchy", fields: [parentAgencyId], references: [id], onDelete: SetNull)
-  subAgencies     User[]   @relation("AgencyHierarchy")
 
   // Student-specific fields
   passportNumber      String?
@@ -130,30 +126,13 @@ model User {
   visitorLeads            VisitorLead[]
   dashboardAdvertisements DashboardAdvertisement[] @relation("DashboardAdvertisementCreator")
 
-  agencyPermissionsGiven    AgencyPermission[] @relation("PermissionGrantor")
-  agencyPermissionsReceived AgencyPermission[] @relation("PermissionReceiver")
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([role])
   @@index([createdById])
-  @@index([parentAgencyId])
   @@index([assignedCounselorId])
 }
-
-model AgencyPermission {
-  id                String  @id @default(cuid())
-  grantorId         String
-  grantor           User    @relation("PermissionGrantor", fields: [grantorId], references: [id], onDelete: Cascade)
-  receiverId        String
-  receiver          User    @relation("PermissionReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  canViewCommission Boolean @default(false)
-  canViewFullChain  Boolean @default(false)
-
-  @@unique([grantorId, receiverId])
-}
-
 model University {
   id       String    @id @default(cuid())
   name     String

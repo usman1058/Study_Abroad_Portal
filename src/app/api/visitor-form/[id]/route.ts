@@ -10,12 +10,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     const { id } = await params;
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role === "STUDENT") return fail("Forbidden", 403);
+    if (user.role !== "SUPER_ADMIN") return fail("Forbidden", 403);
 
     const lead = await prisma.visitorLead.findUnique({ where: { id } });
     if (!lead) return fail("Lead not found", 404);
 
-    if (lead.createdById !== user.id && !["MANAGER", "SUPER_ADMIN"].includes(user.role)) {
+    if (user.role !== "SUPER_ADMIN") {
       return fail("Forbidden", 403);
     }
 

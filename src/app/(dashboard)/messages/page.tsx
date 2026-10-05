@@ -46,6 +46,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
     suggestedRecipients = ids.length
       ? await prisma.user.findMany({ where: { id: { in: ids }, role: { not: "STUDENT" } }, select: { id: true, firstName: true, lastName: true } })
       : [];
+  } else if (user.role === "SUPER_ADMIN") {
+    suggestedRecipients = await prisma.user.findMany({
+      where: { id: { not: user.id } },
+      select: { id: true, firstName: true, lastName: true },
+      take: 200,
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+    });
   } else {
     suggestedRecipients = await prisma.user.findMany({ where: studentScopeWhere(user), select: { id: true, firstName: true, lastName: true }, take: 50, orderBy: { firstName: "asc" } });
   }
@@ -63,7 +70,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Messages</h1>
-        <p className="text-sm text-slate-500">Conversations with our team.</p>
+        <p className="text-sm text-slate-500">{user.role === "SUPER_ADMIN" ? "Message any student, counselor, manager, agency, or administrator." : "Conversations with our team."}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

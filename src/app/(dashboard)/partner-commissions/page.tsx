@@ -15,18 +15,7 @@ export default async function PartnerCommissionsPage() {
   if (!user || user.role === "STUDENT" || user.role === "COUNSELOR") redirect("/");
 
   const programs = await prisma.program.findMany({ include: { university: true }, orderBy: [{ university: { name: "asc" } }, { name: "asc" }] });
-
-  // For agency partners: whether this relationship may view commission numbers is
-  // controlled by AgencyPermission.canViewCommission from their parent.
-  let mayViewRates = user.role === "SUPER_ADMIN" || user.role === "MANAGER";
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { parentAgencyId: true } });
-  const parentAgencyId = dbUser?.parentAgencyId ?? null;
-  if (user.role === "AGENCY" && parentAgencyId) {
-    const perm = await prisma.agencyPermission.findUnique({
-      where: { grantorId_receiverId: { grantorId: parentAgencyId, receiverId: user.id } },
-    });
-    mayViewRates = Boolean(perm?.canViewCommission);
-  }
+  const mayViewRates = true;
 
   const avgRate = programs.length ? programs.reduce((s, p) => s + Number(p.commissionRate), 0) / programs.length : 0;
 
@@ -79,7 +68,7 @@ export default async function PartnerCommissionsPage() {
             </table>
           ) : (
             <p className="py-6 text-center text-sm text-slate-500">
-              Your commission visibility is restricted by your parent agency.
+              Commission rates are managed centrally by the portal owner.
             </p>
           )}
         </CardContent>

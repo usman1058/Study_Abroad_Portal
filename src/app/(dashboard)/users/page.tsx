@@ -159,12 +159,7 @@ async function loadVisibleUsers(user: { id: string; role: string }) {
   }
   if (user.role === "AGENCY") {
     return prisma.user.findMany({
-      where: {
-        OR: [
-          { role: "STUDENT", OR: [{ createdById: user.id }, { createdBy: { parentAgencyId: user.id } }] },
-          { role: "AGENCY", parentAgencyId: user.id },
-        ],
-      },
+      where: { role: "STUDENT", createdById: user.id },
       orderBy: { createdAt: "desc" },
     });
   }

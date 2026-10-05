@@ -60,21 +60,6 @@ async function main() {
     },
   });
 
-  const subAgency = await prisma.user.upsert({
-    where: { email: "subagency@studyabroad.test" },
-    update: {},
-    create: {
-      role: "AGENCY",
-      email: "subagency@studyabroad.test",
-      passwordHash,
-      firstName: "NextStep",
-      lastName: "Consultancy",
-      companyName: "NextStep Consultancy",
-      createdById: agency.id,
-      parentAgencyId: agency.id,
-    },
-  });
-
   const counselor = await prisma.user.upsert({
     where: { email: "counselor@studyabroad.test" },
     update: {},
@@ -296,7 +281,6 @@ async function main() {
   console.log(`  super_admin  ${superAdmin.email}`);
   console.log(`  manager      ${manager.email}`);
   console.log(`  agency       ${agency.email}`);
-  console.log(`  sub_agency   ${subAgency.email}`);
   console.log(`  counselor    ${counselor.email}`);
   console.log(`  student      ${student.email}`);
 }

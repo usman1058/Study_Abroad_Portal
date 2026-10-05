@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, serverError } from "@/lib/api";
 import { signupRateLimit } from "@/lib/rate-limit";
+import { createNotification } from "@/lib/audit";
 import { requiredName, emailField, phoneField, passwordField } from "@/lib/validation";
 
 const signupSchema = z.object({
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
+    const admin = await prisma.user.findFirst({ where: { role: "SUPER_ADMIN" }, select: { id: true }, orderBy: { createdAt: "asc" } });
 
     const user = await prisma.user.create({
       data: {
@@ -44,10 +46,20 @@ export async function POST(req: NextRequest) {
         lastName,
         phone,
         status: "active",
+        assignedCounselorId: admin?.id ?? null,
       },
       select: { id: true, email: true },
     });
 
+    if (admin) {
+      await createNotification({
+        userId: admin.id,
+        type: "student",
+        title: "New student arrived",
+        body: firstName + " " + lastName + " created a student account and is awaiting admissions support.",
+        data: { studentId: user.id },
+      });
+    }
     return ok({ id: user.id, email: user.email }, { status: 201 });
   } catch (e) {
     return serverError(e);

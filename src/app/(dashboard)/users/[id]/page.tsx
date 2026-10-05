@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { canAccessStudent } from "@/lib/permissions";
+import { canAccessStudent, canAccessStudentDocuments } from "@/lib/permissions";
 import { listPrograms, profileCompleteness } from "@/lib/queries";
 import { ShortlistBuilder } from "@/components/shortlist-builder";
 import { MessageForm } from "@/components/message-form";
@@ -34,6 +34,8 @@ export default async function StudentDetailPage({ params }: PageProps) {
 
   const canView = student.role === "STUDENT" ? await canAccessStudent(user, student) : user.role === "SUPER_ADMIN" || (user.role === "MANAGER" && student.role !== "SUPER_ADMIN");
   if (!canView) redirect("/users");
+
+  const canViewDocuments = await canAccessStudentDocuments(user, student);
 
   const programs = await listPrograms();
   const shortlist = student.shortlists[0];
@@ -78,7 +80,9 @@ export default async function StudentDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
             <CardContent>
-              {student.documents.length === 0 ? (
+              {!canViewDocuments ? (
+                <p className="text-sm text-slate-500">Documents are limited to this student’s assigned counselor or owner.</p>
+              ) : student.documents.length === 0 ? (
                 <p className="text-sm text-slate-500">No documents uploaded.</p>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-slate-800">

@@ -25,6 +25,7 @@ import {
   Settings,
   Globe, PanelLeftClose, PanelLeftOpen,
   MessageCircle,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import type { Section } from "@/lib/permissions";
@@ -36,6 +37,7 @@ import { SidebarUserCreate } from "@/components/sidebar-user-create";
 
 const ICONS: Record<string, LucideIcon> = {
   home: Home,
+  megaphone: Megaphone,
   file: FileText,
   filePlus: FilePlus,
   users: Users,

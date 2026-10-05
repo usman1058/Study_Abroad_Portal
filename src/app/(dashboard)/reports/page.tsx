@@ -16,7 +16,7 @@ export default async function ReportsPage() {
   const studentScope = studentScopeWhere(user);
   const transactionScope =
     user.role === "AGENCY"
-      ? { OR: [{ relatedStudent: studentScope }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+      ? { OR: [{ relatedStudent: studentScope }, { relatedAgencyId: user.id }] }
       : {};
 
   const [students, applications, programs, transactions] = await Promise.all([

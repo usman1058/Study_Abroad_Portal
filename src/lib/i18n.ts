@@ -14,7 +14,6 @@ const DICT: Record<string, Record<string, string>> = {
   "Short Courses": { en: "Short Courses", ar: "دورات قصيرة", zh: "短期课程", fr: "Cours courts" },
   "Search": { en: "Search", ar: "بحث", zh: "搜索", fr: "Recherche" },
   "Application": { en: "Application", ar: "الطلب", zh: "申请管理", fr: "Candidature" },
-  "Sub Agencies": { en: "Sub Agencies", ar: "الوكالات الفرعية", zh: "子代理机构", fr: "Sous-agences" },
   "Partner Commissions": { en: "Partner Commissions", ar: "عمولات الشركاء", zh: "合作伙伴佣金", fr: "Commissions partenaires" },
   "Transaction": { en: "Transaction", ar: "المعاملات", zh: "交易", fr: "Transactions" },
   "Documents": { en: "Documents", ar: "المستندات", zh: "文件", fr: "Documents" },

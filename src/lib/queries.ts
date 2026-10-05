@@ -161,7 +161,6 @@ export type UserCard = {
   gender: string | null;
   status: string;
   companyName: string | null;
-  parentAgencyId: string | null;
   assignedCounselorId: string | null;
   createdById: string | null;
   createdAt: Date;
@@ -181,7 +180,6 @@ export function serializeUser(u: User): UserCard {
     gender: u.gender,
     status: u.status,
     companyName: u.companyName,
-    parentAgencyId: u.parentAgencyId,
     assignedCounselorId: u.assignedCounselorId,
     createdById: u.createdById,
     createdAt: u.createdAt,

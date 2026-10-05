@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role === "STUDENT") return fail("Only agency staff can capture leads", 403);
+    if (user.role !== "SUPER_ADMIN") return fail("Only the admin can manage visitor leads", 403);
 
     const body = await req.json();
     const parsed = leadSchema.safeParse(body);
@@ -52,11 +52,11 @@ export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role === "STUDENT") return fail("Forbidden", 403);
+    if (user.role !== "SUPER_ADMIN") return fail("Forbidden", 403);
 
     const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
-    const where = ["SUPER_ADMIN", "MANAGER"].includes(user.role) ? {} : { createdById: user.id };
+    const where = {};
 
     const baseQuery = {
       where,

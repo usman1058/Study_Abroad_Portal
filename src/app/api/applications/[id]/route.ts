@@ -85,7 +85,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         student: {
           select: {
             id: true, role: true, email: true, firstName: true, lastName: true, phone: true, country: true,
-            passportNumber: true, nationality: true, countryOfResidence: true, assignedCounselorId: true, createdById: true, parentAgencyId: true,
+            passportNumber: true, nationality: true, countryOfResidence: true, assignedCounselorId: true, createdById: true,
           },
         },
         program: { include: { university: true } },

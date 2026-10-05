@@ -121,7 +121,7 @@ export default async function PaymentsPage() {
   const studentScope = studentScopeWhere(user);
   const where =
     user.role === "AGENCY"
-      ? { OR: [{ relatedStudent: studentScope }, { relatedAgencyId: user.id }, { relatedAgency: { parentAgencyId: user.id } }] }
+      ? { OR: [{ relatedStudent: studentScope }, { relatedAgencyId: user.id }] }
       : user.role === "SUPER_ADMIN" || user.role === "MANAGER"
         ? {}
         : { relatedStudent: studentScope };
