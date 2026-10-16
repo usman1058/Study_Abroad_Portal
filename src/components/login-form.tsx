@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
+import { Spinner } from "@/components/ui/spinner";
 
 export function LoginForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
@@ -67,6 +68,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading} size="lg">
+        {loading && <Spinner size={16} className="mr-1" />}
         {loading ? "Signing in…" : "Sign in"}
       </Button>
     </form>

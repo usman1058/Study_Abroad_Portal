@@ -42,7 +42,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.program.findMany({
-      select: { id: true, name: true, university: { select: { name: true } } },
+      include: { university: true },
       orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
     }),
   ]);
@@ -67,8 +67,18 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
       <ApplicationCreateForm
         students={applicationStudents.map((student) => ({ id: student.id, label: student.firstName + " " + student.lastName + " (" + student.email + ")" }))}
-        programs={applicationPrograms.map((program) => ({ id: program.id, label: program.university.name + " — " + program.name }))}
-      />
+        programs={applicationPrograms.map((program) => ({
+          id: program.id,
+          label: program.university.name + " — " + program.name,
+          name: program.name,
+          university: program.university.name,
+          universityId: program.university.id,
+          country: program.university.country ?? "",
+          city: program.university.city ?? "",
+          level: program.level,
+          field: program.field,
+          fee: Number(program.tuitionFee),
+        }))}      />
       <Card>
         <CardContent className="p-0">
           {applications.length === 0 ? (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
+import { Spinner } from "@/components/ui/spinner";
 
 export function SignupForm() {
   const router = useRouter();
@@ -88,6 +89,7 @@ export function SignupForm() {
         <PasswordInput id="password" required minLength={8} maxLength={72} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="At least 8 characters" />
       </div>
       <Button type="submit" className="w-full" disabled={loading} size="lg">
+        {loading && <Spinner size={16} className="mr-1" />}
         {loading ? "Creating account…" : "Create account"}
       </Button>
     </form>

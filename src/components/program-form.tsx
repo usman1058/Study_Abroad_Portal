@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -169,13 +170,12 @@ export function ProgramForm({ universities, initial }: Props) {
               </button>
             </div>
           ) : (
-            <Select value={form.universityId} onChange={(e) => set("universityId", e.target.value)}>
-              {universities.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.country})
-                </option>
-              ))}
-            </Select>
+            <SearchableSelect
+              options={universities.map((u) => ({ id: u.id, label: `${u.name} (${u.country})` }))}
+              value={form.universityId}
+              onChange={(v) => set("universityId", v)}
+              placeholder="Search universities…"
+            />
           )}
           {!newUniversity && (
             <button type="button" className="mt-1 text-xs text-brand-600 hover:underline" onClick={() => setNewUniversity(true)}>

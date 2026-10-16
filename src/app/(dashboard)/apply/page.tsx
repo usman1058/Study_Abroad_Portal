@@ -77,8 +77,18 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
         </CardHeader>
         <CardContent>
           <ApplicationWizard
-            programs={programs.map((p) => ({ id: p.id, label: `${p.university?.name ?? ""} — ${p.name}` }))}
-            personal={personal}
+            programs={programs.map((p) => ({
+              id: p.id,
+              label: `${p.university?.name ?? ""} — ${p.name}`,
+              name: p.name,
+              university: p.university?.name ?? "",
+              universityId: p.university?.id ?? "",
+              country: p.university?.country ?? p.location ?? "",
+              city: p.university?.city ?? "",
+              level: p.level,
+              field: p.field,
+              fee: p.tuitionFee,
+            }))}            personal={personal}
             education={education}
             documents={documents.map((d) => ({ type: d.type, status: d.status }))}
             draftId={draftId}

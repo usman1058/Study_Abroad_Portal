@@ -4,11 +4,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { ProgramPicker, type ProgramOption } from "@/components/program-picker";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import { UploadDocument } from "@/components/upload-document";
 
@@ -48,7 +50,7 @@ export function ApplicationWizard({
   draftId,
   draftProgramId,
 }: {
-  programs: { id: string; label: string }[];
+  programs: ProgramOption[];
   personal: WizardPersonal;
   education: WizardEducation[];
   documents: { type: string; status: string }[];
@@ -318,16 +320,11 @@ export function ApplicationWizard({
               This submission completes your saved draft application.
             </div>
           ) : (
-            <div>
-              <Label>Choose university &amp; program *</Label>
-              <Select value={programId} onChange={(e) => setProgramId(e.target.value)}>
-                <option value="">Select a program…</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </Select>
-              <p className="mt-1 text-xs text-ink-muted">Browse full catalogs under Programs or Scholarships before deciding.</p>
-            </div>
+           <div>
+               <Label>Choose university &amp; program *</Label>
+               <ProgramPicker programs={programs} value={programId} onChange={setProgramId} emptyLabel="Search and select a program…" />
+               <p className="mt-1 text-xs text-ink-muted">Browse the full catalogs under Programs or Scholarships before deciding.</p>
+             </div>
           )}
         </div>
       )}
@@ -337,18 +334,18 @@ export function ApplicationWizard({
           ← Back
         </Button>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="ghost" onClick={() => router.refresh()} disabled={busy}>
-            Close
-          </Button>
-          {step < STEPS.length - 1 ? (
-            <Button onClick={next} disabled={!canNext || busy}>
-              {busy ? "Saving…" : step === 0 || step === 1 ? "Save & continue" : "Continue"}
-            </Button>
-          ) : (
-            <Button onClick={submit} disabled={busy}>
-              {busy ? "Submitting…" : draftId ? "Complete & submit draft" : "Submit application"}
-            </Button>
-          )}
+           <Button type="button" variant="ghost" onClick={() => router.refresh()} disabled={busy}>
+             {busy && <Spinner size={14} className="mr-1" />} Close
+           </Button>
+           {step < STEPS.length - 1 ? (
+             <Button onClick={next} disabled={!canNext || busy}>
+               {busy && <Spinner size={14} className="mr-1" />} {busy ? "Saving…" : step === 0 || step === 1 ? "Save & continue" : "Continue"}
+             </Button>
+           ) : (
+             <Button onClick={submit} disabled={busy}>
+               {busy && <Spinner size={14} className="mr-1" />} {busy ? "Submitting…" : draftId ? "Complete & submit draft" : "Submit application"}
+             </Button>
+           )}
         </div>
       </div>
     </div>

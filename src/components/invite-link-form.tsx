@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Label } from "@/components/ui/label";
 import { INVITE_SECTIONS } from "@/lib/constants";
 type SectionAccess = Record<string, "view">;
@@ -92,13 +93,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label>Student (data scope)</Label>
-          <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </Select>
+          <SearchableSelect options={students} value={studentId} onChange={setStudentId} placeholder="Search students…" />
         </div>
         <div>
           <Label>Expires in (days)</Label>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/searchable-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
@@ -179,12 +180,13 @@ export function ShortCourseForm({ programs, initial }: Props) {
         </div>
         <div>
           <Label>Linked program (optional)</Label>
-          <Select value={form.linkedProgramId} onChange={(e) => set("linkedProgramId", e.target.value)}>
-            <option value="">None</option>
-            {programs.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </Select>
+            <SearchableSelect
+              options={[{ id: "", label: "None" }, ...programs.map((p) => ({ id: p.id, label: p.label }))]}
+              value={form.linkedProgramId}
+              onChange={(v) => set("linkedProgramId", v)}
+              placeholder="Search programs…"
+              allLabel="None"
+            />
         </div>
         <div className="sm:col-span-2">
           <Label>Prerequisites</Label>
