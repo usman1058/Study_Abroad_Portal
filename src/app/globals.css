@@ -3,17 +3,42 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dae6ff;
-  --color-brand-200: #bcd3ff;
-  --color-brand-300: #8eb6ff;
-  --color-brand-400: #598dff;
-  --color-brand-500: #3363ff;
-  --color-brand-600: #1d41f5;
-  --color-brand-700: #1630e1;
-  --color-brand-800: #182ab6;
-  --color-brand-900: #1a2a8f;
-  --color-brand-950: #141a57;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* Executive Meridian — surfaces */
+  --color-canvas: #f8fafc;
+  --color-canvas-subtle: #f1f5f9;
+  --color-ink: #0b1c30;
+  --color-ink-muted: #45464e;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+
+  /* Executive Meridian — deep navy shell */
+  --color-navy-950: #0a192f;
+  --color-navy-900: #0f2042;
+  --color-navy-800: #16294f;
+  --color-navy-700: #1f3a68;
+  --color-navy-600: #2b4b80;
+  --color-navy-500: #3a5a92;
+  --color-navy-400: #6b83ad;
+  --color-navy-300: #9fb0cc;
+  --color-navy-200: #c6d2e6;
+  --color-navy-100: #e2e9f4;
+  --color-navy-50: #f2f6fc;
+
+  /* Executive Meridian — Vibrant Trust Blue (#2563eb primary action) */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
 }
 
 :root {
@@ -35,7 +60,20 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  font-family: var(--font-sans);
+  @apply bg-canvas text-ink antialiased dark:bg-navy-950 dark:text-slate-100;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+/* Tabular lining figures for metrics, currency, and identifiers */
+.tnum {
+  font-feature-settings: "tnum" 1;
 }
 
 * {

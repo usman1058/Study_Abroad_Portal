@@ -23,7 +23,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   if (!program) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-slate-500">Program not found.</CardContent>
+        <CardContent className="py-12 text-center text-ink-muted">Program not found.</CardContent>
       </Card>
     );
   }
@@ -82,16 +82,16 @@ export default async function ProgramDetailPage({ params }: PageProps) {
                 <img
                   src={program.universityLogoUrl}
                   alt={`${program.university?.name} logo`}
-                  className="h-14 w-14 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                  className="h-14 w-14 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
                 />
               )}
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                 {program.university?.name?.[0] ?? "?"}
               </span>
               <div>
-                <p className="text-sm text-slate-500">{program.university?.name ?? "Unknown university"}</p>
+                <p className="text-sm text-ink-muted">{program.university?.name ?? "Unknown university"}</p>
                 <h1 className="text-2xl font-bold">{program.name}</h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-muted">
                   {program.location ?? program.university?.country ?? ""}
                 </p>
                 {program.university?.website && (
@@ -147,16 +147,16 @@ export default async function ProgramDetailPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           {why.length === 0 ? (
-            <p className="text-sm text-slate-500">No highlights available.</p>
+            <p className="text-sm text-ink-muted">No highlights available.</p>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {why.map((h, i) => (
-                <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-slate-800">
+                <div key={i} className="rounded-xl border border-line p-4 dark:border-navy-700">
                   <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-lg text-brand-600 dark:bg-brand-900/40 dark:text-brand-200">
                     {h.icon ?? "✨"}
                   </div>
                   <p className="font-semibold">{h.title ?? "Highlight"}</p>
-                  <p className="mt-1 text-sm text-slate-500">{h.description ?? ""}</p>
+                  <p className="mt-1 text-sm text-ink-muted">{h.description ?? ""}</p>
                 </div>
               ))}
             </div>
@@ -171,12 +171,12 @@ export default async function ProgramDetailPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             {details.length === 0 ? (
-              <p className="text-sm text-slate-500">No course details available.</p>
+              <p className="text-sm text-ink-muted">No course details available.</p>
             ) : (
               <dl className="grid grid-cols-2 gap-4">
                 {details.map((d) => (
-                  <div key={d.label} className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-                    <dt className="text-xs text-slate-500">{d.label}</dt>
+                  <div key={d.label} className="rounded-lg bg-canvas p-3 dark:bg-navy-800/50">
+                    <dt className="text-xs text-ink-muted">{d.label}</dt>
                     <dd className="mt-0.5 text-sm font-medium">{d.value}</dd>
                   </div>
                 ))}
@@ -190,11 +190,11 @@ export default async function ProgramDetailPage({ params }: PageProps) {
             <CardTitle>Eligibility Criteria</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 text-sm text-slate-500">
+            <p className="mb-3 text-sm text-ink-muted">
               {program.university?.name ?? "The university"} requires:
             </p>
             {program.eligibilityCriteria.length === 0 ? (
-              <p className="text-sm text-slate-500">No specific criteria listed.</p>
+              <p className="text-sm text-ink-muted">No specific criteria listed.</p>
             ) : (
               <ul className="list-disc space-y-1.5 pl-5 text-sm">
                 {program.eligibilityCriteria.map((c) => (
@@ -226,9 +226,9 @@ export default async function ProgramDetailPage({ params }: PageProps) {
               {similar.map((s) => {
                 const card = serializeProgram(s);
                 return (
-                  <Link key={s.id} href={`/scholarships/${s.slug ?? s.id}`} className="rounded-xl border border-slate-200 p-4 transition hover:border-brand-400 dark:border-slate-800">
+                  <Link key={s.id} href={`/scholarships/${s.slug ?? s.id}`} className="rounded-xl border border-line p-4 transition hover:border-brand-400 dark:border-navy-700">
                     <p className="text-sm font-semibold">{s.university.name}</p>
-                    <p className="truncate text-xs text-slate-500">{s.name}</p>
+                    <p className="truncate text-xs text-ink-muted">{s.name}</p>
                     <p className="mt-2 text-sm font-medium">
                       <FeeDisplay amount={toNum(s.tuitionFee)} />
                     </p>

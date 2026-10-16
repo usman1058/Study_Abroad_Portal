@@ -7,8 +7,8 @@ export const metadata = { title: "Student Signup" };
 export default function StudentSignupPage() {
   return (
     <AuthShell
-      title="Create your account"
-      subtitle="Quick signup — just a few details to get started."
+      title="Student Signup"
+      subtitle="Create an account to explore programs and track your applications."
       footer={
         <>
           Already registered?{" "}

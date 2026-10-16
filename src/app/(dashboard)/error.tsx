@@ -23,7 +23,7 @@ export default function DashboardError({
           <RefreshCw className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-bold">Something went wrong</h2>
-        <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+        <p className="text-ink-muted dark:text-slate-400 max-w-md mx-auto">
           We encountered an unexpected error. Please try again or go back to the dashboard.
         </p>
         <div className="flex items-center justify-center gap-3">
@@ -39,9 +39,9 @@ export default function DashboardError({
           </Link>
         </div>
         {process.env.NODE_ENV === "development" && (
-          <details className="text-left text-sm text-slate-500 dark:text-slate-400 mt-4">
+          <details className="text-left text-sm text-ink-muted dark:text-slate-400 mt-4">
             <summary className="cursor-pointer mb-2">Error details (dev only)</summary>
-            <pre className="whitespace-pre-wrap rounded bg-slate-100 p-4 dark:bg-slate-800">{error.message}</pre>
+            <pre className="whitespace-pre-wrap rounded bg-canvas-subtle p-4 dark:bg-navy-800">{error.message}</pre>
           </details>
         )}
       </div>

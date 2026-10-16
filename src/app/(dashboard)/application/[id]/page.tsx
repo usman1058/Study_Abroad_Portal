@@ -38,7 +38,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
   });
 
   if (!application) {
-    return <Card><CardContent className="py-12 text-center text-slate-500">Application not found.</CardContent></Card>;
+    return <Card><CardContent className="py-12 text-center text-ink-muted">Application not found.</CardContent></Card>;
   }
 
   const allowed = await canAccessStudent(user, application.student);
@@ -57,7 +57,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         <div>
           <Link href="/application" className="text-sm text-brand-600 hover:underline">← Applications</Link>
           <h1 className="mt-1 text-2xl font-bold">{application.program.name}</h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             {application.program.university.name} · Student:{" "}
             <Link href={`/users/${application.student.id}`} className="hover:underline">
               {fullName(application.student)}
@@ -90,21 +90,21 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle>
                 Documents
-                <span className="ml-2 text-xs font-normal text-slate-500">
+                <span className="ml-2 text-xs font-normal text-ink-muted">
                   {verifiedDocs}/{application.documents.length} verified
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {visibleDocuments.length === 0 ? (
-                <p className="text-sm text-slate-500">{canViewDocuments ? "No documents uploaded for this application." : "Documents are restricted to the student’s assigned counselor or owner."}</p>
+                <p className="text-sm text-ink-muted">{canViewDocuments ? "No documents uploaded for this application." : "Documents are restricted to the student’s assigned counselor or owner."}</p>
               ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                <ul className="divide-y divide-line dark:divide-navy-700">
                   {visibleDocuments.map((d) => (
                     <li key={d.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{humanize(d.type)}</p>
-                        <p className="truncate text-xs text-slate-500">
+                        <p className="truncate text-xs text-ink-muted">
                           Uploaded {formatDate(d.uploadedAt)}
                           {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}
                         </p>
@@ -135,11 +135,11 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               <CardTitle>Program details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">University</span><span>{application.program.university.name}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Level</span><span className="capitalize">{application.program.level}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Field</span><span>{application.program.field}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Tuition</span><span>{formatCurrency(toNum(application.program.tuitionFee))}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Visa required</span><span>{application.program.visaRequired ? "Yes" : "No"}</span></div>
+              <div className="flex justify-between"><span className="text-ink-muted">University</span><span>{application.program.university.name}</span></div>
+              <div className="flex justify-between"><span className="text-ink-muted">Level</span><span className="capitalize">{application.program.level}</span></div>
+              <div className="flex justify-between"><span className="text-ink-muted">Field</span><span>{application.program.field}</span></div>
+              <div className="flex justify-between"><span className="text-ink-muted">Tuition</span><span>{formatCurrency(toNum(application.program.tuitionFee))}</span></div>
+              <div className="flex justify-between"><span className="text-ink-muted">Visa required</span><span>{application.program.visaRequired ? "Yes" : "No"}</span></div>
             </CardContent>
           </Card>
 

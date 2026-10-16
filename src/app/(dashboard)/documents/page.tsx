@@ -66,7 +66,7 @@ export default async function DocumentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Documents</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           Documents are limited to your counselor/student cases. {pendingCount} pending.
         </p>
       </div>
@@ -77,7 +77,7 @@ export default async function DocumentsPage() {
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-semibold">Counselor activity and documents</h2>
-            <p className="text-sm text-slate-500">Cases assigned to counselors you created.</p>
+            <p className="text-sm text-ink-muted">Cases assigned to counselors you created.</p>
           </div>
           <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor />
         </section>
@@ -110,7 +110,7 @@ function DocumentGroup({
   showCounselor?: boolean;
 }) {
   if (students.length === 0) {
-    return <Card><CardContent className="py-8 text-center text-sm text-slate-500">No students with documents.</CardContent></Card>;
+    return <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No students with documents.</CardContent></Card>;
   }
 
   return (
@@ -120,7 +120,7 @@ function DocumentGroup({
           <CardHeader>
             <CardTitle>
               {fullName(student)}
-              <span className="ml-2 text-xs font-normal text-slate-500">
+              <span className="ml-2 text-xs font-normal text-ink-muted">
                 {student.documents.filter((document) => document.status === "VERIFIED").length}/{student.documents.length} verified
               </span>
               {showCounselor && student.assignedCounselor && (
@@ -131,12 +131,12 @@ function DocumentGroup({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="divide-y divide-line dark:divide-navy-700">
               {student.documents.map((document) => (
                 <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{humanize(document.type)}</p>
-                    <p className="truncate text-xs text-slate-500">
+                    <p className="truncate text-xs text-ink-muted">
                       {document.application ? "For " + document.application.program.name : "General"} · uploaded {formatDate(document.uploadedAt)}
                       {document.rejectionReason && <span className="text-red-600"> · {document.rejectionReason}</span>}
                       {document.expiresAt && <span> · expires {formatDate(document.expiresAt)}</span>}

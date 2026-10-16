@@ -58,7 +58,7 @@ export default async function TransactionsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Transactions</h1>
-          <p className="text-sm text-slate-500">Financial ledger — manually entered in v1.</p>
+          <p className="text-sm text-ink-muted">Financial ledger — manually entered in v1.</p>
         </div>
         <TransactionForm
           students={students.map((s) => ({ id: s.id, label: `${s.firstName} ${s.lastName}` }))}
@@ -71,7 +71,7 @@ export default async function TransactionsPage() {
           const [type, currency] = key.split(":");
           return <Card key={key}>
             <CardContent className="p-5">
-              <p className="text-xs capitalize text-slate-500">{type.replace(/_/g, " ")}</p>
+              <p className="text-xs capitalize text-ink-muted">{type.replace(/_/g, " ")}</p>
               <p className="mt-1 text-lg font-bold">{formatCurrency(amount, currency)}</p>
             </CardContent>
           </Card>;
@@ -84,12 +84,12 @@ export default async function TransactionsPage() {
         </CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">No transactions yet.</p>
+            <p className="py-6 text-center text-sm text-ink-muted">No transactions yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                     <th className="p-4">Date</th>
                     <th className="p-4">Type</th>
                     <th className="p-4">Amount</th>
@@ -101,17 +101,17 @@ export default async function TransactionsPage() {
                     {user.role === "SUPER_ADMIN" && <th className="p-4 text-right">Actions</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-line dark:divide-navy-700">
                   {transactions.map((t) => (
                     <tr key={t.id}>
-                      <td className="p-4 text-slate-500">{formatDate(t.date)}</td>
+                      <td className="p-4 text-ink-muted">{formatDate(t.date)}</td>
                       <td className="p-4"><Badge tone={t.type === "REFUND" ? "red" : t.type === "COMMISSION_PAYOUT" ? "green" : "brand"}>{t.type.replace(/_/g, " ")}</Badge></td>
                       <td className="p-4 font-medium">{formatCurrency(t.amount, t.currency)}</td>
-                      <td className="p-4 text-slate-500">{(t.method ?? "—").replace(/_/g, " ")}</td>
+                      <td className="p-4 text-ink-muted">{(t.method ?? "—").replace(/_/g, " ")}</td>
                       <td className="p-4">{t.relatedStudent ? fullName(t.relatedStudent) : "—"}</td>
                       <td className="p-4">{t.relatedAgency ? (t.relatedAgency.companyName ?? fullName(t.relatedAgency)) : "—"}</td>
-                      <td className="p-4 text-slate-500">{t.notes ?? "—"}</td>
-                      <td className="p-4 text-slate-500">{t.enteredBy.firstName} {t.enteredBy.lastName}</td>
+                      <td className="p-4 text-ink-muted">{t.notes ?? "—"}</td>
+                      <td className="p-4 text-ink-muted">{t.enteredBy.firstName} {t.enteredBy.lastName}</td>
                       {user.role === "SUPER_ADMIN" && <td className="p-4 text-right"><DeleteButton endpoint={`/api/transactions/${t.id}`} confirmText="Delete this transaction?" /></td>}
                     </tr>
                   ))}

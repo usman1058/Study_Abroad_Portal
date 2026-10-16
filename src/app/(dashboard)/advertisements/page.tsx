@@ -30,7 +30,7 @@ export default async function AdvertisementsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Advertisement management</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-sm text-ink-muted dark:text-slate-400">
           Create and control the announcements, offers, and deadlines shown on partner dashboards.
         </p>
       </div>

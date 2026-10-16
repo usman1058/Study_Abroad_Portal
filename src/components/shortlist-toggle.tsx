@@ -42,7 +42,7 @@ export function ShortlistToggle({ programId, initial = false }: { programId: str
         "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
         on
           ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
-          : "border-slate-300 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
+          : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300"
       )}
     >
       <Star className={cn("h-3.5 w-3.5", on && "fill-current")} />

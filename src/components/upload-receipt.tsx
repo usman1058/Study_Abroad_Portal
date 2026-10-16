@@ -59,7 +59,7 @@ export function UploadReceipt({ shortCourseId, onUploaded }: { shortCourseId: st
       <div className="sm:col-span-2">
         <Label>Receipt File</Label>
         <Input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
-        <p className="mt-1 text-xs text-slate-500">PDF, JPG, PNG or DOC up to 5 MB.</p>
+        <p className="mt-1 text-xs text-ink-muted">PDF, JPG, PNG or DOC up to 5 MB.</p>
       </div>
       <div className="sm:col-span-2">
         <Button type="submit" disabled={busy}>{busy ? "Uploading…" : "Upload Receipt"}</Button>

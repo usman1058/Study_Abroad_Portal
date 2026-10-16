@@ -81,7 +81,7 @@ export function CourseFilter({
       {/* Filter Panel */}
       {isOpen && (
         <div className="absolute z-10 w-full max-w-md animate-in fade-in slide-in-from-top-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-xl border border-line bg-white p-4 shadow-lg dark:border-navy-700 dark:bg-navy-900">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Filter Courses</h3>
               {hasActiveFilters && (
@@ -156,17 +156,17 @@ export function CourseFilter({
       {/* Results List */}
       <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
         {filteredPrograms.length === 0 ? (
-          <p className="text-center text-sm text-slate-500 py-4">No courses match your filters.</p>
+          <p className="text-center text-sm text-ink-muted py-4">No courses match your filters.</p>
         ) : (
           filteredPrograms.map(p => (
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
-              className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-brand-50 hover:border-brand-300 dark:hover:bg-slate-800/30 dark:border-slate-700 transition text-left"
+              className="w-full text-left p-3 rounded-lg border border-line hover:bg-brand-50 hover:border-brand-300 dark:hover:bg-navy-800/30 dark:border-navy-700 transition text-left"
             >
               <p className="font-medium">{p.label.split(" — ")[1] || p.label}</p>
-              <p className="text-xs text-slate-500 truncate">{p.label.split(" — ")[0]}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <p className="text-xs text-ink-muted truncate">{p.label.split(" — ")[0]}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                 {p.country && <span className="flex items-center gap-1"><span>📍</span>{p.country}</span>}
                 {p.level && <Badge tone="slate" className="text-xs">{p.level}</Badge>}
                 {p.field && <Badge tone="slate" className="text-xs">{p.field}</Badge>}

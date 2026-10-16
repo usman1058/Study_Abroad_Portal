@@ -29,7 +29,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   });
 
   if (!student) {
-    return <Card><CardContent className="py-12 text-center text-slate-500">Student not found.</CardContent></Card>;
+    return <Card><CardContent className="py-12 text-center text-ink-muted">Student not found.</CardContent></Card>;
   }
 
   const canView = student.role === "STUDENT" ? await canAccessStudent(user, student) : user.role === "SUPER_ADMIN" || (user.role === "MANAGER" && student.role !== "SUPER_ADMIN");
@@ -45,7 +45,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{fullName(student)}</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {student.email} · {student.country ?? "—"} · {student.role.replace(/_/g, " ")} · profile {profileCompleteness(student)}% complete
         </p>
         <div className="mt-3 flex flex-wrap gap-2">{user.role === "SUPER_ADMIN" && student.role !== "SUPER_ADMIN" && <PromoteUserButton userId={student.id} />}<a href={`https://wa.me/${(student.phone ?? "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-lg border border-emerald-300 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">WhatsApp</a><a href={`/users/${student.id}/analytics`} className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700">More Details</a></div>
@@ -57,14 +57,14 @@ export default async function StudentDetailPage({ params }: PageProps) {
             <CardHeader><CardTitle>Applications</CardTitle></CardHeader>
             <CardContent>
               {student.applications.length === 0 ? (
-                <p className="text-sm text-slate-500">No applications yet.</p>
+                <p className="text-sm text-ink-muted">No applications yet.</p>
               ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                <ul className="divide-y divide-line dark:divide-navy-700">
                   {student.applications.map((a) => (
                     <li key={a.id} className="flex items-center justify-between gap-3 py-3">
                       <div>
                         <p className="text-sm font-medium">{a.program.name}</p>
-                        <p className="text-xs text-slate-500">{a.program.university.name}</p>
+                        <p className="text-xs text-ink-muted">{a.program.university.name}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge tone={a.stage === "REJECTED" ? "red" : "brand"}>{a.stage.replace(/_/g, " ")}</Badge>
@@ -81,11 +81,11 @@ export default async function StudentDetailPage({ params }: PageProps) {
             <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
             <CardContent>
               {!canViewDocuments ? (
-                <p className="text-sm text-slate-500">Documents are limited to this student’s assigned counselor or owner.</p>
+                <p className="text-sm text-ink-muted">Documents are limited to this student’s assigned counselor or owner.</p>
               ) : student.documents.length === 0 ? (
-                <p className="text-sm text-slate-500">No documents uploaded.</p>
+                <p className="text-sm text-ink-muted">No documents uploaded.</p>
               ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                <ul className="divide-y divide-line dark:divide-navy-700">
                   {student.documents.map((d) => (
                     <li key={d.id} className="flex items-center justify-between py-3 text-sm">
                       <span>{humanize(d.type)}</span>
@@ -135,4 +135,4 @@ export default async function StudentDetailPage({ params }: PageProps) {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4"><span className="text-slate-500">{label}</span><span className="text-right font-medium">{value}</span></div>; }
+function Info({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-4"><span className="text-ink-muted">{label}</span><span className="text-right font-medium">{value}</span></div>; }

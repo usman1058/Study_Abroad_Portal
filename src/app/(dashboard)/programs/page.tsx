@@ -96,7 +96,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h1 className="text-2xl font-bold">Programs</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           Browse every program, grouped by university and city.
           {isStudent && " Tick courses to build a shareable PDF shortlist, or apply directly."}
         </p></div>
@@ -110,7 +110,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
 
       {grouped.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">
+          <CardContent className="py-12 text-center text-sm text-ink-muted">
             No programs match your filters.
           </CardContent>
         </Card>
@@ -120,13 +120,13 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
         grouped.map(({ university, programs: uniPrograms }) => (
           <Card key={university.id}>
             <CardContent className="p-0">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
                 <div className="flex items-center gap-3">
                   {university.logoUrl && (
                   <img
                     src={university.logoUrl}
                     alt={`${university.name} logo`}
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
                   />
                 )}
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
@@ -134,14 +134,14 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                   </span>
                   <div>
                     <h2 className="font-semibold">{university.name}</h2>
-                    <p className="flex items-center gap-1 text-xs text-slate-500">
+                    <p className="flex items-center gap-1 text-xs text-ink-muted">
                       <MapPin className="h-3 w-3" /> {university.city ?? "—"}, {university.country}
                     </p>
                   </div>
                 </div>
                 <Badge tone="slate">{uniPrograms.length} program{uniPrograms.length > 1 ? "s" : ""}</Badge>
               </div>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              <div className="divide-y divide-line dark:divide-navy-700">
                 {uniPrograms.map((p) => {
                   const nextIntake = p.intakeDates
                     .map((d) => new Date(d))
@@ -153,7 +153,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                         <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
                           {p.name}
                         </Link>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                           <Badge tone="slate">{p.level}</Badge>
                           <span>{p.field}</span>
                           {nextIntake && <span>Next intake {formatDate(nextIntake)}</span>}

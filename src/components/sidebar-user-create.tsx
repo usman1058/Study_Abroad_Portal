@@ -95,7 +95,7 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
         <>
           <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
           <div className="absolute bottom-full left-0 right-0 z-50 mb-1">
-            <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900">
+            <div className="rounded-xl border border-line bg-white p-2 shadow-lg dark:border-navy-700 dark:bg-navy-900">
               {roleOptions.map((opt) => (
                 <button
                   key={opt.value}
@@ -104,7 +104,7 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
                     setMenuOpen(false);
                     setOpen(true);
                   }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium hover:bg-canvas-subtle dark:hover:bg-navy-800"
                 >
                   <opt.icon className="h-4 w-4" />
                   {opt.label}
@@ -121,14 +121,14 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
           <div className="absolute bottom-full left-0 right-0 z-50 mb-1">
             <form
               onSubmit={submit}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-slate-800 dark:bg-slate-900"
+              className="rounded-xl border border-line bg-white p-5 shadow-lg dark:border-navy-700 dark:bg-navy-900"
             >
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="font-semibold">Create a new account</h3>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="text-slate-500 hover:text-slate-700"
+                  className="text-ink-muted hover:text-slate-700"
                 >
                   ✕
                 </button>

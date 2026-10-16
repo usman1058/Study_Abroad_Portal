@@ -163,7 +163,7 @@ export function ApplicationWizard({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
       <ol className="mb-5 flex flex-wrap gap-2">
         {STEPS.map((label, i) => (
           <li key={label} className="flex items-center gap-1.5">
@@ -174,12 +174,12 @@ export function ApplicationWizard({
                   ? "bg-brand-600 text-white"
                   : i < step
                     ? "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-200"
-                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400")
+                    : "bg-canvas-subtle text-ink-muted dark:bg-navy-800 dark:text-slate-400")
               }
             >
               {i < step ? "✓" : i + 1}
             </span>
-            <span className={"text-xs " + (i === step ? "font-semibold" : "text-slate-500")}>{label}</span>
+            <span className={"text-xs " + (i === step ? "font-semibold" : "text-ink-muted")}>{label}</span>
             {i < STEPS.length - 1 && <span className="mx-1 text-slate-300">→</span>}
           </li>
         ))}
@@ -244,7 +244,7 @@ export function ApplicationWizard({
       {step === 1 && (
         <div className="space-y-4">
           {eduRows.map((row, i) => (
-            <div key={i} className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-3 dark:border-slate-800">
+            <div key={i} className="grid gap-3 rounded-lg border border-line p-3 sm:grid-cols-3 dark:border-navy-700">
               <div>
                 <Label>Level</Label>
                 <Select value={row.level} onChange={(e) => setEdu(i, "level", e.target.value)}>
@@ -289,12 +289,12 @@ export function ApplicationWizard({
 
       {step === 2 && (
         <div className="space-y-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Upload your academic documents now — passport, transcripts and English test results speed up the review. Staff will verify them after you submit.
           </p>
           <UploadDocument applications={[]} />
           {documents.length > 0 && (
-            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+            <ul className="divide-y divide-line rounded-lg border border-line dark:divide-navy-700 dark:border-navy-700">
               {documents.map((d, i) => (
                 <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span>{d.type.replace(/_/g, " ").toLowerCase()}</span>
@@ -305,7 +305,7 @@ export function ApplicationWizard({
               ))}
             </ul>
           )}
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-ink-muted">
             {verifiedDocs}/{documents.length} verified so far — you can continue without verification and upload more later.
           </p>
         </div>
@@ -326,7 +326,7 @@ export function ApplicationWizard({
                   <option key={p.id} value={p.id}>{p.label}</option>
                 ))}
               </Select>
-              <p className="mt-1 text-xs text-slate-500">Browse full catalogs under Programs or Scholarships before deciding.</p>
+              <p className="mt-1 text-xs text-ink-muted">Browse full catalogs under Programs or Scholarships before deciding.</p>
             </div>
           )}
         </div>

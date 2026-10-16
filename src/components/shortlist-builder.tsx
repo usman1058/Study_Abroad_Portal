@@ -62,11 +62,11 @@ export function ShortlistBuilder({
   return (
     <div className="space-y-3">
       {current.length === 0 ? (
-        <p className="text-sm text-slate-500">No courses on this student's shortlist.</p>
+        <p className="text-sm text-ink-muted">No courses on this student's shortlist.</p>
       ) : (
         <ul className="space-y-2">
           {current.map((c) => (
-            <li key={c.programId} className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+            <li key={c.programId} className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm dark:border-navy-700">
               <span className="min-w-0 truncate">{c.label}</span>
               <button onClick={() => remove(c.programId)} disabled={busy} className="text-slate-400 hover:text-red-600">
                 <X className="h-4 w-4" />

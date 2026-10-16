@@ -48,7 +48,7 @@ export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?
   const { currency, apply } = useCurrency(defaultCurrency);
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-500">Currency</span>
+      <span className="text-xs text-ink-muted">Currency</span>
       <Select value={currency} onChange={(e) => apply(e.target.value)} className="h-8 w-28 text-xs">
         {CURRENCIES.map((c) => (
           <option key={c} value={c}>

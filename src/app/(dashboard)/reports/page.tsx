@@ -40,16 +40,16 @@ export default async function ReportsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-sm text-slate-500">Operational summaries.</p>
+          <p className="text-sm text-ink-muted">Operational summaries.</p>
         </div>
         <ReportActions />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Students</p><p className="mt-1 text-2xl font-bold">{students}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Applications</p><p className="mt-1 text-2xl font-bold">{applications}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Programs</p><p className="mt-1 text-2xl font-bold">{programs}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Total volume</p><p className="mt-1 text-xl font-bold">{volume}</p><p className="mt-1 text-xs text-slate-400">Grouped by currency</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Students</p><p className="mt-1 text-2xl font-bold">{students}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Applications</p><p className="mt-1 text-2xl font-bold">{applications}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Programs</p><p className="mt-1 text-2xl font-bold">{programs}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Total volume</p><p className="mt-1 text-xl font-bold">{volume}</p><p className="mt-1 text-xs text-slate-400">Grouped by currency</p></CardContent></Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -59,7 +59,7 @@ export default async function ReportsPage() {
             <ul className="space-y-2 text-sm">
               {byStage.map((r) => (
                 <li key={r.stage} className="flex justify-between">
-                  <span className="capitalize text-slate-600 dark:text-slate-300">{r.stage.replace(/_/g, " ")}</span>
+                  <span className="capitalize text-ink-muted dark:text-slate-300">{r.stage.replace(/_/g, " ")}</span>
                   <span className="font-medium">{r._count._all}</span>
                 </li>
               ))}

@@ -115,8 +115,8 @@ export function ShortCourseForm({ programs, initial }: Props) {
   if (!open) return <Button onClick={() => setOpen(true)}>{initial?.id ? "Edit" : "+ Add short course"}</Button>;
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-center justify-between"><h3 className="font-semibold">{initial?.id ? "Edit short course" : "Add a short course"}</h3><button type="button" onClick={() => setOpen(false)} className="rounded-lg px-2 py-1 text-xl leading-none text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close short course form">×</button></div>
+    <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
+      <div className="flex items-center justify-between"><h3 className="font-semibold">{initial?.id ? "Edit short course" : "Add a short course"}</h3><button type="button" onClick={() => setOpen(false)} className="rounded-lg px-2 py-1 text-xl leading-none text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800" aria-label="Close short course form">×</button></div>
       {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

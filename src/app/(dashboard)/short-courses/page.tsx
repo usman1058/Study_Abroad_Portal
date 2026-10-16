@@ -35,7 +35,7 @@ export default async function ShortCoursesPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Short Courses</h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Language, test-prep, foundation and professional courses.
           </p>
         </div>
@@ -44,11 +44,11 @@ export default async function ShortCoursesPage() {
         )}
       </div>
 
-      {isSuperAdmin && <div className="grid gap-4 sm:grid-cols-3"><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Active courses</p><p className="mt-1 text-2xl font-bold">{courses.length}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Enrolled students</p><p className="mt-1 text-2xl font-bold">{enrolledCount}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-slate-500">Pending applications/payments</p><p className="mt-1 text-2xl font-bold">{pendingCount}</p></CardContent></Card></div>}
+      {isSuperAdmin && <div className="grid gap-4 sm:grid-cols-3"><Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Active courses</p><p className="mt-1 text-2xl font-bold">{courses.length}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Enrolled students</p><p className="mt-1 text-2xl font-bold">{enrolledCount}</p></CardContent></Card><Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Pending applications/payments</p><p className="mt-1 text-2xl font-bold">{pendingCount}</p></CardContent></Card></div>}
 
       {courses.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">No short courses yet.</CardContent>
+          <CardContent className="py-12 text-center text-sm text-ink-muted">No short courses yet.</CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -57,23 +57,23 @@ export default async function ShortCoursesPage() {
               <CardContent className="p-5">
                 <div className="mb-3 flex items-start justify-between gap-2">
                   <div>
-                    <p className="text-xs text-slate-500">{c.provider}</p>
+                    <p className="text-xs text-ink-muted">{c.provider}</p>
                     <h3 className="font-semibold">{c.title}</h3>
                   </div>
                   <Badge tone="brand">{humanize(c.category)}</Badge>
                 </div>
-                <p className="mb-3 line-clamp-2 text-sm text-slate-500">{c.description || "No description."}</p>
+                <p className="mb-3 line-clamp-2 text-sm text-ink-muted">{c.description || "No description."}</p>
                 <dl className="mb-4 space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Duration</dt>
+                    <dt className="text-ink-muted">Duration</dt>
                     <dd>{c.duration}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Delivery</dt>
+                    <dt className="text-ink-muted">Delivery</dt>
                     <dd className="capitalize">{c.deliveryMode}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Next start</dt>
+                    <dt className="text-ink-muted">Next start</dt>
                     <dd>
                       {(() => {
                         const nextStart = c.startDates
@@ -85,14 +85,14 @@ export default async function ShortCoursesPage() {
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Fee</dt>
+                    <dt className="text-ink-muted">Fee</dt>
                     <dd className="font-medium">
                       <FeeDisplay amount={c.fee} />
                     </dd>
                   </div>
                 </dl>
                 <div className="flex items-center gap-2">
-                  <Link href={`/short-courses/${c.id}`} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50">More Details</Link>
+                  <Link href={`/short-courses/${c.id}`} className="rounded-lg border border-line-strong px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50">More Details</Link>
                   {user.role === "STUDENT" && (
 <EnrollButton
   shortCourseId={c.id}

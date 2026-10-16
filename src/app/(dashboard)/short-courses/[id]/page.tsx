@@ -25,7 +25,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
   if (!course) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-slate-500">Course not found.</CardContent>
+        <CardContent className="py-12 text-center text-ink-muted">Course not found.</CardContent>
       </Card>
     );
   }
@@ -58,9 +58,9 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                 {course.provider?.[0] ?? "?"}
               </span>
               <div>
-                <p className="text-sm text-slate-500">{course.provider}</p>
+                <p className="text-sm text-ink-muted">{course.provider}</p>
                 <h1 className="text-2xl font-bold">{course.title}</h1>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-ink-muted">
                   {humanize(course.category)} · {course.duration}
                 </p>
               </div>
@@ -101,41 +101,41 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
         <CardContent className="space-y-4">
           {course.description && (
             <div>
-              <p className="text-sm text-slate-500">Description</p>
+              <p className="text-sm text-ink-muted">Description</p>
               <p className="mt-1 text-sm">{course.description}</p>
             </div>
           )}
           <dl className="grid grid-cols-2 gap-4">
             <div>
-              <dt className="text-xs text-slate-500">Provider</dt>
+              <dt className="text-xs text-ink-muted">Provider</dt>
               <dd className="mt-0.5 text-sm font-medium">{course.provider}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Category</dt>
+              <dt className="text-xs text-ink-muted">Category</dt>
               <dd className="mt-0.5 text-sm font-medium">{humanize(course.category)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Duration</dt>
+              <dt className="text-xs text-ink-muted">Duration</dt>
               <dd className="mt-0.5 text-sm font-medium">{course.duration}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Delivery Mode</dt>
+              <dt className="text-xs text-ink-muted">Delivery Mode</dt>
               <dd className="mt-0.5 text-sm font-medium capitalize">{course.deliveryMode}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Class Schedule</dt>
+              <dt className="text-xs text-ink-muted">Class Schedule</dt>
               <dd className="mt-0.5 text-sm font-medium">{course.classSchedule || "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Next Start</dt>
+              <dt className="text-xs text-ink-muted">Next Start</dt>
               <dd className="mt-0.5 text-sm font-medium">{nextStart ? formatDate(nextStart) : "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Fee</dt>
+              <dt className="text-xs text-ink-muted">Fee</dt>
               <dd className="mt-0.5 text-sm font-medium"><FeeDisplay amount={toNum(course.fee)} /></dd>
             </div>
             <div>
-              <dt className="text-xs text-slate-500">Payment Type</dt>
+              <dt className="text-xs text-ink-muted">Payment Type</dt>
               <dd className="mt-0.5 text-sm font-medium">
                 <Badge tone={course.paymentType === "FREE" ? "green" : course.paymentType === "PAID" ? "amber" : "slate"}>
                   {course.paymentType}
@@ -144,13 +144,13 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             </div>
             {course.paymentType === "PAID" && course.bankDetails && (
               <div className="col-span-2">
-                <dt className="text-xs text-slate-500">Bank Details</dt>
-                <dd className="mt-1 text-sm whitespace-pre-wrap bg-slate-50 p-3 rounded-lg dark:bg-slate-800">{course.bankDetails}</dd>
+                <dt className="text-xs text-ink-muted">Bank Details</dt>
+                <dd className="mt-1 text-sm whitespace-pre-wrap bg-canvas p-3 rounded-lg dark:bg-navy-800">{course.bankDetails}</dd>
               </div>
             )}
             {course.meetingLink && (
               <div>
-                <dt className="text-xs text-slate-500">Meeting Link</dt>
+                <dt className="text-xs text-ink-muted">Meeting Link</dt>
                 <dd className="mt-0.5">
                   <a href={course.meetingLink} target="_blank" rel="noreferrer" className="text-sm font-medium text-brand-600 hover:underline inline-flex items-center gap-1">
                     Join Meeting <ExternalLink className="h-3 w-3" />
@@ -160,7 +160,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             )}
             {course.prerequisites && (
               <div className="col-span-2">
-                <dt className="text-xs text-slate-500">Prerequisites</dt>
+                <dt className="text-xs text-ink-muted">Prerequisites</dt>
                 <dd className="mt-1 text-sm">{course.prerequisites}</dd>
               </div>
             )}
@@ -184,13 +184,13 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
 
           {user.role === "STUDENT" && course.paymentType === "PAID" && !enrollment && (
             <div className="space-y-3">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-ink-muted">
                 This is a paid course. Enroll first, then upload the bank-transfer receipt for review.
               </p>
               {course.bankDetails && (
-                <div className="bg-slate-50 p-4 rounded-lg dark:bg-slate-800/50">
+                <div className="bg-canvas p-4 rounded-lg dark:bg-navy-800/50">
                   <p className="font-medium mb-2">Bank Details</p>
-                  <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded dark:bg-slate-800">{course.bankDetails}</pre>
+                  <pre className="whitespace-pre-wrap text-sm bg-white p-3 rounded dark:bg-navy-800">{course.bankDetails}</pre>
                 </div>
               )}
               <EnrollButton

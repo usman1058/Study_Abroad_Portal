@@ -45,7 +45,7 @@ export default async function PaymentsPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Payments</h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-muted">
             Your payment history. Each entry shows what the payment is for.
           </p>
         </div>
@@ -53,19 +53,19 @@ export default async function PaymentsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardContent className="p-5">
-              <p className="text-xs text-slate-500">Total recorded</p>
+              <p className="text-xs text-ink-muted">Total recorded</p>
               <p className="mt-1 text-xl font-bold">{total}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-5">
-              <p className="text-xs text-slate-500">Payments made</p>
+              <p className="text-xs text-ink-muted">Payments made</p>
               <p className="mt-1 text-2xl font-bold">{transactions.length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-5">
-              <p className="text-xs text-slate-500">Net recorded</p>
+              <p className="text-xs text-ink-muted">Net recorded</p>
               <p className="mt-1 text-sm font-medium text-amber-600">Invoice balances are not recorded in this portal.</p>
             </CardContent>
           </Card>
@@ -75,12 +75,12 @@ export default async function PaymentsPage() {
           <CardHeader><CardTitle>History</CardTitle></CardHeader>
           <CardContent>
             {transactions.length === 0 ? (
-              <p className="py-6 text-center text-sm text-slate-500">No payments recorded.</p>
+              <p className="py-6 text-center text-sm text-ink-muted">No payments recorded.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                    <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                       <th className="p-4">Date</th>
                       <th className="p-4">Type</th>
                       <th className="p-4">Details</th>
@@ -88,22 +88,22 @@ export default async function PaymentsPage() {
                       <th className="p-4 text-right">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-line dark:divide-navy-700">
                     {transactions.map((t) => (
                       <tr key={t.id}>
-                        <td className="p-4 text-slate-500">{formatDate(t.date)}</td>
+                        <td className="p-4 text-ink-muted">{formatDate(t.date)}</td>
                         <td className="p-4"><Badge tone={typeTone(t.type)}>{t.type.replace(/_/g, " ")}</Badge></td>
                         <td className="p-4">
                           <p className="font-medium">{t.notes || t.type.replace(/_/g, " ")}</p>
                           {t.relatedApplication ? (
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-ink-muted">
                               {t.relatedApplication.program.university.name} — {t.relatedApplication.program.name}
                             </p>
                           ) : (
                             <p className="text-xs text-slate-400">General payment</p>
                           )}
                         </td>
-                        <td className="p-4 text-slate-500">{t.method ? METHOD_LABELS[t.method] ?? t.method : "—"}</td>
+                        <td className="p-4 text-ink-muted">{t.method ? METHOD_LABELS[t.method] ?? t.method : "—"}</td>
                         <td className="p-4 text-right font-medium">{formatCurrency(t.amount, t.currency)}</td>
                       </tr>
                     ))}
@@ -139,18 +139,18 @@ export default async function PaymentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Payments</h1>
-        <p className="text-sm text-slate-500">Student payments across all cases.</p>
+        <p className="text-sm text-ink-muted">Student payments across all cases.</p>
       </div>
       <Card>
         <CardHeader><CardTitle>Recent payments</CardTitle></CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">No payments yet.</p>
+            <p className="py-6 text-center text-sm text-ink-muted">No payments yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                     <th className="p-4">Student</th>
                     <th className="p-4">Type</th>
                     <th className="p-4">Details</th>
@@ -158,7 +158,7 @@ export default async function PaymentsPage() {
                     <th className="p-4">Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-line dark:divide-navy-700">
                   {transactions.map((t) => (
                     <tr key={t.id}>
                       <td className="p-4 font-medium">{t.relatedStudent ? fullName(t.relatedStudent) : "—"}</td>
@@ -166,11 +166,11 @@ export default async function PaymentsPage() {
                       <td className="p-4">
                         <p>{t.notes || "—"}</p>
                         {t.relatedApplication && (
-                          <p className="text-xs text-slate-500">{t.relatedApplication.program.name}</p>
+                          <p className="text-xs text-ink-muted">{t.relatedApplication.program.name}</p>
                         )}
                       </td>
                       <td className="p-4 font-medium">{formatCurrency(t.amount, t.currency)}</td>
-                      <td className="p-4 text-slate-500">{formatDate(t.date)}</td>
+                      <td className="p-4 text-ink-muted">{formatDate(t.date)}</td>
                     </tr>
                   ))}
                 </tbody>

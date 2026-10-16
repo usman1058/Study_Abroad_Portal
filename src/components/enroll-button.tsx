@@ -80,7 +80,7 @@ export function EnrollButton({
         </Button>
       </div>
       {open && (
-        <div className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+        <div className="w-full rounded-xl border border-line bg-canvas p-4 text-sm dark:border-navy-700 dark:bg-navy-800/60">
           <p className="mb-2 font-semibold">After enrolling you will get:</p>
           <ul className="space-y-1.5">
             {course?.classSchedule && (

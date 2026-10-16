@@ -51,7 +51,7 @@ export default async function ScholarshipsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Scholarships</h1>
-          <p className="text-sm text-slate-500">University and program catalog.</p>
+          <p className="text-sm text-ink-muted">University and program catalog.</p>
         </div>
         <div className="flex items-center gap-3">
           {user.role === "STUDENT" && <CurrencySwitcher />}
@@ -61,7 +61,7 @@ export default async function ScholarshipsPage() {
 
       {programs.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-sm text-slate-500">
+          <CardContent className="py-12 text-center text-sm text-ink-muted">
             No programs in the catalog yet.
             {isSuperAdmin && " Use “+ Add program” to create the first one."}
           </CardContent>
@@ -72,7 +72,7 @@ export default async function ScholarshipsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                     <th className="p-4">University / Program</th>
                     <th className="p-4">Level</th>
                     <th className="p-4">Field</th>
@@ -82,26 +82,26 @@ export default async function ScholarshipsPage() {
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-line dark:divide-navy-700">
                   {programs.map((p) => {
                     const nextIntake = p.intakeDates
                       .map((d) => new Date(d))
                       .filter((d) => d.getTime() > Date.now())
                       .sort((a, b) => a.getTime() - b.getTime())[0];
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <tr key={p.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
                             {p.universityLogoUrl && (
                               <img
                                 src={p.universityLogoUrl}
                                 alt={`${p.university?.name} logo`}
-                                className="h-10 w-10 shrink-0 rounded-lg object-cover bg-slate-100 dark:bg-slate-800"
+                                className="h-10 w-10 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
                               />
                             )}
                             <div className="min-w-0">
                               <p className="font-medium">{p.university?.name ?? "Unknown"}</p>
-                              <p className="truncate text-xs text-slate-500">
+                              <p className="truncate text-xs text-ink-muted">
                                 {p.name} · {p.location ?? p.university?.country ?? ""}
                               </p>
                             </div>
@@ -110,14 +110,14 @@ export default async function ScholarshipsPage() {
                         <td className="p-4">
                           <Badge tone="slate">{p.level}</Badge>
                         </td>
-                        <td className="p-4 text-slate-600 dark:text-slate-300">{p.field}</td>
+                        <td className="p-4 text-ink-muted dark:text-slate-300">{p.field}</td>
                         <td className="p-4">
                           <FeeDisplay amount={p.tuitionFee} />
                           <div className="text-[11px] text-slate-400">
                             {p.visaRequired ? "Visa required" : "No visa"}
                           </div>
                         </td>
-                        <td className="p-4 text-slate-600 dark:text-slate-300">
+                        <td className="p-4 text-ink-muted dark:text-slate-300">
                           {nextIntake ? formatDate(nextIntake) : "—"}
                         </td>
                         <td className="p-4">
@@ -136,7 +136,7 @@ export default async function ScholarshipsPage() {
                             <a
                               href={`/api/programs/${p.id}/pdf`}
                               target="_blank"
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-ink-muted hover:bg-canvas-subtle dark:text-slate-300 dark:hover:bg-navy-800"
                             >
                               <Download className="h-3 w-3" /> PDF
                             </a>

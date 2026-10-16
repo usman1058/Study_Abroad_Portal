@@ -51,7 +51,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Search</h1>
-        <p className="text-sm text-slate-500">Search the university/program catalog.</p>
+        <p className="text-sm text-ink-muted">Search the university/program catalog.</p>
       </div>
 
       <form method="GET" className="flex flex-wrap items-end gap-3">
@@ -79,11 +79,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       <Card>
         <CardContent className="p-0">
           {results.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No results. Try a different search.</p>
+            <p className="py-12 text-center text-sm text-ink-muted">No results. Try a different search.</p>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                   <th className="p-4">University / Program</th>
                   <th className="p-4">Country</th>
                   <th className="p-4">Level</th>
@@ -92,14 +92,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line dark:divide-navy-700">
                 {results.map((p) => {
                   const card = serializeProgram(p);
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <tr key={p.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
                       <td className="p-4">
                         <p className="font-medium">{p.university.name}</p>
-                        <p className="text-xs text-slate-500">{p.name}</p>
+                        <p className="text-xs text-ink-muted">{p.name}</p>
                       </td>
                       <td className="p-4">{p.university.country}</td>
                       <td className="p-4"><Badge tone="slate">{p.level}</Badge></td>

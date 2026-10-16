@@ -23,15 +23,15 @@ export default async function PartnerCommissionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Partner Commissions</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {user.role === "SUPER_ADMIN" ? "Set and update the partner commission rate for each program." : "Commission rates are set by the portal owner. Shown per program."}
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Programs</p><p className="mt-1 text-2xl font-bold">{programs.length}</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Average rate</p><p className="mt-1 text-2xl font-bold">{avgRate.toFixed(1)}%</p></CardContent></Card>
-        <Card><CardContent className="p-5"><p className="text-xs text-slate-500">Visibility</p><p className="mt-1 text-2xl font-bold">{mayViewRates ? "Visible" : "Restricted"}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Programs</p><p className="mt-1 text-2xl font-bold">{programs.length}</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Average rate</p><p className="mt-1 text-2xl font-bold">{avgRate.toFixed(1)}%</p></CardContent></Card>
+        <Card><CardContent className="p-5"><p className="text-xs text-ink-muted">Visibility</p><p className="mt-1 text-2xl font-bold">{mayViewRates ? "Visible" : "Restricted"}</p></CardContent></Card>
       </div>
 
       <Card>
@@ -42,7 +42,7 @@ export default async function PartnerCommissionsPage() {
           {mayViewRates ? (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                   <th className="p-4">Program</th>
                   <th className="p-4">University</th>
                   <th className="p-4">Tuition</th>
@@ -50,13 +50,13 @@ export default async function PartnerCommissionsPage() {
                   {user.role === "SUPER_ADMIN" && <th className="p-4 text-right">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line dark:divide-navy-700">
                 {programs.map((p) => (
                   <tr key={p.id}>
                     <td className="p-4">
                       <Link href={`/scholarships/${p.slug ?? p.id}`} className="font-medium hover:underline">{p.name}</Link>
                     </td>
-                    <td className="p-4 text-slate-500">{p.university.name}</td>
+                    <td className="p-4 text-ink-muted">{p.university.name}</td>
                     <td className="p-4"><FeeDisplay amount={serializeProgram(p).tuitionFee} /></td>
                     <td className="p-4">
                       <Badge tone="green">{Number(p.commissionRate)}%</Badge>
@@ -67,7 +67,7 @@ export default async function PartnerCommissionsPage() {
               </tbody>
             </table>
           ) : (
-            <p className="py-6 text-center text-sm text-slate-500">
+            <p className="py-6 text-center text-sm text-ink-muted">
               Commission rates are managed centrally by the portal owner.
             </p>
           )}

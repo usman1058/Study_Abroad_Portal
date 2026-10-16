@@ -18,15 +18,15 @@ export function ProgramDetailDialog({ program }: { program: Program }) {
     <Dialog open={open} onClose={() => setOpen(false)} title={program.name} wide>
       <div className="grid gap-6 md:grid-cols-[1fr_220px]">
         <div className="space-y-5">
-          <div><p className="text-sm font-medium text-brand-600">{program.university?.name ?? "University"}</p><p className="mt-1 flex items-center gap-1 text-sm text-slate-500"><MapPin className="h-4 w-4" /> {program.location || program.university?.city || program.university?.country || "Location not set"}</p></div>
+          <div><p className="text-sm font-medium text-brand-600">{program.university?.name ?? "University"}</p><p className="mt-1 flex items-center gap-1 text-sm text-ink-muted"><MapPin className="h-4 w-4" /> {program.location || program.university?.city || program.university?.country || "Location not set"}</p></div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Info label="Level" value={program.level} /><Info label="Field" value={program.field || "—"} /><Info label="Tuition" value={formatCurrency(Number(program.tuitionFee))} /><Info label="Application fee" value={program.applicationFee == null ? "—" : formatCurrency(Number(program.applicationFee))} /><Info label="Next intake" value={nextIntake ? formatDate(nextIntake) : "—"} /><Info label="Visa required" value={program.visaRequired ? "Yes" : "No"} />
           </div>
-          <div><p className="mb-2 text-sm font-semibold">Required documents</p><div className="flex flex-wrap gap-2">{program.requiredDocuments.length ? program.requiredDocuments.map((d) => <Badge key={d} tone="slate">{d}</Badge>) : <span className="text-sm text-slate-500">No documents listed.</span>}</div></div>
-          <div><p className="mb-2 text-sm font-semibold">Highlights</p><div className="flex flex-wrap gap-2">{program.tags.length ? program.tags.map((t) => <Badge key={t} tone="brand">{t}</Badge>) : <span className="text-sm text-slate-500">No tags.</span>}</div></div>
+          <div><p className="mb-2 text-sm font-semibold">Required documents</p><div className="flex flex-wrap gap-2">{program.requiredDocuments.length ? program.requiredDocuments.map((d) => <Badge key={d} tone="slate">{d}</Badge>) : <span className="text-sm text-ink-muted">No documents listed.</span>}</div></div>
+          <div><p className="mb-2 text-sm font-semibold">Highlights</p><div className="flex flex-wrap gap-2">{program.tags.length ? program.tags.map((t) => <Badge key={t} tone="brand">{t}</Badge>) : <span className="text-sm text-ink-muted">No tags.</span>}</div></div>
         </div>
-        <div className="flex flex-col justify-end gap-2 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60">
-          <p className="text-xs text-slate-500">Program analytics</p>
+        <div className="flex flex-col justify-end gap-2 rounded-xl bg-canvas p-4 dark:bg-navy-800/60">
+          <p className="text-xs text-ink-muted">Program analytics</p>
           <p className="text-sm">See application volume, students, agencies, and intake trends.</p>
           <Link href={`/programs/${program.id}/analytics`} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700">More Details</Link>
         </div>
@@ -35,4 +35,4 @@ export function ProgramDetailDialog({ program }: { program: Program }) {
   </>;
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-medium capitalize">{value}</p></div>; }
+function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-line p-3 dark:border-navy-700"><p className="text-xs text-ink-muted">{label}</p><p className="mt-1 text-sm font-medium capitalize">{value}</p></div>; }

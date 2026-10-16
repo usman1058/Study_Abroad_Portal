@@ -29,7 +29,7 @@ export default async function ProfilePage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Profile</h1>
-        <p className="text-sm text-slate-500">Manage your details. {me.firstName} {me.lastName} · {me.email}</p>
+        <p className="text-sm text-ink-muted">Manage your details. {me.firstName} {me.lastName} · {me.email}</p>
       </div>
 
       {user.role === "STUDENT" && (
@@ -39,11 +39,11 @@ export default async function ProfilePage() {
               <span className="font-medium">Profile completeness</span>
               <span>{completeness}%</span>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-line dark:bg-navy-800">
               <div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${completeness}%` }} />
             </div>
             {completeness < 100 && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-ink-muted">
                 Complete your profile so our counselors can process your applications faster.
               </p>
             )}

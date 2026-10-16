@@ -23,7 +23,7 @@ export function ApplyButton({
       <Link
         href="/profile"
         title="Complete your profile (personal details) to unlock one-click apply"
-        className={"inline-flex items-center rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 " + className}
+        className={"inline-flex items-center rounded-lg border border-line-strong px-2.5 py-1.5 text-xs font-medium text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-400 dark:hover:bg-navy-800 " + className}
       >
         Complete profile to apply
       </Link>

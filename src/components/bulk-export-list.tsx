@@ -76,10 +76,10 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
   return (
     <div className="space-y-4">
       {selected.size > 0 && (
-        <div className="sticky top-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-brand-800 dark:bg-slate-900/95">
+        <div className="sticky top-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-brand-800 dark:bg-navy-900/95">
           <p className="text-sm font-medium">
             {selected.size} course{selected.size > 1 ? "s" : ""} selected
-            <span className="ml-2 text-xs text-slate-500">pick 10–50 for a shareable shortlist PDF</span>
+            <span className="ml-2 text-xs text-ink-muted">pick 10–50 for a shareable shortlist PDF</span>
           </p>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} disabled={busy}>
@@ -96,21 +96,21 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
       {groups.map(({ universityId, universityName, city, country, programs }) => (
         <Card key={universityId}>
           <CardContent className="p-0">
-            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
               <div className="flex items-center gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-50 text-lg font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                   {universityName[0]}
                 </span>
                 <div>
                   <h2 className="font-semibold">{universityName}</h2>
-                  <p className="text-xs text-slate-500">{city}, {country}</p>
+                  <p className="text-xs text-ink-muted">{city}, {country}</p>
                 </div>
               </div>
               <Badge tone="slate">{programs.length} program{programs.length > 1 ? "s" : ""}</Badge>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-line dark:divide-navy-700">
               {programs.map((p) => (
-                <label key={p.id} className="flex cursor-pointer flex-wrap items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                <label key={p.id} className="flex cursor-pointer flex-wrap items-center gap-3 px-5 py-3 hover:bg-canvas dark:hover:bg-navy-800/40">
                   <input
                     type="checkbox"
                     className="h-4 w-4"
@@ -122,7 +122,7 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
                     <Link href={`/scholarships/${p.slug ?? p.id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="font-medium hover:text-brand-600 hover:underline">
                       {p.name}
                     </Link>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                       <Badge tone="slate">{p.level}</Badge>
                       <span>{p.field}</span>
                       {p.nextIntake && <span>Next intake {formatDate(p.nextIntake)}</span>}

@@ -40,7 +40,7 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Users</h1>
-        <p className="text-sm text-slate-500">Create and manage accounts below your role in the hierarchy.</p>
+        <p className="text-sm text-ink-muted">Create and manage accounts below your role in the hierarchy.</p>
       </div>
 
       {allowed.length > 0 && (
@@ -60,7 +60,7 @@ export default async function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                   <th className="pb-2 pr-4">Name</th>
                   <th className="pb-2 pr-4">Email</th>
                   <th className="pb-2 pr-4">Role</th>
@@ -70,26 +70,26 @@ export default async function UsersPage() {
                   <th className="pb-2 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-line dark:divide-navy-700">
                 {visibleUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                  <tr key={u.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
                     <td className="py-2.5 pr-4">
                       <a href={`/users/${u.id}`} className="font-medium hover:underline">
                         {u.userTitle ? `${u.userTitle} ` : ""}
                         {fullName(u)}
                       </a>
                     </td>
-                    <td className="py-2.5 pr-4 text-slate-500">{u.email}</td>
+                    <td className="py-2.5 pr-4 text-ink-muted">{u.email}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>
                         {ROLE_LABELS[u.role]}
                       </Badge>
                     </td>
-                    <td className="py-2.5 pr-4 text-slate-500">{u.phone ?? "—"}</td>
+                    <td className="py-2.5 pr-4 text-ink-muted">{u.phone ?? "—"}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={u.status === "active" ? "green" : u.status === "pending" ? "amber" : "red"}>{u.status}</Badge>
                     </td>
-                    <td className="py-2.5 pr-4 text-slate-500">{formatDate(u.createdAt)}</td>
+                    <td className="py-2.5 pr-4 text-ink-muted">{formatDate(u.createdAt)}</td>
                     <td className="py-2.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {u.status === "pending" && <ApproveButton userId={u.id} email={u.email} />}
@@ -102,7 +102,7 @@ export default async function UsersPage() {
                 ))}
                 {visibleUsers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-500">
+                    <td colSpan={7} className="py-8 text-center text-ink-muted">
                       No users to show.
                     </td>
                   </tr>
@@ -119,16 +119,16 @@ export default async function UsersPage() {
         </CardHeader>
         <CardContent>
           {inviteLinks.length === 0 ? (
-            <p className="text-sm text-slate-500">No invite links created yet.</p>
+            <p className="text-sm text-ink-muted">No invite links created yet.</p>
           ) : (
-            <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="divide-y divide-line dark:divide-navy-700">
               {inviteLinks.map((l) => (
                 <li key={l.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                   <div className="min-w-0">
                     <p className="truncate text-xs">
                       {l.student ? `${l.student.firstName} ${l.student.lastName}` : "Any student"} · expires {formatDate(l.expiresAt)}
                     </p>
-                    <code className="text-[11px] text-slate-500">/invite/{l.token}</code>
+                    <code className="text-[11px] text-ink-muted">/invite/{l.token}</code>
                   </div>
                   <div className="flex items-center gap-2">
                     {l.revoked ? (

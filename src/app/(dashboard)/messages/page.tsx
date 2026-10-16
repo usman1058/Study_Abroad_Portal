@@ -70,31 +70,31 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Messages</h1>
-        <p className="text-sm text-slate-500">{user.role === "SUPER_ADMIN" ? "Message any student, counselor, manager, agency, or administrator." : "Conversations with our team."}</p>
+        <p className="text-sm text-ink-muted">{user.role === "SUPER_ADMIN" ? "Message any student, counselor, manager, agency, or administrator." : "Conversations with our team."}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
           <CardContent className="p-2">
             {suggestedRecipients.filter((person) => !conversations.has(person.id)).length > 0 && (
-              <div className="border-b border-slate-100 px-2 pb-2 dark:border-slate-800">
+              <div className="border-b border-line px-2 pb-2 dark:border-navy-700">
                 <p className="px-1 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Start a conversation</p>
                 {suggestedRecipients.filter((person) => !conversations.has(person.id)).map((person) => (
-                  <Link key={person.id} href={`/messages?with=${person.id}`} className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800">{fullName(person)}</Link>
+                  <Link key={person.id} href={`/messages?with=${person.id}`} className="block rounded-lg px-2 py-2 text-sm font-medium hover:bg-canvas dark:hover:bg-navy-800">{fullName(person)}</Link>
                 ))}
               </div>
             )}
             {list.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">No conversations yet. Choose a contact to send the first message.</p>
+              <p className="p-4 text-sm text-ink-muted">No conversations yet. Choose a contact to send the first message.</p>
             ) : (
-              <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+              <ul className="divide-y divide-line dark:divide-navy-700">
                 {list.map((c) => (
                   <li key={c.id}>
                     <Link
                       href={`/messages?with=${c.id}`}
                       className={
                         "block px-3 py-2.5 text-sm " +
-                        (selectedId === c.id ? "bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200" : "hover:bg-slate-50 dark:hover:bg-slate-800/40")
+                        (selectedId === c.id ? "bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200" : "hover:bg-canvas dark:hover:bg-navy-800/40")
                       }
                     >
                       <span className="font-medium">{c.name}</span>
@@ -110,10 +110,10 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
         <Card className="lg:col-span-2">
           <CardContent className="p-0">
             {!selectedId ? (
-              <p className="py-12 text-center text-sm text-slate-500">Select a conversation.</p>
+              <p className="py-12 text-center text-sm text-ink-muted">Select a conversation.</p>
             ) : (
               <div className="flex h-[28rem] flex-col">
-                <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium dark:border-slate-800">
+                <div className="border-b border-line px-4 py-3 text-sm font-medium dark:border-navy-700">
                   {selectedUser ? fullName(selectedUser) : "Conversation"}
                 </div>
                 <div className="flex-1 space-y-3 overflow-y-auto p-4">
@@ -126,7 +126,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
                             "max-w-[75%] rounded-2xl px-3 py-2 text-sm " +
                             (mineMsg
                               ? "bg-brand-600 text-white"
-                              : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100")
+                              : "bg-canvas-subtle text-slate-800 dark:bg-navy-800 dark:text-slate-100")
                           }
                         >
                           {m.body}
@@ -137,9 +137,9 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
                       </div>
                     );
                   })}
-                  {thread.length === 0 && <p className="text-center text-sm text-slate-500">No messages yet.</p>}
+                  {thread.length === 0 && <p className="text-center text-sm text-ink-muted">No messages yet.</p>}
                 </div>
-                <div className="border-t border-slate-200 p-3 dark:border-slate-800">
+                <div className="border-t border-line p-3 dark:border-navy-700">
                   <MessageForm recipientId={selectedId} />
                 </div>
               </div>

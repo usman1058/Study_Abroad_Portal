@@ -60,7 +60,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Applications</h1>
-          <p className="text-sm text-slate-500">Manage the application pipeline.</p>
+          <p className="text-sm text-ink-muted">Manage the application pipeline.</p>
         </div>
         <StageFilter current={stage} />
       </div>
@@ -72,12 +72,12 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
       <Card>
         <CardContent className="p-0">
           {applications.length === 0 ? (
-            <p className="py-12 text-center text-sm text-slate-500">No applications found.</p>
+            <p className="py-12 text-center text-sm text-ink-muted">No applications found.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
                     <th className="p-4">Student</th>
                     <th className="p-4">Program</th>
                     <th className="p-4">University</th>
@@ -85,9 +85,9 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <th className="p-4">Updated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-line dark:divide-navy-700">
                   {applications.map((a) => (
-                    <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <tr key={a.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
                       <td className="p-4">
                         <Link href={`/users/${a.student.id}`} className="font-medium hover:underline">
                           {a.student.firstName} {a.student.lastName}
@@ -96,11 +96,11 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                       <td className="p-4">
                         <Link href={`/application/${a.id}`} className="hover:underline">{a.program.name}</Link>
                       </td>
-                      <td className="p-4 text-slate-500">{a.program.university.name}</td>
+                      <td className="p-4 text-ink-muted">{a.program.university.name}</td>
                       <td className="p-4">
                         <Badge tone={STAGE_TONE[a.stage] ?? "slate"}>{a.stage.replace(/_/g, " ")}</Badge>
                       </td>
-                      <td className="p-4 text-slate-500">{formatDate(a.updatedAt)}</td>
+                      <td className="p-4 text-ink-muted">{formatDate(a.updatedAt)}</td>
                     </tr>
                   ))}
                 </tbody>

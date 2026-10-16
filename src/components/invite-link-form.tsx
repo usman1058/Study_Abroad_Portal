@@ -83,9 +83,9 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
       <h3 className="font-semibold">Guest invite link</h3>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-ink-muted">
         Grants view-only access without creating an account. Expires automatically and can be revoked instantly.
       </p>
       {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
@@ -111,12 +111,12 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
           {INVITE_SECTIONS.map((s) => {
             const active = Boolean(access[s.key]);
             return (
-              <div key={s.key} className="flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-800">
+              <div key={s.key} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2 dark:border-navy-700">
                 <label className="flex flex-1 items-center gap-2 text-sm">
                   <input type="checkbox" checked={active} onChange={() => toggleSection(s.key)} />
                   {s.label}
                 </label>
-                {active && <span className="text-xs text-slate-500">View only</span>}
+                {active && <span className="text-xs text-ink-muted">View only</span>}
               </div>
             );
           })}

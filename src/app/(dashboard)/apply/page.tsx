@@ -56,7 +56,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
       <div>
         <Link href="/my-applications" className="text-sm text-brand-600 hover:underline">← My Applications</Link>
         <h1 className="mt-1 text-2xl font-bold">Apply Application</h1>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-ink-muted">
           {draftId
             ? "Editing your saved draft — update any section, then submit it for review."
             : "Four quick steps: your details, academics, documents, then choose a university."}
@@ -65,7 +65,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
 
       {draftId && !draftProgramId && (
         <Card>
-          <CardContent className="py-6 text-center text-sm text-slate-500">
+          <CardContent className="py-6 text-center text-sm text-ink-muted">
             This draft is missing its program link. Submit a new application below instead.
           </CardContent>
         </Card>

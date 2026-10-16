@@ -56,7 +56,7 @@ export function VisitorLeadForm() {
   if (!open) return <Button onClick={() => setOpen(true)}>+ Add visitor</Button>;
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
       <h3 className="font-semibold">Capture a visitor / enquiry</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <div><Label>Name</Label><Input required maxLength={120} value={form.name} onChange={(e) => set("name", e.target.value)} /></div>

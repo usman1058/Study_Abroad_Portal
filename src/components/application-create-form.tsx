@@ -62,13 +62,13 @@ export function ApplicationCreateForm({
         </Select>
       </div>
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+        <label className="flex items-center gap-2 text-xs text-ink-muted dark:text-slate-300">
           <input type="checkbox" checked={submitNow} onChange={(event) => setSubmitNow(event.target.checked)} />
           Submit now
         </label>
         <Button type="submit" size="sm" disabled={busy || !studentId || !programId}>{busy ? "Creating…" : "Add application"}</Button>
       </div>
-      {message && <p className="text-xs text-slate-600 dark:text-slate-300 sm:col-span-3">{message}</p>}
+      {message && <p className="text-xs text-ink-muted dark:text-slate-300 sm:col-span-3">{message}</p>}
     </form>
   );
 }

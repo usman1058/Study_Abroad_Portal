@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AuthShell } from "@/components/auth-shell";
 import { PartnerSignupForm } from "@/components/partner-signup-form";
 
@@ -8,6 +9,14 @@ export default function PartnerSignupPage() {
     <AuthShell
       title="Partner Signup"
       subtitle="Register your agency. An administrator will review and approve your request before you can sign in."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/partner/login" className="font-medium text-brand-600 hover:underline">
+            Sign in
+          </Link>
+        </>
+      }
     >
       <PartnerSignupForm />
     </AuthShell>

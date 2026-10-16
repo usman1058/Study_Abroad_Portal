@@ -62,14 +62,14 @@ export default async function InvitePage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm text-slate-500">Guest access granted by your study-abroad agency</p>
+      <div className="rounded-2xl border border-line bg-white p-6 dark:border-navy-700 dark:bg-navy-900">
+        <p className="text-sm text-ink-muted">Guest access granted by your study-abroad agency</p>
         <h1 className="text-2xl font-bold">{student.firstName} {student.lastName}</h1>
-        <p className="mt-1 text-sm text-slate-500">Access expires {formatDate(link.expiresAt)}</p>
+        <p className="mt-1 text-sm text-ink-muted">Access expires {formatDate(link.expiresAt)}</p>
       </div>
 
       {sections.length === 0 ? (
-        <Card><CardContent className="py-12 text-center text-slate-500">No sections shared via this link.</CardContent></Card>
+        <Card><CardContent className="py-12 text-center text-ink-muted">No sections shared via this link.</CardContent></Card>
       ) : (
         <>
           {sections.includes("applications") && (
@@ -77,14 +77,14 @@ export default async function InvitePage({ params }: PageProps) {
               <CardHeader><CardTitle>Applications</CardTitle></CardHeader>
               <CardContent>
                 {applications.length === 0 ? (
-                  <p className="text-sm text-slate-500">No applications.</p>
+                  <p className="text-sm text-ink-muted">No applications.</p>
                 ) : (
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <ul className="divide-y divide-line dark:divide-navy-700">
                     {applications.map((a) => (
                       <li key={a.id} className="flex items-center justify-between py-3 text-sm">
                         <div>
                           <p className="font-medium">{a.program.name}</p>
-                          <p className="text-xs text-slate-500">{a.program.university.name}</p>
+                          <p className="text-xs text-ink-muted">{a.program.university.name}</p>
                         </div>
                         <Badge tone={a.stage === "REJECTED" ? "red" : "brand"}>{a.stage.replace(/_/g, " ")}</Badge>
                       </li>
@@ -100,9 +100,9 @@ export default async function InvitePage({ params }: PageProps) {
               <CardHeader><CardTitle>Documents</CardTitle></CardHeader>
               <CardContent>
                 {documents.length === 0 ? (
-                  <p className="text-sm text-slate-500">No documents.</p>
+                  <p className="text-sm text-ink-muted">No documents.</p>
                 ) : (
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <ul className="divide-y divide-line dark:divide-navy-700">
                     {documents.map((d) => (
                       <li key={d.id} className="flex items-center justify-between py-3 text-sm">
                         <span className="capitalize">{d.type}</span>
@@ -121,7 +121,7 @@ export default async function InvitePage({ params }: PageProps) {
               <CardContent>
                 <ul className="space-y-2 text-sm">
                   {shortlist.items.length === 0 ? (
-                    <li className="text-slate-500">Shortlist is empty.</li>
+                    <li className="text-ink-muted">Shortlist is empty.</li>
                   ) : (
                     shortlist.items.map((it, i) => (
                       <li key={it.id}>
@@ -139,9 +139,9 @@ export default async function InvitePage({ params }: PageProps) {
               <CardHeader><CardTitle>Payments</CardTitle></CardHeader>
               <CardContent>
                 {transactions.length === 0 ? (
-                  <p className="text-sm text-slate-500">No payments.</p>
+                  <p className="text-sm text-ink-muted">No payments.</p>
                 ) : (
-                  <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <ul className="divide-y divide-line dark:divide-navy-700">
                     {transactions.map((t) => (
                       <li key={t.id} className="flex justify-between py-3 text-sm">
                         <span className="capitalize">{t.type.replace(/_/g, " ")}</span>
@@ -160,11 +160,11 @@ export default async function InvitePage({ params }: PageProps) {
               {link.createdBy ? (
                 <div className="space-y-1 text-sm">
                   <p className="font-medium">{fullName(link.createdBy)}</p>
-                  <p className="text-slate-500">{link.createdBy.email}</p>
-                  {link.createdBy.phone && <p className="text-slate-500">{link.createdBy.phone}</p>}
+                  <p className="text-ink-muted">{link.createdBy.email}</p>
+                  {link.createdBy.phone && <p className="text-ink-muted">{link.createdBy.phone}</p>}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">Your agency contact is no longer available.</p>
+                <p className="text-sm text-ink-muted">Your agency contact is no longer available.</p>
               )}
             </CardContent>
           </Card>
