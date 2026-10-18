@@ -6,19 +6,21 @@ type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-brand-600 text-white hover:bg-brand-700 disabled:bg-brand-300 dark:disabled:bg-brand-900",
+    "bg-secondary text-on-secondary font-label-md text-label-md shadow-sm hover:bg-secondary-container transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
   secondary:
-    "border border-line bg-white text-navy-900 hover:border-line-strong hover:bg-canvas dark:border-navy-700 dark:bg-navy-800 dark:text-navy-50 dark:hover:bg-navy-700",
+    "border border-line-strong bg-surface-white text-navy-surface font-label-md text-label-md shadow-sm hover:bg-surface-white hover:border-navy-surface/50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
   outline:
-    "border border-line-strong bg-white text-navy-900 hover:border-navy-300 hover:bg-canvas dark:border-navy-600 dark:bg-transparent dark:text-navy-100 dark:hover:bg-navy-800",
-  ghost: "text-ink-muted hover:bg-canvas-subtle hover:text-navy-900 dark:text-slate-300 dark:hover:bg-navy-800 dark:hover:text-white",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+    "border border-line bg-surface-white text-navy-surface font-label-md text-label-md shadow-sm hover:border-secondary hover:bg-surface-subtle transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
+  ghost:
+    "bg-transparent text-ink-muted font-label-md text-label-md shadow-sm hover:bg-surface-subtle hover:text-navy-surface transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
+  danger:
+    "bg-status-rejected text-on-error font-label-md text-label-md shadow-sm hover:bg-status-rejected/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-sm",
+  sm: "h-9 px-3",
+  md: "h-10 px-4",
+  lg: "h-11 px-5",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -31,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2",
         variants[variant],
         sizes[size],
         className

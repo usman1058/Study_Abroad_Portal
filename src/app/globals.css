@@ -3,18 +3,122 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* Fonts */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  /* Executive Meridian — surfaces */
+  /* ---- Typography scale — Executive Meridian (DESIGN.md) ---- */
+  --font-display-hero: var(--font-jakarta);
+  --font-size-display-hero: 40px;
+  --line-height-display-hero: 48px;
+  --letter-spacing-display-hero: -0.025em;
+
+  --font-headline-lg: var(--font-jakarta);
+  --font-size-headline-lg: 28px;
+  --line-height-headline-lg: 36px;
+  --letter-spacing-headline-lg: -0.02em;
+
+  --font-headline-md: var(--font-jakarta);
+  --font-size-headline-md: 20px;
+  --line-height-headline-md: 28px;
+  --letter-spacing-headline-md: -0.015em;
+
+  --font-headline-sm: var(--font-jakarta);
+  --font-size-headline-sm: 16px;
+  --line-height-headline-sm: 24px;
+  --letter-spacing-headline-sm: -0.01em;
+
+  --font-metric-display: var(--font-jakarta);
+  --font-size-metric-display: 32px;
+  --line-height-metric-display: 38px;
+  --letter-spacing-metric-display: -0.02em;
+
+  --font-body-lg: var(--font-inter);
+  --font-size-body-lg: 16px;
+  --line-height-body-lg: 24px;
+  --letter-spacing-body-lg: 0em;
+
+  --font-body-md: var(--font-inter);
+  --font-size-body-md: 14px;
+  --line-height-body-md: 20px;
+  --letter-spacing-body-md: 0em;
+
+  --font-body-md-medium: var(--font-inter);
+  --font-size-body-md-medium: 14px;
+  --line-height-body-md-medium: 20px;
+  --letter-spacing-body-md-medium: 0em;
+
+  --font-body-sm: var(--font-inter);
+  --font-size-body-sm: 12px;
+  --line-height-body-sm: 16px;
+  --letter-spacing-body-sm: 0.01em;
+
+  --font-label-md: var(--font-inter);
+  --font-size-label-md: 13px;
+  --line-height-label-md: 18px;
+  --letter-spacing-label-md: 0.01em;
+
+  --font-label-sm: var(--font-inter);
+  --font-size-label-sm: 11px;
+  --line-height-label-sm: 14px;
+  --letter-spacing-label-sm: 0.03em;
+
+  --font-code-table: var(--font-inter);
+  --font-size-code-table: 12px;
+  --line-height-code-table: 16px;
+  --letter-spacing-code-table: 0.02em;
+
+  /* ---- Spacing (8-pt harmonic grid) ---- */
+  --spacing-gutter: 1.5rem;
+  --spacing-gutter-sm: 1rem;
+  --spacing-gutter-lg: 2rem;
+  --spacing-margin: 2rem;
+  --spacing-margin-mobile: 1rem;
+  --spacing-space-2xs: 0.25rem;
+  --spacing-space-xs: 0.5rem;
+  --spacing-space-sm: 0.75rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2rem;
+  --spacing-space-2xl: 3rem;
+
+  /* ---- Border radius (design-controlled scale) ---- */
+  --border-radius: 0.5rem;
+  --border-radius-sm: 0.25rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 0.75rem;
+  --border-radius-xl: 1rem;
+  --border-radius-2xl: 1.5rem;
+  --border-radius-full: 9999px;
+
+  /* ---- Surfaces ---- */
   --color-canvas: #f8fafc;
   --color-canvas-subtle: #f1f5f9;
-  --color-ink: #0b1c30;
-  --color-ink-muted: #45464e;
-  --color-line: #e2e8f0;
-  --color-line-strong: #cbd5e1;
+  --color-surface: #f8f9ff;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-subtle: #f1f5f9;
+  --color-surface-white: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
+  --color-surface-dim: #cbdbf5;
+  --color-surface-variant: #d3e4fe;
+  --color-border-subtle: #e2e8f0;
+  --color-outline: #75777f;
+  --color-outline-variant: #c5c6cf;
+  --color-surface-tint: #4f5e83;
 
-  /* Executive Meridian — deep navy shell */
+  /* ---- Ink / text ---- */
+  --color-ink: #0b1c30;         /* on-surface */
+  --color-ink-muted: #45464e;   /* on-surface-variant */
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+
+  /* ---- Navy shell ---- */
+  --color-navy-deep: #0a192f;
+  --color-navy-surface: #0f2042;
   --color-navy-950: #0a192f;
   --color-navy-900: #0f2042;
   --color-navy-800: #16294f;
@@ -27,7 +131,48 @@
   --color-navy-100: #e2e9f4;
   --color-navy-50: #f2f6fc;
 
-  /* Executive Meridian — Vibrant Trust Blue (#2563eb primary action) */
+  /* ---- Primary / Secondary / Tertiary ---- */
+  --color-primary: #0f2042;     /* primary-container (navy) — bg-primary / text-primary */
+  --color-on-primary: #ffffff;
+  --color-primary-container: #0f2042;
+  --color-on-primary-container: #7988b0;
+  --color-inverse-primary: #b6c6f1;
+
+  --color-secondary: #2563eb;   /* Vibrant Trust Blue — primary action color */
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #316bf3;
+  --color-on-secondary-container: #fefcff;
+
+  --color-tertiary: #4f46e5;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #13007a;
+  --color-on-tertiary-container: #7c78ff;
+
+  --color-background: #f8f9ff;
+  --color-on-background: #0b1c30;
+
+  /* ---- Error ---- */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* ---- Status tones ---- */
+  --color-status-verified: #10b981;
+  --color-status-verified-subtle: #ecfdf5;
+  --color-status-pending: #f59e0b;
+  --color-status-pending-subtle: #fffbeb;
+  --color-status-rejected: #ef4444;
+  --color-status-rejected-subtle: #fef2f2;
+  --color-status-info: #0284c7;
+  --color-status-info-subtle: #f0f9ff;
+
+  /* ---- Legacy brand alias (kept so nothing existing breaks) ---- */
+  --color-primary-fixed: #d9e2ff;
+  --color-primary-fixed-dim: #b6c6f1;
+  --color-secondary-fixed: #dbe1ff;
+  --color-secondary-fixed-dim: #b4c5ff;
+
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-200: #bfdbfe;
@@ -39,6 +184,16 @@
   --color-brand-800: #1e40af;
   --color-brand-900: #1e3a8a;
   --color-brand-950: #172554;
+
+  /* ---- Shadows ---- */
+  --shadow-2xs: 0 1px 2px 0 rgb(15 32 66 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(15 32 66 / 0.04), 0 1px 2px -1px rgb(15 32 66 / 0.02);
+  --shadow-md: 0 4px 6px -1px rgb(15 32 66 / 0.08), 0 2px 4px -2px rgb(15 32 66 / 0.04);
+
+  --color-ink: #0b1c30;
+  --color-ink-muted: #45464e;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
 }
 
 :root {
@@ -49,11 +204,6 @@
   color-scheme: dark;
 }
 
-html {
-  /* Accessibility: scale the whole rem-based UI up for readability */
-  font-size: 112.5%;
-}
-
 html,
 body {
   height: 100%;
@@ -61,7 +211,7 @@ body {
 
 body {
   font-family: var(--font-sans);
-  @apply bg-canvas text-ink antialiased dark:bg-navy-950 dark:text-slate-100;
+  @apply bg-canvas text-ink antialiased dark:bg-navy-deep dark:text-inverse-on-surface;
 }
 
 h1,
