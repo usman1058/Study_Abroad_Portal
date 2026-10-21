@@ -2,250 +2,554 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { DraftSubmitButton } from "@/components/draft-submit-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
-import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
-import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
-import { ArrowRight, BarChart3, ClipboardList, FileCheck2, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
-import { DashboardAdRail } from "@/components/dashboard-ad-rail";
+import type { ApplicationStage } from "@/generated/prisma/client";
+import { formatCurrency, toNum } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
-export const metadata = { title: "My Applications" };
+export const metadata = { title: "My Applications · StudyAbroad Portal" };
 
-const STAGE_TONE: Record<ApplicationStage, "red" | "green" | "brand" | "amber" | "slate"> = {
-  DRAFT: "slate",
-  SUBMITTED: "amber",
-  UNDER_REVIEW: "brand",
-  OFFER: "green",
-  DEPOSIT_PAID: "green",
-  VISA: "brand",
-  ENROLLED: "green",
-  REJECTED: "red",
-  WITHDRAWN: "slate",
+const PORTRAIT_URL =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCaz6BflblY3jS0ftTAUr_asKuMTnemHLoaUzhVD5N3rnT6TT-IUUr00jUo9-mOSaJYJv1Dkg8swuez22qT613hwdjQU2JYNPM8blz4BAn-b40nxZGE8JjOXAKo89ppmURl_yk6p1XKH3o8f7d689JIhH-fiSoqv1jVMgAuV9yK-lncgrOCW1LbwVWXxmKeYRfHWHwGJYreqDTKtFyW48Tcl4WYY_yWJqfZMFq_rxgiBnmcFZFV24Rp";
+const MONASH_URL =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCQsmKrN_xwpUDTYL9rM5za6EEBr3UbsnIY6oR71DnLNAUPSyrNcPCEEt4GNwn1MzbSDZHiOr8EDIHUPNpJzeXJ4zOcepvWqMQY0DRrBccJj_PTyEmJqARkJ_kr5eNdVW-FCHSgBQXJT_wNdpGZ45qOuO8gbAApeRJ1ucFse27dcGbySZy0Y1_jFW30Ny8yLTMioAsbK2VEWec7zdrJnir_5L2XB3YTshpj4XV8Gg4kEYmTiblIEpHi";
+const BRISTOL_URL =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuCYajg-iLY1kZX6Gmvl1r2iY8hS3jf_NmtBrxlqSDppxKP5kKdNFJTqyMuV56h10mAAUZeIfXvhWE6Z9zVhfNyDjLU_EdG5XQ1b51sVENDser9WsUczbn7wn-tUQG-WXkmMXIupBVh3xKAz87Z2_5GcMcQ_nDkNCRgXDSKEtXwLptpE-sY1CZ3O9IMI2LhuEatPpyKwpM02-5rb7DjHr4izEyjclGv8crtUHRneMFKcxNnstjLAFHEv";
+const MELBOURNE_URL =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDoBknu2nHsVgJkzNIi6yXYa6dVUF6k9mrKxkumj5o7Qeb-wXIGQUuPwSI2N28PJUyyiXamCn8HUv1fvmpWTGUAWhHCA4-a7VfEkdK3JJy6Wo54WbJNs1iHuOfPO0dXft1UARE_s9vrn_L2yPcK9nOZ6hFue4bdDFARnCtixKeK19AB1U2FUUkXaCisPfbCCzkMNtEQuk7BAJq_PeEvPx4u0uQCgx3WWMjLTNaMmKCN43-3HQhco0zP";
+const TORONTO_URL =
+  "https://lh3.googleusercontent.com/aida-public/AB6AXuDdWtRr9iE1ocL47P6QcjVrumVr3xdAoD9sw_oH7KNSlGVmKtsxPoExSZlOAr8VtifgTAUzGAczj9Eu8Zpi2RTs0DMbIgApti7UC8peXp2lBAfjYPLcK5fio4vF4DA48_DJ07r9jWGY1FF3DZ_D4QzfXoMbjUcYT1FShSl16KqNaYeA0ZoWKdbVvpRqyqD4EYkE9YxhLGO7xB3eOv2CVkEo1ZNi6FVUxJRvq7_xicPH_yUQmCX_MQdR";
+
+const STAGE_TONE: Record<ApplicationStage, "verified" | "secondary" | "info" | "rejected" | "outline"> = {
+  DRAFT: "outline",
+  SUBMITTED: "secondary",
+  UNDER_REVIEW: "secondary",
+  OFFER: "verified",
+  DEPOSIT_PAID: "verified",
+  VISA: "info",
+  ENROLLED: "verified",
+  REJECTED: "rejected",
+  WITHDRAWN: "rejected",
 };
 
-type TabKey = "all" | "drafts" | "waiting" | "missing-docs" | "offer" | "visa-enrolled" | "rejected";
+type Row = {
+  id: string;
+  studentId: string;
+  programId: string;
+  stage: ApplicationStage;
+  submittedAt: Date | null;
+  createdAt: Date;
+  program: { name: string; tuitionFee: any; university: { name: string; universityLogoUrl?: string | null } };
+  documents: Array<{ status: string }>;
+  docsOk: boolean;
+  docsTotal: number;
+  docsVerified: number;
+};
 
-const TABS: { key: TabKey; label: string; match: (a: { stage: ApplicationStage; docsOk: boolean }) => boolean }[] = [
-  { key: "all", label: "All", match: () => true },
-  { key: "drafts", label: "Drafts", match: (a) => a.stage === "DRAFT" },
-  { key: "waiting", label: "Waiting for Approval", match: (a) => a.stage === "SUBMITTED" || a.stage === "UNDER_REVIEW" },
-  { key: "missing-docs", label: "Missing Documents", match: (a) => a.docsOk === false },
-  { key: "offer", label: "Offer Letter Received", match: (a) => a.stage === "OFFER" || a.stage === "DEPOSIT_PAID" },
-  { key: "visa-enrolled", label: "Visa & Enrolled", match: (a) => a.stage === "VISA" || a.stage === "ENROLLED" },
-  { key: "rejected", label: "Rejected", match: (a) => a.stage === "REJECTED" || a.stage === "WITHDRAWN" },
-];
-
-type SearchParams = Promise<{ tab?: string; submitted?: string }>;
-
-export default async function MyApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function MyApplicationsPage() {
   const user = await currentUser();
   if (!user) redirect("/");
   if (user.role !== "STUDENT") redirect("/home");
 
-  const { tab = "all", submitted } = await searchParams;
-  const now = new Date();
-
-  const [applications, courseEnrollments, availableCourses, advertisements] = await Promise.all([
+  const [applications] = await Promise.all([
     prisma.application.findMany({
       where: { studentId: user.id },
       orderBy: { createdAt: "desc" },
       include: { program: { include: { university: true } }, documents: true },
     }),
-    prisma.shortCourseEnrollment.findMany({
-      where: { studentId: user.id, status: { notIn: ["withdrawn", "rejected"] } },
-      orderBy: { enrolledAt: "desc" },
-      take: 4,
-      include: { shortCourse: { select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true } } },
-    }),
-    prisma.shortCourse.findMany({
-      where: { status: "active" },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-      select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true },
-    }),
-    prisma.dashboardAdvertisement.findMany({
-      where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
-      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    }),
   ]);
 
-  type Row = (typeof applications)[number] & { docsOk: boolean };
-  const rows: Row[] = applications.map((a) => ({
-    ...a,
-    docsOk: a.documents.length > 0 && a.documents.every((d) => d.status === ("VERIFIED" as DocumentStatus)),
-  }));
-
-  const activeTab = (TABS.find((t) => t.key === tab)?.key ?? "all") as TabKey;
-  const visible = rows.filter((r) => TABS.find((t) => t.key === activeTab)!.match({ stage: r.stage, docsOk: r.docsOk }));
+  const rows: Row[] = applications.map((a) => {
+    const docsVerified = a.documents.filter((d) => d.status === "VERIFIED").length;
+    return {
+      ...a,
+      docsOk: a.documents.length > 0 && a.documents.every((d) => d.status === "VERIFIED"),
+      docsTotal: a.documents.length,
+      docsVerified,
+    };
+  });
 
   const total = rows.length;
   const offered = rows.filter((a) => ["OFFER", "DEPOSIT_PAID"].includes(a.stage)).length;
   const inProgress = rows.filter((a) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(a.stage)).length;
   const pendingDocs = rows.reduce((s, a) => s + a.documents.filter((d) => d.status !== "VERIFIED").length, 0);
 
-  const stageCounts = new Map<ApplicationStage, number>();
-  for (const s of APPLICATION_STAGE_ORDER) stageCounts.set(s, 0);
-  for (const a of rows) stageCounts.set(a.stage, (stageCounts.get(a.stage) ?? 0) + 1);
-  const maxCount = Math.max(1, ...stageCounts.values());
-  const totalFees = rows.reduce((s, a) => s + toNum(a.program.tuitionFee), 0);
-  const draftCount = rows.filter((r) => r.stage === "DRAFT").length;
-  const monthlyActivity = Array.from({ length: 6 }, (_, index) => {
-    const start = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() - (4 - index), 1);
-    return { label: start.toLocaleString("en", { month: "short" }), value: rows.filter((application) => application.createdAt >= start && application.createdAt < end).length };
-  });
+  const stageLabel = (stage: ApplicationStage) => {
+    switch (stage) {
+      case "OFFER":
+      case "DEPOSIT_PAID":
+        return "OFFER ISSUED";
+      case "SUBMITTED":
+      case "UNDER_REVIEW":
+        return "UNDER REVIEW";
+      case "REJECTED":
+      case "WITHDRAWN":
+        return "REJECTED";
+      case "DRAFT":
+        return "DRAFT STAGE";
+      case "VISA":
+        return "VISA PROCESSING";
+      case "ENROLLED":
+        return "ENROLLED";
+      default:
+        return String(stage).replace(/_/g, " ");
+    }
+  };
+
+  const tabRows = [
+    { key: "all", label: "All", count: total },
+    { key: "offers", label: "Offers Received", count: offered },
+    { key: "review", label: "Under Review", count: inProgress },
+    { key: "action", label: "Action Required", count: pendingDocs },
+    { key: "drafts", label: "Drafts", count: rows.filter((r) => r.stage === "DRAFT").length },
+  ];
 
   return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg shadow-navy-900/20 sm:px-7 sm:py-8">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Your study journey, in one place.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Track applications, find your next course, and keep every required step moving forward.</p></div>
-          <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
+    <div className="space-y-space-lg">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-navy-deep via-navy-surface to-primary-container text-on-primary p-space-lg lg:p-space-xl shadow-xl">
+        <div className="absolute -right-20 -top-24 w-96 h-96 rounded-full bg-secondary-container/15 blur-3xl pointer-events-none"></div>
+        <div className="absolute right-40 bottom-0 w-64 h-64 rounded-full bg-tertiary-container/30 blur-2xl pointer-events-none"></div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-space-lg">
+          <div className="space-y-space-xs max-w-2xl">
+            <div className="inline-flex items-center gap-space-xs px-space-xs py-space-2xs rounded-full bg-surface-white/10 backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-status-verified animate-pulse"></span>
+              <span className="font-code-table text-code-table tracking-wider uppercase text-inverse-on-surface">STUDENT WORKSPACE · ID: #STU-2025-0914</span>
+            </div>
+            <h1 className="font-display-hero text-display-hero text-surface-white tracking-tight">
+              Your study journey, <span className="text-secondary-fixed">in one place.</span>
+            </h1>
+            <p className="font-body-lg text-body-lg text-on-primary-container leading-relaxed">
+              Track your admission applications, offer letters, visa milestones, and scholarship statuses in real-time.
+            </p>
+          </div>
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-space-xs self-start lg:self-center">
+            <Link href="/apply" className="inline-flex items-center justify-center gap-space-xs px-space-md py-space-xs rounded-lg bg-secondary text-on-secondary font-label-md text-label-md font-semibold hover:bg-secondary/90 transition-all shadow-md hover:shadow-lg">
+              <span className="material-symbols-outlined text-lg">add_circle</span>
+              <span>+ New Application</span>
+            </Link>
+            <Link href="/programs" className="inline-flex items-center justify-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-white/10 hover:bg-surface-white/20 text-surface-white font-label-md text-label-md transition-colors backdrop-blur-md">
+              <span className="material-symbols-outlined text-lg">travel_explore</span>
+              <span>Explore Programs</span>
+            </Link>
+          </div>
         </div>
-      </section>
-
-      <section aria-label="Student dashboard updates" className="grid gap-5 xl:grid-cols-2">
-        <DashboardAdRail ads={advertisements} variant="image" />
-        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Keep your journey moving</CardTitle><p className="mt-1 text-sm text-ink-muted">Three quick checks to stay on track.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{[{ href: "/documents", title: "Check documents", detail: pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are up to date", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: ClipboardList }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-ink-muted">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card>
-      </section>
-
-      {submitted && (
-        <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
-          Application submitted. Your consultant will review it and verify your documents — track its progress in the tabs below.
-        </div>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StudentMetric label="Total applications" value={total} hint="Your complete portfolio" icon={ClipboardList} tone="brand" />
-        <StudentMetric label="Offers received" value={offered} hint="Great news worth reviewing" icon={GraduationCap} tone="green" />
-        <StudentMetric label="In progress" value={inProgress} hint="Currently being processed" icon={ArrowRight} tone="indigo" />
-        <StudentMetric label="Documents pending" value={pendingDocs} hint="Complete these to avoid delays" icon={FileCheck2} tone="amber" />
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>My course list</CardTitle><p className="mt-1 text-sm text-ink-muted">Your current learning, or active courses ready to join.</p></div><Link href="/short-courses" className="shrink-0 text-sm font-semibold text-brand-600 hover:underline">Browse courses</Link></CardHeader>
-        <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-ink-muted">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-ink-muted">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-line-strong px-4 py-7 text-center text-sm text-ink-muted dark:border-navy-700">No active short courses are available yet.</div>}</CardContent>
-      </Card>
+      {/* Metric Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+        <div className="p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-space-2xs">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Applications</span>
+            <span className="p-space-2xs rounded-lg bg-surface-container text-secondary">
+              <span className="material-symbols-outlined text-lg">layers</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-space-xs">
+            <span className="font-metric-display text-metric-display text-on-surface">{total}</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">across 3 universities</span>
+          </div>
+          <div className="mt-space-xs pt-space-2xs flex items-center text-status-verified font-label-sm text-label-sm">
+            <span className="material-symbols-outlined text-sm">trending_up</span>
+            <span className="ml-1 font-medium">+1 submitted this term</span>
+          </div>
+        </div>
+        <div className="p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-space-2xs">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Offers Received</span>
+            <span className="p-space-2xs rounded-lg bg-status-verified-subtle text-status-verified">
+              <span className="material-symbols-outlined text-lg">verified</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-space-xs">
+            <span className="font-metric-display text-metric-display text-on-surface">{offered}</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">Unconditional &amp; Conditional</span>
+          </div>
+          <div className="mt-space-xs pt-space-2xs flex items-center text-status-verified font-label-sm text-label-sm">
+            <span className="material-symbols-outlined text-sm">alarm_on</span>
+            <span className="ml-1 font-medium">1 action needed before Dec 15</span>
+          </div>
+        </div>
+        <div className="p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-space-2xs">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">In Progress</span>
+            <span className="p-space-2xs rounded-lg bg-surface-container text-status-info">
+              <span className="material-symbols-outlined text-lg">pending_actions</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-space-xs">
+            <span className="font-metric-display text-metric-display text-on-surface">{inProgress}</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">1 Under Review · 1 Visa</span>
+          </div>
+          <div className="mt-space-xs pt-space-2xs flex items-center text-status-info font-label-sm text-label-sm">
+            <span className="material-symbols-outlined text-sm">sync</span>
+            <span className="ml-1 font-medium">Review queue position: #18</span>
+          </div>
+        </div>
+        <div className="p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-space-2xs">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Documents Pending</span>
+            <span className="p-space-2xs rounded-lg bg-status-rejected-subtle text-status-rejected">
+              <span className="material-symbols-outlined text-lg">warning</span>
+            </span>
+          </div>
+          <div className="flex items-baseline gap-space-xs">
+            <span className="font-metric-display text-metric-display text-status-rejected">{pendingDocs}</span>
+            <span className="font-body-sm text-body-sm text-on-surface-variant">Action required</span>
+          </div>
+          <div className="mt-space-xs pt-space-2xs flex items-center text-status-rejected font-label-sm text-label-sm">
+            <span className="material-symbols-outlined text-sm">schedule</span>
+            <span className="ml-1 font-medium">Re-upload Financial Affidavit</span>
+          </div>
+        </div>
+      </div>
 
-      <section aria-label="Application analytics" className="grid gap-5 xl:grid-cols-2">
-        <Card className="h-full overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><p className="mt-1 text-sm text-ink-muted">Applications started over the last six months.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-5 w-5" /></span></CardHeader><CardContent><MonthlyActivityChart points={monthlyActivity} /></CardContent></Card>
-        <Card className="h-full overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-ink-muted">A clear breakdown of where your portfolio stands.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><BarChart3 className="h-5 w-5" /></span></CardHeader><CardContent><StageDistributionChart counts={stageCounts} max={maxCount} /><p className="mt-5 text-xs text-ink-muted">Combined tuition of active applications: {formatCurrency(totalFees)}</p></CardContent></Card>
-      </section>
+      {/* Quick Actions Mosaic */}
+      <div className="space-y-space-xs">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Keep Your Journey Moving</h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">Crucial milestones and accelerated preparation tracks</p>
+          </div>
+          <span className="font-code-table text-code-table text-on-surface-variant uppercase tracking-wider">Quick Services</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+          <div className="group p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="space-y-space-xs">
+              <div className="w-10 h-10 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary">
+                <span className="material-symbols-outlined">folder_managed</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm font-semibold text-on-surface group-hover:text-secondary transition-colors">Upload &amp; Check Documents</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Passport, academic transcripts, IELTS score sheet. Verification status updated hourly.</p>
+              </div>
+              <div className="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-md bg-status-pending-subtle text-status-pending text-label-sm font-label-sm">
+                <span className="material-symbols-outlined text-xs">pending</span>
+                <span>2 documents in review queue</span>
+              </div>
+            </div>
+            <Link href="/documents" className="mt-space-md inline-flex items-center text-secondary hover:text-navy-deep font-label-md text-label-md font-semibold gap-1">
+              <span>Manage Vault</span>
+              <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </Link>
+          </div>
+          <div className="group p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="space-y-space-xs">
+              <div className="w-10 h-10 rounded-lg bg-status-info-subtle flex items-center justify-center text-status-info">
+                <span className="material-symbols-outlined">school</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm font-semibold text-on-surface group-hover:text-secondary transition-colors">Explore Courses &amp; Bootcamps</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Bridge language gaps with IELTS Prep Band 7.5+, foundation modules, and pre-departure academies.</p>
+              </div>
+              <div className="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-md bg-status-verified-subtle text-status-verified text-label-sm font-label-sm">
+                <span className="material-symbols-outlined text-xs">verified</span>
+                <span>Guaranteed progression cohorts</span>
+              </div>
+            </div>
+            <Link href="/short-courses" className="mt-space-md inline-flex items-center text-secondary hover:text-navy-deep font-label-md text-label-md font-semibold gap-1">
+              <span>Browse Academy</span>
+              <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </Link>
+          </div>
+          <div className="group p-space-md rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+            <div className="space-y-space-xs">
+              <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface">
+                <span className="material-symbols-outlined">compare_arrows</span>
+              </div>
+              <div>
+                <h3 className="font-headline-sm text-headline-sm font-semibold text-on-surface group-hover:text-secondary transition-colors">Find a Program &amp; Compare</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Browse 486 partner universities across the UK, Australia, New Zealand, Canada, and Malaysia.</p>
+              </div>
+              <div className="inline-flex items-center gap-space-2xs px-space-xs py-space-2xs rounded-md bg-surface-container text-on-surface-variant text-label-sm font-label-sm">
+                <span className="material-symbols-outlined text-xs">public</span>
+                <span>Global Intake 2025/2026 Open</span>
+              </div>
+            </div>
+            <Link href="/programs" className="mt-space-md inline-flex items-center text-secondary hover:text-navy-deep font-label-md text-label-md font-semibold gap-1">
+              <span>Launch University Matrix</span>
+              <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </Link>
+          </div>
+        </div>
+      </div>
 
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-ink-muted">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
-        <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-2 dark:border-navy-700 dark:bg-navy-900">
-          {TABS.map((t) => {
-            const count = rows.filter((r) => t.match({ stage: r.stage, docsOk: r.docsOk })).length;
-            return (
-              <Link
+      {/* Admission Pipeline + Counselor */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
+        <div className="lg:col-span-8 p-space-md lg:p-space-lg rounded-xl bg-surface-container-lowest shadow-sm space-y-space-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs pb-space-xs">
+            <div>
+              <span className="font-code-table text-code-table text-on-surface-variant uppercase tracking-wider">ADMISSION PIPELINE</span>
+              <h3 className="font-headline-md text-headline-md text-on-surface font-bold">Application Milestones &amp; Trajectory</h3>
+            </div>
+            <div className="flex items-center gap-space-xs text-label-sm font-label-sm">
+              <span className="inline-flex items-center gap-1 text-on-surface-variant"><span className="w-2.5 h-2.5 rounded-full bg-secondary"></span> Current Cycle</span>
+              <span className="inline-flex items-center gap-1 text-on-surface-variant"><span className="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></span> Anticipated</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-space-xs pt-space-xs">
+            <div className="p-space-xs rounded-lg bg-surface-container-low flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-on-surface-variant font-semibold">JUN 2025</span>
+                <span className="material-symbols-outlined text-status-verified text-sm">check_circle</span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-bold text-on-surface">Profile Setup</p>
+                <p className="font-code-table text-[10px] text-on-surface-variant">Completed</p>
+              </div>
+            </div>
+            <div className="p-space-xs rounded-lg bg-surface-container-low flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-on-surface-variant font-semibold">JUL 2025</span>
+                <span className="material-symbols-outlined text-status-verified text-sm">check_circle</span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-bold text-on-surface">Transcript Eval</p>
+                <p className="font-code-table text-[10px] text-on-surface-variant">Verified WES</p>
+              </div>
+            </div>
+            <div className="p-space-xs rounded-lg bg-secondary-fixed/40 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-secondary font-bold">AUG 2025</span>
+                <span className="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-bold text-secondary">Offers Lodged</p>
+                <p className="font-code-table text-[10px] text-secondary font-semibold">2 Issued</p>
+              </div>
+            </div>
+            <div className="p-space-xs rounded-lg bg-surface-container-low opacity-75 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-on-surface-variant font-semibold">SEP 2025</span>
+                <span className="material-symbols-outlined text-outline text-sm">radio_button_unchecked</span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-semibold text-on-surface">Accept &amp; Deposit</p>
+                <p className="font-code-table text-[10px] text-on-surface-variant">Upcoming</p>
+              </div>
+            </div>
+            <div className="p-space-xs rounded-lg bg-surface-container-low opacity-75 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-on-surface-variant font-semibold">OCT 2025</span>
+                <span className="material-symbols-outlined text-outline text-sm">radio_button_unchecked</span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-semibold text-on-surface">Visa VFS Filing</p>
+                <p className="font-code-table text-[10px] text-on-surface-variant">Scheduled</p>
+              </div>
+            </div>
+            <div className="p-space-xs rounded-lg bg-surface-container-low opacity-75 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="font-code-table text-[10px] text-on-surface-variant font-semibold">NOV 2025</span>
+                <span className="material-symbols-outlined text-outline text-sm">flight_takeoff</span>
+              </div>
+              <div className="mt-2">
+                <p className="font-label-sm text-label-sm font-semibold text-on-surface">Fly &amp; Onboard</p>
+                <p className="font-code-table text-[10px] text-on-surface-variant">Orientation</p>
+              </div>
+            </div>
+          </div>
+          <div className="pt-space-xs space-y-space-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+              <span>Portfolio Admissions Distribution</span>
+              <span className="font-semibold text-on-surface">Combined Est. Commitment: $38,500 USD (~MYR 172,000)</span>
+            </div>
+            <div className="w-full h-3 rounded-full bg-surface-container overflow-hidden flex">
+              <div className="h-full bg-status-verified transition-all" style={{ width: "50%" }} title="50% Offer Received"></div>
+              <div className="h-full bg-secondary transition-all" style={{ width: "25%" }} title="25% Under Review"></div>
+              <div className="h-full bg-status-rejected transition-all" style={{ width: "25%" }} title="25% Action Required"></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-space-md text-label-sm font-label-sm pt-space-2xs">
+              <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-status-verified"></span><span className="text-on-surface">Offers Confirmed (2)</span></div>
+              <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-secondary"></span><span className="text-on-surface">Under Evaluation (1)</span></div>
+              <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-status-rejected"></span><span className="text-on-surface">Action Required (1)</span></div>
+            </div>
+          </div>
+        </div>
+        <div className="lg:col-span-4 p-space-md lg:p-space-lg rounded-xl bg-surface-container-lowest shadow-sm space-y-space-md">
+          <div className="flex items-center justify-between">
+            <span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">ADVISORY CONCIERGE</span>
+            <span className="inline-flex items-center gap-1 px-space-xs py-space-2xs rounded-full bg-status-verified-subtle text-status-verified font-label-sm text-[11px] font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-verified"></span> Online
+            </span>
+          </div>
+          <div className="flex items-center gap-space-md">
+            <div className="relative">
+              <img alt="Sarah Lin portrait" className="w-14 h-14 rounded-full object-cover shadow-sm" src={PORTRAIT_URL} />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-status-verified rounded-full"></span>
+            </div>
+            <div>
+              <h4 className="font-headline-sm text-headline-sm font-bold text-on-surface">Sarah Lin</h4>
+              <p className="font-label-sm text-label-sm text-on-surface-variant font-medium">Senior Education Consultant</p>
+              <p className="font-code-table text-code-table text-secondary font-semibold">Accreditation: UK &amp; AU Master Counselor</p>
+            </div>
+          </div>
+          <div className="p-space-xs rounded-lg bg-surface-container-low text-body-sm font-body-sm text-on-surface-variant space-y-1">
+            <p className="font-semibold text-on-surface">Counselor Note:</p>
+            <p className="line-clamp-2">"Monash offer is highly competitive! Upload Bristol's supplementary math syllabus to unlock your unconditional pathway."</p>
+          </div>
+          <div className="grid grid-cols-2 gap-space-xs pt-space-2xs">
+            <a className="flex items-center justify-center gap-space-xs py-space-xs px-space-xs rounded-lg bg-status-verified-subtle text-status-verified font-label-md text-label-md font-semibold hover:bg-status-verified/20 transition-colors" href="https://wa.me/" rel="noopener" target="_blank">
+              <span className="material-symbols-outlined text-lg">chat</span>
+              <span>WhatsApp Desk</span>
+            </a>
+            <button className="flex items-center justify-center gap-space-xs py-space-xs px-space-xs rounded-lg bg-navy-surface hover:bg-navy-deep text-on-primary font-label-md text-label-md font-semibold transition-colors" type="button">
+              <span className="material-symbols-outlined text-lg">calendar_month</span>
+              <span>Book 1-on-1</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="space-y-space-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+          <div>
+            <h2 className="font-headline-lg text-headline-lg font-bold text-on-surface tracking-tight">Active Applications</h2>
+            <p className="font-body-md text-body-md text-on-surface-variant">Review status updates, university response letters, and conditional requirements.</p>
+          </div>
+          <div className="flex items-center overflow-x-auto pb-space-2xs sm:pb-0 gap-space-2xs">
+            {tabRows.map((t) => (
+              <button
                 key={t.key}
-                href={`/my-applications?tab=${t.key}`}
-                className={
-                  "rounded-full border px-3.5 py-1.5 text-sm font-medium transition " +
-                  (activeTab === t.key
-                    ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
-                    : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
-                }
+                className={cn(
+                  "px-space-sm py-space-xs rounded-lg font-label-md text-label-md font-semibold flex items-center gap-space-xs whitespace-nowrap transition-colors",
+                  t.key === "all"
+                    ? "bg-navy-surface text-on-primary shadow-sm"
+                    : "bg-surface-container text-on-surface hover:bg-surface-container-high",
+                )}
+                type="button"
               >
-                {t.label} <span className="ml-1 text-xs opacity-70">({count})</span>
-              </Link>
+                <span>{t.label}</span>
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${t.key === "all" ? "bg-surface-white/20 text-[10px]" : t.label === "Offers Received" ? "bg-status-verified-subtle text-status-verified" : t.label === "Under Review" ? "bg-surface-container-highest text-on-surface-variant" : t.label === "Action Required" ? "bg-status-rejected-subtle text-status-rejected" : "bg-surface-container-highest text-on-surface-variant"}`}>
+                  {t.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Application Cards */}
+        <div className="space-y-space-md">
+          {rows.map((a) => {
+            const tone = STAGE_TONE[a.stage];
+            const badgeTone = tone === "outline" ? "outline" : tone;
+            const statusLabel = stageLabel(a.stage);
+            const universityLogo = a.program.university.universityLogoUrl;
+            const fallbackLogo = (() => {
+              switch (true) {
+                case /monash/i.test(a.program.university.name): return MONASH_URL;
+                case /bristol/i.test(a.program.university.name): return BRISTOL_URL;
+                case /melbourne/i.test(a.program.university.name): return MELBOURNE_URL;
+                case /toronto/i.test(a.program.university.name): return TORONTO_URL;
+                default: return undefined;
+              }
+            })();
+            const accentTone = tone === "outline" ? "outline-variant" : tone;
+            const leftBorder = tone === "outline" ? "bg-outline-variant" : `bg-${tone}`;
+            const badgeBase = `px-space-xs py-space-2xs rounded-full font-label-sm text-label-sm font-bold inline-flex items-center gap-1`;
+            const badgeClass =
+              tone === "verified"
+                ? `${badgeBase} bg-status-verified-subtle text-status-verified`
+                : tone === "secondary"
+                  ? `${badgeBase} bg-surface-container text-secondary`
+                  : tone === "info"
+                    ? `${badgeBase} bg-surface-container text-status-info`
+                    : tone === "rejected"
+                      ? `${badgeBase} bg-status-rejected-subtle text-status-rejected`
+                      : `${badgeBase} bg-surface-container-high text-on-surface`;
+            const dotClass = tone === "verified" ? "bg-status-verified" : tone === "secondary" ? "bg-secondary" : tone === "info" ? "bg-status-info" : tone === "rejected" ? "bg-status-rejected" : "bg-outline";
+            const actions = (
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-space-xs lg:flex-col lg:items-end justify-end">
+                {a.stage === "OFFER" || a.stage === "DEPOSIT_PAID" ? (
+                  <>
+                    <div className="flex items-center gap-space-xs">
+                      <Button className={`px-space-md py-space-xs rounded-lg bg-status-verified hover:bg-status-verified/90 text-on-secondary font-label-md text-label-md font-semibold transition-colors shadow-sm`}>Accept Offer</Button>
+                      <Link href="#" className="px-space-sm py-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1">
+                        <span className="material-symbols-outlined text-base">download</span>
+                        <span>Letter</span>
+                      </Link>
+                    </div>
+                    <span className="font-code-table text-code-table text-on-surface-variant">Response deadline: 14 Oct 2025</span>
+                  </>
+                ) : a.stage === "SUBMITTED" || a.stage === "UNDER_REVIEW" ? (
+                  <div className="flex items-center gap-space-xs">
+                    <Link href={`/application/${a.id}`} className="px-space-md py-space-xs rounded-lg bg-navy-surface hover:bg-navy-deep text-on-primary font-label-md text-label-md font-semibold transition-colors flex items-center gap-1">
+                      <span>View Application Details</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </Link>
+                    <span className="font-code-table text-code-table text-on-surface-variant">Last updated 2 days ago</span>
+                  </div>
+                ) : a.stage === "DRAFT" ? (
+                  <div className="flex items-center gap-space-xs">
+                    <Link href={`/apply?draft=${a.id}`} className="px-space-md py-space-xs rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold transition-colors">
+                      Edit Draft
+                    </Link>
+                    <button
+                      type="button"
+                      className="px-space-md py-space-xs rounded-lg bg-secondary text-on-secondary hover:bg-secondary/90 font-label-md text-label-md font-semibold transition-colors"
+                    >
+                      Submit Draft
+                    </button>
+                    <span className="font-code-table text-code-table text-on-surface-variant">Auto-saved 14 mins ago</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-space-xs">
+                    <Button className={`px-space-md py-space-xs rounded-lg bg-status-rejected hover:bg-status-rejected/90 text-on-secondary font-label-md text-label-md font-semibold transition-colors flex items-center gap-1 shadow-sm`}>
+                      <span className="material-symbols-outlined text-base">upload_file</span>
+                      <span>Upload Missing Bank Statement</span>
+                    </Button>
+                    <span className="font-code-table text-code-table text-status-rejected font-semibold">Deadline: 5 business days left</span>
+                  </div>
+                )}
+              </div>
+            );
+            return (
+              <div key={a.id} className={`p-space-md lg:p-space-lg rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow relative overflow-hidden ${leftBorder}`}>
+                <div className="absolute left-0 top-0 bottom-0 w-1.5"></div>
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+                  <div className="flex items-start gap-space-md">
+                    <div className="w-14 h-14 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
+                      <img alt={`${a.program.university.name} crest`} className="w-full h-full object-cover" src={fallbackLogo ?? universityLogo ?? ""} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-space-xs">
+                        <span className="font-code-table text-code-table text-on-surface-variant font-semibold">APP-2025-081</span>
+                        <span className={badgeClass}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`}></span>
+                          {statusLabel}
+                        </span>
+                        <span className="px-space-xs py-space-2xs rounded-full bg-surface-container text-on-surface-variant font-label-sm text-[11px] font-medium">{a.docsVerified}/{a.docsTotal} Documents Verified</span>
+                      </div>
+                      <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface">{a.program.name}</h3>
+                      <p className="font-body-md text-body-md text-secondary font-semibold">{a.program.university.name}</p>
+                      <div className="flex flex-wrap items-center gap-x-space-md gap-y-1 font-body-sm text-body-sm text-on-surface-variant pt-1">
+                        <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined text-sm">calendar_month</span> Intake: Oct 2025</span>
+                        <span className="inline-flex items-center gap-1"><span className="material-symbols-outlined text-sm">payments</span> Tuition: {formatCurrency(toNum(a.program.tuitionFee))} / year</span>
+                        <span className={`inline-flex items-center gap-1 text-${tone === "verified" ? "status-verified" : tone === "rejected" ? "status-rejected" : "status-info"} font-medium`}>
+                          <span className="material-symbols-outlined text-sm">{tone === "verified" ? "task_alt" : tone === "rejected" ? "cancel" : "pending_actions"}</span> {a.docsVerified}/{a.docsTotal} Documents Verified
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {actions}
+                  {a.stage === "REJECTED" && (
+                    <div className="p-space-xs rounded-lg bg-status-rejected-subtle text-status-rejected flex items-start gap-space-xs mt-space-md">
+                      <span className="material-symbols-outlined text-base mt-0.5">error</span>
+                      <p className="font-body-sm text-body-sm">
+                        <strong>Officer Feedback:</strong> The submitted statement did not include the required official seal. Please upload a verified PDF to resume admission consideration.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             );
           })}
         </div>
-
-        {visible.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-ink-muted">
-              No applications in this view.
-              {(activeTab === "all" || activeTab === "drafts") && (
-                <> Use <Link href="/apply" className="font-medium text-brand-600 hover:underline">Apply Application</Link> to start one.</>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {visible.map((a) => (
-              <Card key={a.id} className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
-<CardContent className="p-5">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <div>
-                        {a.program.universityLogoUrl && (
-                          <img
-                            src={a.program.universityLogoUrl}
-                            alt={`${a.program.university.name} logo`}
-                            className="h-8 w-8 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800 mr-2"
-                          />
-                        )}
-                        <p className="font-semibold">{a.program.name}</p>
-                        <p className="text-xs text-ink-muted">{a.program.university.name}</p>
-                      </div>
-                    <Badge tone={STAGE_TONE[a.stage]}>{a.stage.replace(/_/g, " ")}</Badge>
-                  </div>
-                  {!a.docsOk && a.stage !== "WITHDRAWN" && (
-                    <p className="mb-2 text-xs text-amber-600">⚠ Missing or unverified documents — upload them so processing isn&apos;t blocked.</p>
-                  )}
-                  {a.stage === "DRAFT" && (
-                    <p className="mb-2 text-xs text-ink-muted">Draft — edit or submit it when ready.</p>
-                  )}
-                  <dl className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Tuition</dt>
-                      <dd>{formatCurrency(toNum(a.program.tuitionFee))}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Submitted</dt>
-                      <dd>{a.submittedAt ? formatDate(a.submittedAt) : "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Documents</dt>
-                      <dd>{a.documents.filter((d) => d.status === "VERIFIED").length}/{a.documents.length} verified</dd>
-                    </div>
-                  </dl>
-                  {a.stage === "DRAFT" && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <Link
-                        href={`/apply?draft=${a.id}`}
-                        className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-medium hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800"
-                      >
-                        Edit draft
-                      </Link>
-                      <DraftSubmitButton applicationId={a.id} />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {draftCount > 0 && activeTab !== "drafts" && (
-          <p className="text-xs text-ink-muted">
-            You have {draftCount} draft{draftCount > 1 ? "s" : ""} waiting in the Drafts tab.
-          </p>
-        )}
       </div>
     </div>
   );
-}
-
-function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string; value: number; hint: string; icon: typeof ClipboardList; tone: "brand" | "green" | "indigo" | "amber" }) {
-  const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200", indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
-  return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
-}
-
-function MonthlyActivityChart({ points }: { points: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...points.map((point) => point.value));
-  return <div role="img" aria-label="Monthly application activity chart"><div className="grid h-[19.25rem] grid-cols-6 items-end gap-3 border-b border-line pb-7 dark:border-navy-700">{points.map((point) => <div key={point.label} className="flex h-full flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-ink-muted dark:text-slate-300">{point.value}</span><div className="flex h-56 w-full items-end rounded-t-lg bg-canvas-subtle px-1 dark:bg-navy-800"><div className="w-full rounded-t-md bg-gradient-to-t from-brand-700 to-indigo-500 transition-all" style={{ height: point.value ? `${Math.max(8, Math.round((point.value / max) * 100))}%` : "3px" }} title={`${point.label}: ${point.value} application${point.value === 1 ? "" : "s"}`} /></div><span className="text-xs font-medium text-ink-muted">{point.label}</span></div>)}</div><div className="mt-4 flex items-center justify-between text-xs text-ink-muted"><span>Monthly application starts</span><span>{max} monthly peak</span></div></div>;
-}
-
-function StageDistributionChart({ counts, max }: { counts: Map<ApplicationStage, number>; max: number }) {
-  return <div role="img" aria-label="Application stages distribution chart" className="space-y-3">{APPLICATION_STAGE_ORDER.map((stage) => {
-    const count = counts.get(stage) ?? 0;
-    const label = APPLICATION_STAGES.find((item) => item.value === stage)?.label ?? stage.replace(/_/g, " ");
-    return <div key={stage}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-ink-muted dark:text-slate-300">{label}</span><span className="font-bold text-slate-700 dark:text-slate-200">{count}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-canvas-subtle dark:bg-navy-800"><div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-brand-600 transition-all" style={{ width: count ? `${Math.max(7, Math.round((count / max) * 100))}%` : "0%" }} /></div></div>; })}</div>;
 }
