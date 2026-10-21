@@ -175,9 +175,6 @@ export function StudentSignupAuth() {
       <div className="flex flex-col gap-space-2xs mb-space-lg">
         <div className="flex items-center justify-between">
           <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary">Student Enrollment Portal</span>
-          <span className="inline-flex items-center gap-1 font-code-table text-code-table px-2.5 py-0.5 rounded-full bg-status-verified-subtle text-status-verified font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-status-verified" /> SSL 256-bit Encrypted
-          </span>
         </div>
         <h1 className="font-headline-lg text-headline-lg text-navy-deep tracking-tight">Student Signup</h1>
         <p className="font-body-md text-body-md text-on-surface-variant">

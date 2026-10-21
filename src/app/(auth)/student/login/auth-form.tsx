@@ -245,14 +245,6 @@ export function StudentLoginAuth() {
           Create a free account
         </Link>
       </div>
-      <div className="mt-space-md pt-space-sm flex items-center justify-center gap-1.5 text-center text-on-surface-variant/80">
-        <span className="font-code-table text-code-table flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px] text-status-verified">
-            lock
-          </span>{" "}
-          256-bit encrypted student dossier access
-        </span>
-      </div>
       <div className="w-full flex flex-col sm:flex-row items-center justify-between mt-space-md px-space-xs text-on-surface-variant/70 font-body-sm text-body-sm">
         <div className="flex items-center gap-space-md">
           <span>Meridian Admissions Engine v4.12</span>
@@ -265,7 +257,6 @@ export function StudentLoginAuth() {
             Student Helpdesk
           </a>
         </div>
-        <div className="mt-2 sm:mt-0 font-code-table text-code-table">SECURE HTTPS // TLS 1.3</div>
       </div>
     </>
   );

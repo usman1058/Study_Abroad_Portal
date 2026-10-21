@@ -209,7 +209,6 @@ export function PartnerLoginAuth() {
               Request accredited partnership
             </Link>
           </span>
-          <span className="font-code-table text-code-table text-on-surface-variant/70">GATEWAY_REV: 4.19-PROD</span>
         </div>
       </div>
     </>
