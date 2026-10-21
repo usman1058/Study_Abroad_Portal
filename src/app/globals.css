@@ -4,66 +4,66 @@
 
 @theme {
   /* Fonts */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* ---- Typography scale — Executive Meridian (DESIGN.md) ---- */
-  --font-display-hero: var(--font-jakarta);
+  --font-display-hero: "Plus Jakarta Sans";
   --font-size-display-hero: 40px;
   --line-height-display-hero: 48px;
   --letter-spacing-display-hero: -0.025em;
 
-  --font-headline-lg: var(--font-jakarta);
+  --font-headline-lg: "Plus Jakarta Sans";
   --font-size-headline-lg: 28px;
   --line-height-headline-lg: 36px;
   --letter-spacing-headline-lg: -0.02em;
 
-  --font-headline-md: var(--font-jakarta);
+  --font-headline-md: "Plus Jakarta Sans";
   --font-size-headline-md: 20px;
   --line-height-headline-md: 28px;
   --letter-spacing-headline-md: -0.015em;
 
-  --font-headline-sm: var(--font-jakarta);
+  --font-headline-sm: "Plus Jakarta Sans";
   --font-size-headline-sm: 16px;
   --line-height-headline-sm: 24px;
   --letter-spacing-headline-sm: -0.01em;
 
-  --font-metric-display: var(--font-jakarta);
+  --font-metric-display: "Plus Jakarta Sans";
   --font-size-metric-display: 32px;
   --line-height-metric-display: 38px;
   --letter-spacing-metric-display: -0.02em;
 
-  --font-body-lg: var(--font-inter);
+  --font-body-lg: "Inter";
   --font-size-body-lg: 16px;
   --line-height-body-lg: 24px;
   --letter-spacing-body-lg: 0em;
 
-  --font-body-md: var(--font-inter);
+  --font-body-md: "Inter";
   --font-size-body-md: 14px;
   --line-height-body-md: 20px;
   --letter-spacing-body-md: 0em;
 
-  --font-body-md-medium: var(--font-inter);
+  --font-body-md-medium: "Inter";
   --font-size-body-md-medium: 14px;
   --line-height-body-md-medium: 20px;
   --letter-spacing-body-md-medium: 0em;
 
-  --font-body-sm: var(--font-inter);
+  --font-body-sm: "Inter";
   --font-size-body-sm: 12px;
   --line-height-body-sm: 16px;
   --letter-spacing-body-sm: 0.01em;
 
-  --font-label-md: var(--font-inter);
+  --font-label-md: "Inter";
   --font-size-label-md: 13px;
   --line-height-label-md: 18px;
   --letter-spacing-label-md: 0.01em;
 
-  --font-label-sm: var(--font-inter);
+  --font-label-sm: "Inter";
   --font-size-label-sm: 11px;
   --line-height-label-sm: 14px;
   --letter-spacing-label-sm: 0.03em;
 
-  --font-code-table: var(--font-inter);
+  --font-code-table: "Inter";
   --font-size-code-table: 12px;
   --line-height-code-table: 16px;
   --letter-spacing-code-table: 0.02em;

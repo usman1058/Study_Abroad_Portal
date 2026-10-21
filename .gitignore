@@ -1,3 +1,28 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Generated code
+src/generated/
+
+# Testing
+playwright-report/
+test-results/
+
+# Env & secrets
+.env
+.env.*
+.auth/
+
 # Stitch design exports — reference only, not part of the app
 stitch/
 stitch_study_abroad_visa_dashboard (1).zip
+
+# Misc
+.DS_Store
+*.pem

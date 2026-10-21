@@ -1,24 +1,10 @@
-import Link from "next/link";
-import { AuthShell } from "@/components/auth-shell";
-import { LoginForm } from "@/components/login-form";
+import { PartnerLoginAuth } from "./auth-form";
 
-export const metadata = { title: "Partner Login" };
+export const metadata = {
+  title: "Partner Login · StudyAbroad Portal",
+  description: "Sign in to your authorized partner workspace, counselor desk, or agency management hub.",
+};
 
 export default function PartnerLoginPage() {
-  return (
-    <AuthShell
-      title="Partner Login"
-      subtitle="Agency staff and counselors. Sign in with your approved account."
-      footer={
-        <>
-          No account yet?{" "}
-          <Link href="/partner/signup" className="font-medium text-brand-600 hover:underline">
-            Request an agency account
-          </Link>
-        </>
-      }
-    >
-      <LoginForm nextPath="/home" />
-    </AuthShell>
-  );
+  return <PartnerLoginAuth />;
 }

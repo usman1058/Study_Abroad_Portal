@@ -1,24 +1,10 @@
-import Link from "next/link";
-import { AuthShell } from "@/components/auth-shell";
-import { LoginForm } from "@/components/login-form";
+import { StudentLoginAuth } from "./auth-form";
 
-export const metadata = { title: "Student Login" };
+export const metadata = {
+  title: "Student Login · StudyAbroad Portal",
+  description: "Sign in to track your applications, shortlist and documents.",
+};
 
 export default function StudentLoginPage() {
-  return (
-    <AuthShell
-      title="Student Login"
-      subtitle="Sign in to track your applications, shortlist and documents."
-      footer={
-        <>
-          New here?{" "}
-          <Link href="/student/signup" className="font-medium text-brand-600 hover:underline">
-            Create a free account
-          </Link>
-        </>
-      }
-    >
-      <LoginForm nextPath="/my-applications" />
-    </AuthShell>
-  );
+  return <StudentLoginAuth />;
 }
