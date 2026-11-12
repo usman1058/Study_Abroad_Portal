@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
 
-export default function GlobalError({
+export default function ErrorPage({
   error,
   reset,
 }: {
@@ -13,42 +13,39 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Global error:", error);
+    console.error("Application error:", error);
   }, [error]);
 
   return (
-    <html lang="en">
-      <body>
-        <div className="flex min-h-svh items-center justify-center p-6">
-          <div className="text-center space-y-4">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
-              <RefreshCw className="h-8 w-8" />
-            </div>
-            <h2 className="text-2xl font-bold">Application Error</h2>
-            <p className="text-ink-muted dark:text-slate-400 max-w-md mx-auto">
-              An unexpected error occurred. Please try refreshing the page.
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <Button onClick={reset} variant="primary">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh Page
-              </Button>
-              <Link href="/">
-                <Button variant="outline">
-                  <Home className="mr-2 h-4 w-4" />
-                  Go Home
-                </Button>
-              </Link>
-            </div>
-            {process.env.NODE_ENV === "development" && (
-              <details className="text-left text-sm text-ink-muted dark:text-slate-400 mt-4">
-                <summary className="cursor-pointer mb-2">Error details (dev only)</summary>
-                <pre className="whitespace-pre-wrap rounded bg-canvas-subtle p-4 dark:bg-navy-800">{error.message}</pre>
-              </details>
-            )}
-          </div>
+    <div className="flex min-h-svh items-center justify-center p-6">
+      <div className="text-center space-y-4">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+          <RefreshCw className="h-8 w-8" />
         </div>
-      </body>
-    </html>
+        <h1 className="text-2xl font-bold">Application Error</h1>
+        <p className="text-ink-muted dark:text-slate-400 max-w-md mx-auto">
+          An unexpected error occurred. Please try refreshing the page.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <Button onClick={reset} variant="primary">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh Page
+          </Button>
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-line-strong px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-canvas-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:border-navy-700 dark:text-slate-100 dark:hover:bg-navy-800"
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Go Home
+          </Link>
+        </div>
+        {process.env.NODE_ENV === "development" && (
+          <details className="text-left text-sm text-ink-muted dark:text-slate-400 mt-4">
+            <summary className="cursor-pointer mb-2">Error details (dev only)</summary>
+            <pre className="whitespace-pre-wrap rounded bg-canvas-subtle p-4 dark:bg-navy-800">{error.message}</pre>
+          </details>
+        )}
+      </div>
+    </div>
   );
 }

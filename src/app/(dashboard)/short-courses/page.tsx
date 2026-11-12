@@ -99,7 +99,7 @@ export default async function ShortCoursesPage() {
   enrolled={enrolledMap.has(c.id)}
   status={enrolledMap.get(c.id)}
   paymentType={c.paymentType as "FREE" | "PAID" | "OTHER"}
-  course={{ fee: c.fee, deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: c.meetingLink, startDates: c.startDates, duration: c.duration }}
+  course={{ fee: c.fee, deliveryMode: c.deliveryMode, classSchedule: c.classSchedule, meetingLink: enrolledMap.get(c.id) === "enrolled" || enrolledMap.get(c.id) === "completed" ? c.meetingLink : null, startDates: c.startDates, duration: c.duration }}
 />
                   )}
                   {isSuperAdmin && (

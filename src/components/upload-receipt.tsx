@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
-export function UploadReceipt({ shortCourseId, onUploaded }: { shortCourseId: string; onUploaded?: () => void }) {
+export function UploadReceipt({ shortCourseId }: { shortCourseId: string }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -44,7 +44,6 @@ export function UploadReceipt({ shortCourseId, onUploaded }: { shortCourseId: st
         return;
       }
       fileRef.current!.value = "";
-      if (onUploaded) onUploaded();
       router.refresh();
     } catch {
       setError("Could not read file.");

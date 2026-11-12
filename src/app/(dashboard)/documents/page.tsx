@@ -62,16 +62,25 @@ export default async function DocumentsPage() {
     0,
   );
 
+  const scopeLabel =
+    user.role === "SUPER_ADMIN"
+      ? "All student documents"
+      : user.role === "MANAGER"
+        ? "Documents for students you manage"
+        : user.role === "AGENCY"
+          ? "Documents for students you registered"
+          : "Documents for students assigned to you";
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Documents</h1>
         <p className="text-sm text-ink-muted">
-          Documents are limited to your counselor/student cases. {pendingCount} pending.
+          {scopeLabel}. {pendingCount} pending.
         </p>
       </div>
 
-      <DocumentGroup title="My student documents" students={visibleDirect} />
+      <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} />
 
       {user.role === "MANAGER" && (
         <section className="space-y-3">

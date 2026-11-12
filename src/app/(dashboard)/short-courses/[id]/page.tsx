@@ -35,6 +35,8 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
     select: { id: true, status: true, receiptUrl: true },
   }));
   const isEnrolled = enrollment?.status === "enrolled";
+  // Completed students keep access to the class link; only active enrollment toggles.
+  const hasClassAccess = isEnrolled || enrollment?.status === "completed";
   const isPendingPayment = enrollment?.status === "pending_payment";
   const isPendingApproval = enrollment?.status === "pending_approval";
   const isRejected = enrollment?.status === "rejected";
@@ -148,7 +150,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                 <dd className="mt-1 text-sm whitespace-pre-wrap bg-canvas p-3 rounded-lg dark:bg-navy-800">{course.bankDetails}</dd>
               </div>
             )}
-            {course.meetingLink && (
+            {course.meetingLink && (user.role === "SUPER_ADMIN" || hasClassAccess) && (
               <div>
                 <dt className="text-xs text-ink-muted">Meeting Link</dt>
                 <dd className="mt-0.5">
@@ -178,7 +180,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             <EnrollButton
               shortCourseId={course.id}
               enrolled={false}
-              course={{ fee: toNum(course.fee), deliveryMode: course.deliveryMode, classSchedule: course.classSchedule, meetingLink: course.meetingLink, startDates: course.startDates, duration: course.duration }}
+              course={{ fee: toNum(course.fee), deliveryMode: course.deliveryMode, classSchedule: course.classSchedule, meetingLink: hasClassAccess ? course.meetingLink : null, startDates: course.startDates, duration: course.duration }}
             />
           )}
 
@@ -197,7 +199,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                 shortCourseId={course.id}
                 enrolled={false}
                 paymentType="PAID"
-                course={{ fee: toNum(course.fee), deliveryMode: course.deliveryMode, classSchedule: course.classSchedule, meetingLink: course.meetingLink, startDates: course.startDates, duration: course.duration }}
+                course={{ fee: toNum(course.fee), deliveryMode: course.deliveryMode, classSchedule: course.classSchedule, meetingLink: null, startDates: course.startDates, duration: course.duration }}
               />
             </div>
           )}
@@ -206,7 +208,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             <div className="space-y-3 text-amber-700 bg-amber-50 p-4 rounded-lg dark:bg-amber-900/30">
               <p className="font-medium">Upload your payment receipt.</p>
               <p className="text-sm">Once it is uploaded, an administrator will review it.</p>
-              <UploadReceipt shortCourseId={course.id} onUploaded={() => window.location.reload()} />
+              <UploadReceipt shortCourseId={course.id} />
             </div>
           )}
 
@@ -217,9 +219,9 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {isEnrolled && (
+          {hasClassAccess && (
             <div className="space-y-4 text-green-700 bg-green-50 p-4 rounded-lg dark:bg-green-900/30">
-              <p className="font-medium">You are enrolled in this course!</p>
+              <p className="font-medium">{isEnrolled ? "You are enrolled in this course!" : "You have completed this course."}</p>
               <div className="flex flex-wrap gap-2">
                 {course.meetingLink && (
                   <a href={course.meetingLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline">
@@ -237,7 +239,6 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
               <p className="text-sm">Please upload a new receipt.</p>
               <UploadReceipt
                 shortCourseId={course.id}
-                onUploaded={() => window.location.reload()}
               />
             </div>
           )}

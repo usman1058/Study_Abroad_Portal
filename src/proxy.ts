@@ -69,6 +69,7 @@ export const config = {
     "/advertisements/:path*",
     "/users/:path*",
     "/scholarships/:path*",
+    "/programs/:path*",
     "/short-courses/:path*",
     "/search/:path*",
     "/application/:path*",

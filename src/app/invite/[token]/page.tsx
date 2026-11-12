@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, fullName } from "@/lib/utils";
 
-export const metadata = { title: "Guest Access" };
+export const metadata = { title: "Guest Access", robots: { index: false, follow: false } };
 
 type PermissionSet = { sections: string[]; access: Record<string, "view" | "edit"> };
 

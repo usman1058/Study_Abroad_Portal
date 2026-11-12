@@ -48,7 +48,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         <p className="text-sm text-ink-muted">
           {student.email} · {student.country ?? "—"} · {student.role.replace(/_/g, " ")} · profile {profileCompleteness(student)}% complete
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">{user.role === "SUPER_ADMIN" && student.role !== "SUPER_ADMIN" && <PromoteUserButton userId={student.id} />}<a href={`https://wa.me/${(student.phone ?? "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-lg border border-emerald-300 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">WhatsApp</a><a href={`/users/${student.id}/analytics`} className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700">More Details</a></div>
+        <div className="mt-3 flex flex-wrap gap-2">{user.role === "SUPER_ADMIN" && student.role !== "SUPER_ADMIN" && <PromoteUserButton userId={student.id} />}{student.phone && <a href={`https://wa.me/${(student.phone ?? "").replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-lg border border-emerald-300 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">WhatsApp</a>}{(user.role === "SUPER_ADMIN" || user.role === "MANAGER") && student.role === "STUDENT" && <a href={`/users/${student.id}/analytics`} className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700">More Details</a>}</div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

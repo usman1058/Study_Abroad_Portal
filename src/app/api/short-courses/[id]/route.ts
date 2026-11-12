@@ -59,10 +59,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
         where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
         select: { id: true, status: true, enrolledAt: true, approvedAt: true },
       });
-      return ok({ ...course, enrollment });
+      // Class access is granted only after the enrollment is confirmed.
+      const safe: Record<string, unknown> = { ...course };
+      if (enrollment?.status !== "enrolled" && enrollment?.status !== "completed") {
+        delete safe.meetingLink;
+      }
+      return ok({ ...safe, enrollment });
     }
 
-    return ok(course);
+    // Staff roles manage the catalog, not the classroom.
+    const safe: Record<string, unknown> = { ...course };
+    delete safe.meetingLink;
+    return ok(safe);
   } catch (e) {
     return serverError(e);
   }

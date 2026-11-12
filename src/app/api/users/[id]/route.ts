@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canManageExistingUser, canManageUser } from "@/lib/permissions";
+import { canManageExistingUser, canManageUser, creatableRoles } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -30,6 +30,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     if (!parsed.data.status && !parsed.data.role) return fail("No changes supplied", 422);
+    // A manager may edit users, but may never grant a role they could not create
+    // (this is what let a MANAGER promote a STUDENT to MANAGER).
+    if (parsed.data.role && !creatableRoles(user.role).includes(parsed.data.role)) {
+      return fail("You cannot assign that role", 403);
+    }
     if (parsed.data.role === "SUPER_ADMIN" && user.role !== "SUPER_ADMIN") return fail("Only a super admin can promote users", 403);
     if (target.role === "SUPER_ADMIN" && parsed.data.role && parsed.data.role !== "SUPER_ADMIN") return fail("Cannot demote a super admin", 403);
     const updated = await prisma.user.update({

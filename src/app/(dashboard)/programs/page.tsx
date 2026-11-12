@@ -52,6 +52,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
 
   const isStudent = user.role === "STUDENT";
   const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const canViewAnalytics = isSuperAdmin || user.role === "MANAGER";
   const me = isStudent
     ? await prisma.user.findUnique({
         where: { id: user.id },
@@ -150,9 +151,13 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                   return (
                     <div key={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
-                        <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
-                          {p.name}
-                        </Link>
+                        {canViewAnalytics ? (
+                          <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
+                            {p.name}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">{p.name}</span>
+                        )}
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                           <Badge tone="slate">{p.level}</Badge>
                           <span>{p.field}</span>

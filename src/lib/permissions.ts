@@ -88,10 +88,8 @@ export function studentScopeWhere(actor: Pick<User, "id" | "role">): Prisma.User
 }
 
 export function directDocumentStudentScopeWhere(actor: Pick<User, "id" | "role">): Prisma.UserWhereInput {
-  if (actor.role === "SUPER_ADMIN") {
-    return { role: "STUDENT", OR: [{ assignedCounselorId: actor.id }, { createdById: actor.id }] };
-  }
-  if (actor.role === "MANAGER" || actor.role === "AGENCY") return { role: "STUDENT", createdById: actor.id };
+  if (actor.role === "SUPER_ADMIN" || actor.role === "MANAGER") return { role: "STUDENT" };
+  if (actor.role === "AGENCY") return { role: "STUDENT", createdById: actor.id };
   if (actor.role === "COUNSELOR") return { role: "STUDENT", assignedCounselorId: actor.id };
   return { role: "STUDENT", id: actor.id };
 }
@@ -102,8 +100,8 @@ export async function canAccessStudentDocuments(
 ): Promise<boolean> {
   if (student.role !== "STUDENT") return false;
   if (student.id === actor.id) return true;
-  if (actor.role === "SUPER_ADMIN") return student.createdById === actor.id || student.assignedCounselorId === actor.id;
-  if (actor.role === "MANAGER" || actor.role === "AGENCY") return student.createdById === actor.id;
+  if (actor.role === "SUPER_ADMIN" || actor.role === "MANAGER") return true;
+  if (actor.role === "AGENCY") return student.createdById === actor.id;
   return actor.role === "COUNSELOR" && student.assignedCounselorId === actor.id;
 }
 
