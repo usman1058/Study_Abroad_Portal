@@ -28,6 +28,12 @@ export async function POST(_req: NextRequest, { params }: Params) {
       select: { id: true },
     });
 
+    // Any document uploaded before the draft existed belongs to this application.
+    await prisma.document.updateMany({
+      where: { ownerId: user.id, applicationId: null },
+      data: { applicationId: id },
+    });
+
     await logAudit({
       actorId: user.id,
       action: "update",

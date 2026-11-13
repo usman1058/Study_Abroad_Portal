@@ -7,6 +7,7 @@ import {
   canAccessStudentDocuments,
 } from "@/lib/permissions";
 import { VerifyDocument } from "@/components/verify-document";
+import { UploadDocument } from "@/components/upload-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
@@ -30,7 +31,93 @@ const documentInclude = {
 
 export default async function DocumentsPage() {
   const user = await currentUser();
-  if (!user || user.role === "STUDENT") redirect("/");
+  if (!user) redirect("/");
+
+  // Students get their own document workspace instead of the staff review view.
+  if (user.role === "STUDENT") {
+    const [documents, applications] = await Promise.all([
+      prisma.document.findMany({
+        where: { ownerId: user.id },
+        orderBy: { uploadedAt: "desc" },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          rejectionReason: true,
+          expiresAt: true,
+          uploadedAt: true,
+          application: { select: { program: { select: { name: true } } } },
+        },
+      }),
+      prisma.application.findMany({
+        where: { studentId: user.id },
+        orderBy: { updatedAt: "desc" },
+        select: { id: true, stage: true, program: { select: { name: true, university: { select: { name: true } } } } },
+      }),
+    ]);
+
+    const pending = documents.filter((document) => document.status === "PENDING").length;
+    const rejected = documents.filter((document) => document.status === "REJECTED").length;
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">My documents</h1>
+          <p className="text-sm text-ink-muted">
+            Upload passports, transcripts and test results here. {pending} pending · {rejected} rejected · {documents.length} total.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload a document</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UploadDocument
+              applications={applications.map((application) => ({
+                id: application.id,
+                label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
+              }))}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Your documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {documents.length === 0 ? (
+              <p className="py-8 text-center text-sm text-ink-muted">No documents yet. Upload your passport to get started.</p>
+            ) : (
+              <ul className="divide-y divide-line dark:divide-navy-700">
+                {documents.map((document) => (
+                  <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{humanize(document.type)}</p>
+                      <p className="truncate text-xs text-ink-muted">
+                        {document.application ? "For " + document.application.program.name : "General"} · uploaded {formatDate(document.uploadedAt)}
+                        {document.expiresAt && <span> · expires {formatDate(document.expiresAt)}</span>}
+                      </p>
+                      {document.rejectionReason && (
+                        <p className="text-xs text-red-600">Rejected: {document.rejectionReason}</p>
+                      )}
+                      <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">
+                        Open file
+                      </a>
+                    </div>
+                    <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>
+                      {humanize(document.status)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const oversightScope = counselorOversightScopeWhere(user);
   const [directStudents, oversightStudents] = await Promise.all([

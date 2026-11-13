@@ -317,8 +317,8 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 8 | `/advertisements` | Needs work | carousel-only, no list/status/schedule, "New ad" two clicks deep | flexibility, visibility of status |
 | 9 | `/application` | Poor | mobile renders a raw unstyled option dump (36 students), 204 sub-24 px targets, no count/pagination/sort | error prevention, Fitts's law, responsive |
 | 10 | `/application/[id]` | Needs work | `<h1>` is the program name; terminal stage change has no confirm/undo; raw enum badge | user control & freedom (Shneiderman), semantics |
-| 11 | `/apply` | **Blocked** | wizard uploads with `applications={[]}`, so documents never link to the application → doc gate can never pass | closure, correct conceptual model |
-| 12 | `/documents` | Needs work | **authz fixed (§14 #5)**: SUPER_ADMIN/MANAGER now see all students' documents; still no student-facing document view and the `/my-applications` "Check documents" dead end remains | consistency (permission model divergence) |
+| 11 | `/apply` | Needs work | **document journey fixed (§14 #13)**: wizard uploads attach to the draft/new application, so the verification gate can pass (verified §15.2). Still: one-way wizard, no save-and-exit warning | closure, user control |
+| 12 | `/documents` | Needs work | **authz fixed (§14 #5), student workspace added (§14 #13)**: SUPER_ADMIN/MANAGER see all students; students get upload + own-document list. Still: no re-upload shortcut on a rejected doc, no expiry warning | consistency, error recovery |
 | 13 | `/messages` | Poor | entire user table dumped into "Start a conversation"; unlabeled textarea; no read state | recognition over recall, Miller's law |
 | 14 | `/my-applications` | Poor | `<h1>` is a slogan; "Check documents" → `/documents` → redirect (dead end); can't open detail | clear closure, error recovery |
 | 15 | `/my-shortlist` | Poor | shares `localhost:3001` links; DB write on GET; compare modal has no dialog semantics | user control, data integrity |
@@ -340,9 +340,9 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 31 | `/users/[id]/analytics` | Needs work | **authz + money fixed (§14 #2/#10)**: SUPER_ADMIN/MANAGER only, refunds excluded, per-currency totals; page-level redirect surfaces as a 200 payload redirect (§15 nuance) | authorization, data integrity |
 | 32 | `/visitor-form` | Poor | 6 unlabeled fields; promises follow-up but only Delete exists; MANAGER sees a dead branch | match to real world, accessible forms |
 
-**Totals (post-fix):** 1 Blocked · 22 Poor · 8 Needs work · 1 Good. The only remaining Blocked page is `/apply`
-(wizard documents never link to the application). The five pages that flipped from Blocked to Needs work are fixed
-in §14 (#2, #3, #4, #5, #10) and verified at runtime in §15, but have not been re-reviewed visually after the fix.
+**Totals (post-fix):** 0 Blocked · 22 Poor · 9 Needs work · 1 Good. `/apply` is unblocked by §14 #13 and
+verified at runtime in §15.2. The seven pages that flipped from Blocked to Needs work are fixed in §14
+(#2, #3, #4, #5, #10, #13) and verified at runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
 No page scores "Good" inside the authenticated app.
 
 ### Visual capture inventory (this pass)
@@ -390,7 +390,7 @@ Recorded so they are not repeated as findings:
 6. Re-check `status`/`role` in the JWT/session callback or per request; shorten token lifetime; revoke on password/role/status change. → **DONE per request + 12 h JWT (§14 #1)**
 
 ### S1 — Core flows / role model
-7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`.
+7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`. → **DONE (§14 #13, verified §15.2)**
 8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs.
 9. Password reset + approval-state messaging + session revocation UX.
 10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`.
@@ -450,7 +450,8 @@ Untracked audit artifacts:
 - `.audit-shots/v/` — 136 screenshots at 1440/768/390 (public/admin/manager/counselor evidence).
 - `.audit-shots/v2/` — 75 screenshots + `metrics.json` for the student/agency pages (§15.1).
 - `.audit-check.ts` — Neon fixture cleanup script (keep only until the QA accounts are deleted).
-- `.audit-verify.ts` — 35-check regression script for the S0 fixes (§15); runs against the local test DB.
+- `.audit-verify.ts` — 35-check regression script for the S0 fixes + document journey (§15, §15.2); runs against the local test DB.
+- `.audit-docs.ts` — 15-check student document-journey script (§15.2).
 - `.audit-visual2.ts` — the capture/metrics harness behind `.audit-shots/v2/`.
 
 Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files.
@@ -488,10 +489,11 @@ Applied after the audit. Runtime proof is in §15 (local Postgres); Neon itself 
 | 10 | **Analytics money.** Excludes `REFUND` rows, sums per currency, and formats with `formatCurrency` instead of a hard-coded `MYR`. Conversion metric renamed to "Applications per view" (it legitimately exceeds 100%). | `users/[id]/analytics/page.tsx`, `programs/[id]/analytics/page.tsx` |
 | 11 | **Documents copy.** The header no longer says "limited to your counselor/student cases" (wrong for SUPER_ADMIN/MANAGER after #5); the scope sentence and group title are role-derived. | `documents/page.tsx` |
 | 12 | **Carousel pause (WCAG 2.2.2).** The auto-rotating dashboard rail pauses while hovered and has an explicit Pause/Play toggle (`aria-pressed`) in both the rail and image variants. | `components/dashboard-ad-rail.tsx` |
+| 13 | **Student document journey.** `POST /api/applications` and `POST /api/applications/[id]/submit` now attach the student's unlinked documents (`applicationId: null`) to the application, so wizard uploads reach the doc gate. `/documents` gained a STUDENT branch (upload form + own document list + status/expiry), is no longer PARTNER_ONLY in the proxy, and is in the student nav. The wizard pre-selects the draft and links to `/documents`; `/my-applications` turns the amber warning into an "Upload documents" action. | `api/applications/route.ts`, `api/applications/[id]/submit/route.ts`, `documents/page.tsx`, `apply/page.tsx`, `components/application-wizard.tsx`, `components/upload-document.tsx`, `my-applications/page.tsx`, `proxy.ts`, `lib/permissions.ts` |
 
 **Fix verification:** `pnpm typecheck` passes and `pnpm build` compiles the full route tree (three consecutive green builds across the edit batches). Runtime verification against a local Postgres is recorded in §15.
 
-**Not yet fixed (still open):** mobile reflow, form labels, pagination, currency unification, password reset, student document journey, `/sub-agencies`, Apply CTA, full a11y pass — see §11 S1–S3.
+**Not yet fixed (still open):** mobile reflow, form labels, pagination, currency unification, password reset, `/sub-agencies`, Apply CTA, full a11y pass — see §11 S1–S3.
 
 **Residual risk of these fixes:** the highest-risk change is #1 (`currentUser` now hits the DB): every authenticated request performs one extra `user.findUnique`, and a DB outage now redirects instead of serving stale sessions. That is the intended trade-off, but it has not been load-tested (see §15 for functional proof).
 
@@ -521,7 +523,7 @@ verified against a throwaway local database instead. **Neon was never modified a
 | Analytics authz | student/agency blocked from `/users/[id]/analytics`; counselor/agency blocked from `/programs/[id]/analytics`; manager allowed on both; **no analytics markers leak into the blocked responses** |
 | Role escalation | manager `PATCH {role:"MANAGER"}` → 403, `{role:"SUPER_ADMIN"}` → 403, DB role unchanged; manager cannot create ads (403) |
 | Paid-course crash | PAID course created → student enrolled → detail 200 (no RSC crash) → meeting link hidden → receipt upload 201 → detail re-renders showing "Receipt under review" |
-| Documents scope | student → `/documents` redirect; SUPER_ADMIN, MANAGER, COUNSELOR and AGENCY all see the student's document |
+| Documents scope | student → `/documents` renders the student workspace (200); SUPER_ADMIN, MANAGER, COUNSELOR and AGENCY all see the student's document |
 | Carousel | pause control absent with <2 ads, present after two ads are created |
 | Session revocation | deactivated user loads `/home` (200) then is redirected (307) on the very next request; JWT `expires` = 12.00 h |
 
@@ -560,3 +562,29 @@ scholarships table is the only desktop-width regression found in this pass.
 Unlabeled-control counts on the captured pages: `/my-applications` 2, `/scholarships` 2, `/search` 4, `/home`,
 `/users`, `/transaction`, `/partner-commissions`, `/payments`, `/my-shortlist`, `/messages` 1 each — the same
 systemic label gap as §11 S2 item 13, now confirmed on student/agency pages too.
+
+### 15.2 Student document journey (2026-11-13)
+
+Second runtime pass, same local container/build, script `.audit-docs.ts` (**15/15 checks passed**). It exercises the
+whole path a student actually takes, through the HTTP API and a real browser page:
+
+| # | Check | Result |
+|---|---|---|
+| 1 | student `GET /documents` → 200 and renders "My documents" | pass |
+| 2 | student uploads a document **before** any application exists (`applicationId: null`) | 201 |
+| 3 | student creates+submits an application | 201 |
+| 4 | the pre-uploaded document is now linked to that application (`applicationId` matches) | pass |
+| 5 | staff move it to `UNDER_REVIEW` | 200 |
+| 6 | staff attempt `OFFER` with required documents missing | **422 (gate holds)** |
+| 7 | student uploads `TRANSCRIPT` + `IELTS` against the application | 201 / 201 |
+| 8 | student attempts to self-verify a document | **403** |
+| 9 | staff verify all three documents | 200 ×3 |
+| 10 | staff move to `OFFER` after verification | **200 (gate opens)** |
+| 11 | browser: `/documents` shows "Passport" and "3 total" | pass |
+| 12 | browser: `/my-applications` shows "3/3 verified" | pass |
+
+The UI assertions use a Playwright browser (visible text), because RSC splits interpolated values into separate text
+nodes — a raw-HTML `includes("3/3 verified")` is a false negative, not a UI bug.
+
+Regression note: `.audit-verify.ts` was updated for the new behaviour (students now *reach* `/documents` instead of
+being redirected) and still reports **35/35** after the document-journey edits.

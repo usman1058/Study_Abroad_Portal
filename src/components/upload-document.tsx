@@ -9,11 +9,17 @@ import { Label } from "@/components/ui/label";
 import { DOCUMENT_TYPES } from "@/lib/constants";
 import { humanize } from "@/lib/utils";
 
-export function UploadDocument({ applications }: { applications: { id: string; label: string }[] }) {
+export function UploadDocument({
+  applications,
+  defaultApplicationId = "",
+}: {
+  applications: { id: string; label: string }[];
+  defaultApplicationId?: string;
+}) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState("PASSPORT");
-  const [applicationId, setApplicationId] = useState("");
+  const [applicationId, setApplicationId] = useState(defaultApplicationId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

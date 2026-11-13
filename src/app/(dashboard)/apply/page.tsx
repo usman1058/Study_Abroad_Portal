@@ -17,7 +17,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
 
   const { draft: draftParam = "" } = await searchParams;
 
-  const [programs, me, documents] = await Promise.all([
+  const [programs, me, documents, drafts] = await Promise.all([
     listPrograms(),
     prisma.user.findUnique({
       where: { id: user.id },
@@ -31,6 +31,11 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
       where: { ownerId: user.id },
       orderBy: { uploadedAt: "desc" },
       select: { type: true, status: true },
+    }),
+    prisma.application.findMany({
+      where: { studentId: user.id, stage: "DRAFT" },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, program: { select: { name: true, university: { select: { name: true } } } } },
     }),
   ]);
 
@@ -93,6 +98,10 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
             documents={documents.map((d) => ({ type: d.type, status: d.status }))}
             draftId={draftId}
             draftProgramId={draftProgramId}
+            applications={drafts.map((draft) => ({
+              id: draft.id,
+              label: `${draft.program.university.name} — ${draft.program.name}`,
+            }))}
           />
         </CardContent>
       </Card>

@@ -49,6 +49,7 @@ export function ApplicationWizard({
   documents,
   draftId,
   draftProgramId,
+  applications = [],
 }: {
   programs: ProgramOption[];
   personal: WizardPersonal;
@@ -56,6 +57,7 @@ export function ApplicationWizard({
   documents: { type: string; status: string }[];
   draftId?: string;
   draftProgramId?: string;
+  applications?: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -293,8 +295,14 @@ export function ApplicationWizard({
         <div className="space-y-4">
           <p className="text-sm text-ink-muted">
             Upload your academic documents now — passport, transcripts and English test results speed up the review. Staff will verify them after you submit.
+            {draftId
+              ? " Uploads here are attached to the draft you are completing."
+              : " They are attached to this application as soon as you submit it."}
           </p>
-          <UploadDocument applications={[]} />
+          <UploadDocument
+            applications={applications}
+            defaultApplicationId={draftId ?? ""}
+          />
           {documents.length > 0 && (
             <ul className="divide-y divide-line rounded-lg border border-line dark:divide-navy-700 dark:border-navy-700">
               {documents.map((d, i) => (
@@ -308,7 +316,8 @@ export function ApplicationWizard({
             </ul>
           )}
           <p className="text-xs text-ink-muted">
-            {verifiedDocs}/{documents.length} verified so far — you can continue without verification and upload more later.
+            {verifiedDocs}/{documents.length} verified so far — you can continue without verification and upload more later from{" "}
+            <Link href="/documents" className="font-medium text-brand-600 hover:underline">Documents</Link>.
           </p>
         </div>
       )}

@@ -187,7 +187,10 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                     <Badge tone={STAGE_TONE[a.stage]}>{a.stage.replace(/_/g, " ")}</Badge>
                   </div>
                   {!a.docsOk && a.stage !== "WITHDRAWN" && (
-                    <p className="mb-2 text-xs text-amber-600">⚠ Missing or unverified documents — upload them so processing isn&apos;t blocked.</p>
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-600">
+                      <span>⚠ Missing or unverified documents.</span>
+                      <Link href="/documents" className="font-medium underline">Upload documents</Link>
+                    </div>
                   )}
                   {a.stage === "DRAFT" && (
                     <p className="mb-2 text-xs text-ink-muted">Draft — edit or submit it when ready.</p>

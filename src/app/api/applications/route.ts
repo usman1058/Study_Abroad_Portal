@@ -51,6 +51,15 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
 
+    // The wizard uploads documents before the application exists. Attach the
+    // student's unattached documents so the verification gate can see them.
+    if (user.role === "STUDENT" && studentId === user.id) {
+      await prisma.document.updateMany({
+        where: { ownerId: studentId, applicationId: null },
+        data: { applicationId: application.id },
+      });
+    }
+
     await logAudit({ actorId: user.id, action: "create", entityType: "Application", entityId: application.id, after: { studentId, programId, submit: Boolean(parsed.data.submit) } });
     const studentContacts = await prisma.user.findUnique({
       where: { id: studentId },

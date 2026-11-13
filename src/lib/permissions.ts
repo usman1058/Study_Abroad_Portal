@@ -22,7 +22,7 @@ export const SECTIONS: Section[] = [
   { key: "application", label: "Application", href: "/application", icon: "clipboard", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY"] },
   { key: "partner-commissions", label: "Partner Commissions", href: "/partner-commissions", icon: "percent", roles: ["SUPER_ADMIN", "MANAGER", "AGENCY"] },
   { key: "transaction", label: "Transaction", href: "/transaction", icon: "wallet", roles: ["SUPER_ADMIN", "MANAGER", "AGENCY"] },
-  { key: "documents", label: "Documents", href: "/documents", icon: "shield", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY"] },
+  { key: "documents", label: "Documents", href: "/documents", icon: "shield", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"] },
   { key: "reports", label: "Reports", href: "/reports", icon: "chart", roles: ["SUPER_ADMIN", "MANAGER", "AGENCY"] },
   { key: "visitor-form", label: "Visitor Form", href: "/visitor-form", icon: "form", roles: ["SUPER_ADMIN"] },
   { key: "my-shortlist", label: "My Shortlist", href: "/my-shortlist", icon: "star", roles: ["STUDENT"] },

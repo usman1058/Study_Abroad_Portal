@@ -11,7 +11,6 @@ const PARTNER_ONLY = [
   "/application",
   "/partner-commissions",
   "/transaction",
-  "/documents",
   "/reports",
   "/visitor-form",
 ];
