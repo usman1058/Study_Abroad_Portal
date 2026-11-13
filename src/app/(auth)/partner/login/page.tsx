@@ -4,7 +4,13 @@ import { LoginForm } from "@/components/login-form";
 
 export const metadata = { title: "Partner Login" };
 
-export default function PartnerLoginPage() {
+type SearchParams = Promise<{ next?: string | string[]; reset?: string | string[] }>;
+
+export default async function PartnerLoginPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  const next = typeof params.next === "string" ? params.next : undefined;
+  const notice = params.reset ? "Your password was updated. Sign in with the new one." : undefined;
+
   return (
     <AuthShell
       title="Partner Login"
@@ -18,7 +24,7 @@ export default function PartnerLoginPage() {
         </>
       }
     >
-      <LoginForm nextPath="/home" />
+      <LoginForm nextPath={next ?? "/home"} notice={notice} />
     </AuthShell>
   );
 }

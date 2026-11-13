@@ -4,7 +4,13 @@ import { LoginForm } from "@/components/login-form";
 
 export const metadata = { title: "Student Login" };
 
-export default function StudentLoginPage() {
+type SearchParams = Promise<{ next?: string | string[]; reset?: string | string[] }>;
+
+export default async function StudentLoginPage({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  const next = typeof params.next === "string" ? params.next : undefined;
+  const notice = params.reset ? "Your password was updated. Sign in with the new one." : undefined;
+
   return (
     <AuthShell
       title="Student Login"
@@ -18,7 +24,7 @@ export default function StudentLoginPage() {
         </>
       }
     >
-      <LoginForm nextPath="/my-applications" />
+      <LoginForm nextPath={next ?? "/my-applications"} notice={notice} />
     </AuthShell>
   );
 }

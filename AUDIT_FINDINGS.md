@@ -308,8 +308,8 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | # | Page | Verdict | Evidence | Principle violated |
 |---|---|---|---|---|
 | 1 | `/` | **Good** | 2-choice chooser, strong hierarchy, visible focus ring (1440 + 390) | Hick's law, affordance; gaps: no legal/support links |
-| 2 | `/student/login` | Poor | no password reset anywhere; error text not `aria-live`; `nextPath` ignored; no `name` attrs (no-JS dead form) | error recovery (Nielsen #9), progressive enhancement |
-| 3 | `/student/signup` | Poor | no consent, no password confirm, no strength, no licence upload promise kept | error prevention, informed consent |
+| 2 | `/student/login` | Needs work | **auth UX fixed (§16.3)**: `?next=` honoured, reset link added, error in `role="alert"` with `aria-invalid` + refocus, labelled controls, 390 px clean (30/30 checks). Still no MFA | error recovery (Nielsen #9) |
+| 3 | `/student/signup` | Needs work | **signup UX fixed (§16.3)**: confirmation field, live password rules, required consent, `autoComplete`, announced errors. Still no email-verification step | error prevention, informed consent |
 | 4 | `/partner/login` | Poor | identical to student login; pending-approval state invisible | visibility of system status |
 | 5 | `/partner/signup` | Poor | promises "licence review" with no licence field or reference number | match between system and real world |
 | 6 | `/invite/[token]` | Poor | PII/payments page with **no `noindex`**; `<h1>` is the student's name; docs not downloadable | privacy by default, semantic hierarchy |
@@ -339,11 +339,14 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 30 | `/users/[id]` | Poor | "More Details" is now gated (§14 #2), but "Student" layout still renders any role and documented controls are missing | least privilege, conceptual model |
 | 31 | `/users/[id]/analytics` | Needs work | **authz + money fixed (§14 #2/#10)**: SUPER_ADMIN/MANAGER only, refunds excluded, per-currency totals; page-level redirect surfaces as a 200 payload redirect (§15 nuance) | authorization, data integrity |
 | 32 | `/visitor-form` | Poor | 6 unlabeled fields; promises follow-up but only Delete exists; MANAGER sees a dead branch | match to real world, accessible forms |
+| 33 | `/forgot-password` | Good | new page (§16.3): labelled email, generic response (no account enumeration), rate-limited, 390 px clean | privacy, error recovery |
+| 34 | `/reset-password` | Good | new page (§16.3): signed single-use 30-min token, live password rules, weak/tampered/reused token rejected, confirmation, labelled controls | security, error prevention |
 
-**Totals (post-fix):** 0 Blocked · 22 Poor · 9 Needs work · 1 Good. `/apply` is unblocked by §14 #13 and
-verified at runtime in §15.2. The seven pages that flipped from Blocked to Needs work are fixed in §14
+**Totals (post-fix):** 0 Blocked · 20 Poor · 11 Needs work · 3 Good. `/apply` is unblocked by §14 #13 and
+verified at runtime in §15.2; `/student/login`, `/student/signup` moved out of Poor in §16.3 and the two new
+recovery pages score Good. The seven pages that flipped from Blocked to Needs work are fixed in §14
 (#2, #3, #4, #5, #10, #13) and verified at runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
-No page scores "Good" inside the authenticated app.
+The authenticated app still has no page scoring "Good".
 
 ### Visual capture inventory (this pass)
 
@@ -392,7 +395,7 @@ Recorded so they are not repeated as findings:
 ### S1 — Core flows / role model
 7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`. → **DONE (§14 #13, verified §15.2)**
 8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs.
-9. Password reset + approval-state messaging + session revocation UX.
+9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3)**; approval-state messaging and session revocation on reset still open.
 10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`.
 11. Reconcile nav/guards (`/users` AGENCY, `/transaction` COUNSELOR, `/visitor-form` MANAGER). *(`/programs` proxy matcher entry: DONE, §14 #7.)*
 12. Fix reports transaction scope; add date range.
@@ -438,6 +441,8 @@ genuinely open.
 - PDF output fidelity (program, shortlist, receipt).
 - Email/WhatsApp share behavior in production.
 - Load behaviour of `currentUser()`'s per-request DB query (§14 #1) — functional proof only, no load test.
+- Password reset does not revoke already-issued JWTs (bounded by the 12 h lifetime); needs a `sessionVersion`/`passwordChangedAt` column once migrations are trustworthy (§8).
+- Reset mail delivery is only exercised through the server-log fallback; Resend delivery is untested without an API key.
 - Whether `/sub-agencies` is intended for this milestone or out of scope.
 - Whether agency `/users` access is intentional (nav intentionally omitted?).
 
@@ -452,6 +457,7 @@ Untracked audit artifacts:
 - `.audit-check.ts` — Neon fixture cleanup script (keep only until the QA accounts are deleted).
 - `.audit-verify.ts` — 35-check regression script for the S0 fixes + document journey (§15, §15.2); runs against the local test DB.
 - `.audit-docs.ts` — 15-check student document-journey script (§15.2).
+- `.audit-auth.ts` — 30-check Section A verification (login/next, signup, forgot/reset, labels, 390 px) (§16.3).
 - `.audit-visual2.ts` — the capture/metrics harness behind `.audit-shots/v2/`.
 
 Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files.
@@ -588,3 +594,80 @@ nodes — a raw-HTML `includes("3/3 verified")` is a false negative, not a UI bu
 
 Regression note: `.audit-verify.ts` was updated for the new behaviour (students now *reach* `/documents` instead of
 being redirected) and still reports **35/35** after the document-journey edits.
+
+---
+
+## 16. Page completion programme (started 2026-11-13)
+
+The remaining work is organised **by page, not by defect class**, so every page can be declared finished on
+evidence. Each section covers 2–3 pages; a section is only closed when every page in it passes the checklist below,
+is re-verified at runtime against the local Postgres, and is recorded here. Nothing is claimed as fixed until its
+section is closed.
+
+### 16.1 Definition of done — applied to every page
+
+| # | Gate | Test |
+|---|---|---|
+| F1 | Primary task completes end-to-end (create → read → update → delete where applicable) | scripted API/browser flow |
+| F2 | Every visible control does something; no dead links, no `href="#"`, no 404 target | link crawl + click audit |
+| F3 | Correct role access: allowed roles reach it, denied roles get no data (not just a redirect in the payload) | one login per role |
+| F4 | Empty / loading / error / success states all render and are distinguishable | forced-state checks |
+| F5 | Counts, money and scopes match the database; no silent caps (`take: 100`) on user-facing lists | SQL cross-check |
+| F6 | Forms: every control has a label (`htmlFor`/`id`), sensible `autoComplete`, inline errors announced (`role="alert"`), focus moves to the first invalid field, no `alert()`/`confirm()` | computed DOM + keyboard |
+| F7 | Responsive at 390 / 768 / 1440: no horizontal overflow, no clipped table without a scroll affordance | `metrics.json` per page |
+| F8 | A11y: exactly one `h1`, images have alt text, targets ≥ 24 px, visible focus ring, AA contrast | measured DOM |
+| F9 | No console errors / hydration warnings / failed requests | console capture |
+| F10 | Page verdict in §9d updated, evidence recorded in §16, section committed | this file + git |
+
+### 16.2 Sections
+
+| § | Section | Pages | Status |
+|---|---|---|---|
+| A | Public entry + auth | `/`, `/student/login`, `/student/signup` | **DONE — 30/30 checks (§16.3)** |
+| B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | queued |
+| C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | queued |
+| D | Applications + documents | `/apply`, `/my-applications`, `/documents` | queued (journey done, UX pending) |
+| E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | queued |
+| F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | queued |
+| G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | queued |
+| H | Catalogue | `/programs`, `/scholarships`, `/scholarships/[id]` | queued |
+| I | Finance + reports | `/partner-commissions`, `/transaction`, `/reports` | queued |
+| J | People | `/users`, `/users/[id]`, `/users/[id]/analytics` | queued |
+| K | Analytics + settings | `/programs/[id]/analytics`, `/settings`, `/visitor-form` | queued |
+
+### 16.3 Section A — public entry + auth
+
+Scope: the three pages every visitor touches before any session exists. Known defects from §5/§9d: `nextPath`
+ignored after login, no password recovery at all, signup without consent/password confirmation, no
+`aria-live`/`aria-invalid`, missing `autoComplete` on signup, no `name` attributes (no-JS dead form).
+
+Plan:
+1. `LoginForm`: honour a validated `?next=` path, role default otherwise; `role="alert"` error + `aria-invalid`;
+   focus the first invalid field; add "Forgot password?"; show a success notice after reset.
+2. `SignupForm`: password confirmation, live requirement checklist, `autoComplete`, announced errors, required
+   consent checkbox, focus management.
+3. Password recovery: `POST /api/auth/forgot-password` (generic response, rate-limited), `POST
+   /api/auth/reset-password` (single-use signed token, 30 min), `/forgot-password` + `/reset-password` pages,
+   password change revokes existing sessions.
+4. Verify with `.audit-auth.ts` (API + browser at 390/1440) and close the section in §9d/§16.
+
+**Result — 30/30 checks passed** (`.audit-auth.ts`, 2026-11-13, local Postgres, production build):
+
+| Area | Verified behaviour |
+|---|---|
+| `?next=` | signing in at `/student/login?next=/users` lands on `/users`; unsafe paths (`//host`, `/api/…`) are ignored |
+| Bad credentials | inline `#login-error` in `role="alert"`, email field `aria-invalid="true"`, focus returns to email |
+| Consent gate | submitting signup without consent is blocked with an announced message; checkbox has a real label |
+| Labels / responsive | `/`, `/student/login`, `/student/signup`, `/forgot-password`, `/reset-password` all 0 px overflow at 390, 0 unlabeled controls, exactly one `h1` |
+| Forgot password | identical generic 200 for a real and an unknown email; malformed email → 422; 6th request per IP → 429 |
+| Reset token | weak password → 422; strong password → 200; replay → 400; tampered signature → 400 |
+| Password change | old password no longer signs in; new password does |
+| Regression | `.audit-verify.ts` 35/35 and `.audit-docs.ts` 15/15 still pass after the auth changes |
+
+Design notes:
+- Reset tokens are **stateless and single-use**: HMAC-signed `{userId, expiry, last-10-chars-of-bcrypt-hash}`. No
+  token table, and any password change invalidates outstanding links automatically.
+- Mail goes through Resend when `RESEND_API_KEY` + `MAIL_FROM` are set; otherwise the link is written to the server
+  log (`[password-reset] …`), which keeps local/dev usable without a provider.
+- Residual: an existing JWT session survives a password reset for up to the 12 h cap, because there is no
+  `sessionVersion` column yet (§8 blocks clean migrations). Tracked in §12.
