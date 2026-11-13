@@ -1,8 +1,17 @@
 import type { NextAuthConfig } from "next-auth";
+import { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+
+/** Distinguishes "password is fine but the account is not usable yet" from bad credentials. */
+class PendingApproval extends CredentialsSignin {
+  code = "pending";
+}
+class InactiveAccount extends CredentialsSignin {
+  code = "inactive";
+}
 
 export const authConfig = {
   session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
@@ -35,7 +44,8 @@ export const authConfig = {
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
-        if (user.status !== "active") return null;
+        if (user.status === "pending") throw new PendingApproval();
+        if (user.status !== "active") throw new InactiveAccount();
 
         return {
           id: user.id,

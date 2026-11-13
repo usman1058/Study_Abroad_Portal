@@ -64,8 +64,13 @@ export default async function InvitePage({ params }: PageProps) {
     <main className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="rounded-2xl border border-line bg-white p-6 dark:border-navy-700 dark:bg-navy-900">
         <p className="text-sm text-ink-muted">Guest access granted by your study-abroad agency</p>
-        <h1 className="text-2xl font-bold">{student.firstName} {student.lastName}</h1>
-        <p className="mt-1 text-sm text-ink-muted">Access expires {formatDate(link.expiresAt)}</p>
+        <h1 className="text-2xl font-bold">Shared student file</h1>
+        <p className="mt-1 text-sm text-ink-muted">
+          For {fullName(student)} · access expires {formatDate(link.expiresAt)}
+        </p>
+        <p className="mt-2 text-xs text-ink-muted">
+          Private link: anyone who has it can view the sections below. Do not forward it.
+        </p>
       </div>
 
       {sections.length === 0 ? (
@@ -81,10 +86,13 @@ export default async function InvitePage({ params }: PageProps) {
                 ) : (
                   <ul className="divide-y divide-line dark:divide-navy-700">
                     {applications.map((a) => (
-                      <li key={a.id} className="flex items-center justify-between py-3 text-sm">
-                        <div>
-                          <p className="font-medium">{a.program.name}</p>
-                          <p className="text-xs text-ink-muted">{a.program.university.name}</p>
+                      <li key={a.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{a.program.name}</p>
+                          <p className="truncate text-xs text-ink-muted">{a.program.university.name}</p>
+                          <p className="text-xs text-ink-muted">
+                            {a.submittedAt ? `Submitted ${formatDate(a.submittedAt)}` : "Draft"}
+                          </p>
                         </div>
                         <Badge tone={a.stage === "REJECTED" ? "red" : "brand"}>{a.stage.replace(/_/g, " ")}</Badge>
                       </li>
@@ -104,9 +112,23 @@ export default async function InvitePage({ params }: PageProps) {
                 ) : (
                   <ul className="divide-y divide-line dark:divide-navy-700">
                     {documents.map((d) => (
-                      <li key={d.id} className="flex items-center justify-between py-3 text-sm">
-                        <span className="capitalize">{d.type}</span>
-                        <Badge tone={d.status === "VERIFIED" ? "green" : "amber"}>{d.status}</Badge>
+                      <li key={d.id} className="flex items-center justify-between gap-3 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="capitalize">{d.type.toLowerCase()}</p>
+                          <p className="text-xs text-ink-muted">
+                            Uploaded {formatDate(d.uploadedAt)}
+                            {d.expiresAt ? ` · expires ${formatDate(d.expiresAt)}` : ""}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <Badge tone={d.status === "VERIFIED" ? "green" : d.status === "REJECTED" ? "red" : "amber"}>{d.status}</Badge>
+                          <a
+                            href={`/api/invite/${token}/documents/${d.id}`}
+                            className="text-xs font-medium text-brand-600 underline-offset-2 hover:underline"
+                          >
+                            Download
+                          </a>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -143,9 +165,15 @@ export default async function InvitePage({ params }: PageProps) {
                 ) : (
                   <ul className="divide-y divide-line dark:divide-navy-700">
                     {transactions.map((t) => (
-                      <li key={t.id} className="flex justify-between py-3 text-sm">
-                        <span className="capitalize">{t.type.replace(/_/g, " ")}</span>
-                        <span className="font-medium">{formatCurrency(t.amount, t.currency)}</span>
+                      <li key={t.id} className="flex items-start justify-between gap-3 py-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="capitalize">{t.type.replace(/_/g, " ").toLowerCase()}</p>
+                          <p className="text-xs text-ink-muted">
+                            {formatDate(t.date)}
+                            {t.method ? ` · ${t.method.replace(/_/g, " ")}` : ""}
+                          </p>
+                        </div>
+                        <span className="shrink-0 font-medium">{formatCurrency(t.amount, t.currency)}</span>
                       </li>
                     ))}
                   </ul>

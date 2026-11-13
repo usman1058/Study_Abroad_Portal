@@ -310,9 +310,9 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 1 | `/` | **Good** | 2-choice chooser, strong hierarchy, visible focus ring (1440 + 390) | Hick's law, affordance; gaps: no legal/support links |
 | 2 | `/student/login` | Needs work | **auth UX fixed (§16.3)**: `?next=` honoured, reset link added, error in `role="alert"` with `aria-invalid` + refocus, labelled controls, 390 px clean (30/30 checks). Still no MFA | error recovery (Nielsen #9) |
 | 3 | `/student/signup` | Needs work | **signup UX fixed (§16.3)**: confirmation field, live password rules, required consent, `autoComplete`, announced errors. Still no email-verification step | error prevention, informed consent |
-| 4 | `/partner/login` | Poor | identical to student login; pending-approval state invisible | visibility of system status |
-| 5 | `/partner/signup` | Poor | promises "licence review" with no licence field or reference number | match between system and real world |
-| 6 | `/invite/[token]` | Poor | PII/payments page with **no `noindex`**; `<h1>` is the student's name; docs not downloadable | privacy by default, semantic hierarchy |
+| 4 | `/partner/login` | Needs work | **fixed (§16.4)**: pending/inactive accounts get an explanatory `role="status"` message after a correct password; `?next=`, reset link and announced errors shared with student login. Still no MFA | visibility of system status |
+| 5 | `/partner/signup` | Needs work | **fixed (§16.4)**: required licence/registration number (stored on `User.licenseNumber`), confirmation + live rules, consent, labels, announced errors | match between system and real world |
+| 6 | `/invite/[token]` | Needs work | **fixed (§16.4)**: generic `<h1>`, noindex, privacy note, payment dates/method, per-document download via a token-scoped guest endpoint (section + ownership enforced), 390 px clean | privacy by default, semantic hierarchy |
 | 7 | `/home` | Poor | blank ad card (~360 px empty), auto-rotating carousel, misleading KPI labels, 18 modules, 242 px mobile overflow | minimalist design, WCAG 2.2.2, responsive |
 | 8 | `/advertisements` | Needs work | carousel-only, no list/status/schedule, "New ad" two clicks deep | flexibility, visibility of status |
 | 9 | `/application` | Poor | mobile renders a raw unstyled option dump (36 students), 204 sub-24 px targets, no count/pagination/sort | error prevention, Fitts's law, responsive |
@@ -342,11 +342,11 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 33 | `/forgot-password` | Good | new page (§16.3): labelled email, generic response (no account enumeration), rate-limited, 390 px clean | privacy, error recovery |
 | 34 | `/reset-password` | Good | new page (§16.3): signed single-use 30-min token, live password rules, weak/tampered/reused token rejected, confirmation, labelled controls | security, error prevention |
 
-**Totals (post-fix):** 0 Blocked · 20 Poor · 11 Needs work · 3 Good. `/apply` is unblocked by §14 #13 and
-verified at runtime in §15.2; `/student/login`, `/student/signup` moved out of Poor in §16.3 and the two new
-recovery pages score Good. The seven pages that flipped from Blocked to Needs work are fixed in §14
-(#2, #3, #4, #5, #10, #13) and verified at runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
-The authenticated app still has no page scoring "Good".
+**Totals (post-fix):** 0 Blocked · 17 Poor · 14 Needs work · 3 Good. `/apply` is unblocked by §14 #13 and
+verified at runtime in §15.2; `/student/login`, `/student/signup` moved out of Poor in §16.3; the three partner/invite
+pages moved out of Poor in §16.4; the two recovery pages score Good. The seven pages that flipped from Blocked to
+Needs work are fixed in §14 (#2, #3, #4, #5, #10, #13) and verified at runtime in §15/§15.2, but have not been
+re-reviewed visually after the fix. The authenticated app still has no page scoring "Good".
 
 ### Visual capture inventory (this pass)
 
@@ -395,7 +395,7 @@ Recorded so they are not repeated as findings:
 ### S1 — Core flows / role model
 7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`. → **DONE (§14 #13, verified §15.2)**
 8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs.
-9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3)**; approval-state messaging and session revocation on reset still open.
+9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3), approval-state messaging DONE (§16.4)**; session revocation on reset still open.
 10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`.
 11. Reconcile nav/guards (`/users` AGENCY, `/transaction` COUNSELOR, `/visitor-form` MANAGER). *(`/programs` proxy matcher entry: DONE, §14 #7.)*
 12. Fix reports transaction scope; add date range.
@@ -458,6 +458,7 @@ Untracked audit artifacts:
 - `.audit-verify.ts` — 35-check regression script for the S0 fixes + document journey (§15, §15.2); runs against the local test DB.
 - `.audit-docs.ts` — 15-check student document-journey script (§15.2).
 - `.audit-auth.ts` — 30-check Section A verification (login/next, signup, forgot/reset, labels, 390 px) (§16.3).
+- `.audit-partner.ts` — 22-check Section B verification (partner signup/licence/pending login, guest invite + download) (§16.4).
 - `.audit-visual2.ts` — the capture/metrics harness behind `.audit-shots/v2/`.
 
 Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files.
@@ -624,7 +625,7 @@ section is closed.
 | § | Section | Pages | Status |
 |---|---|---|---|
 | A | Public entry + auth | `/`, `/student/login`, `/student/signup` | **DONE — 30/30 checks (§16.3)** |
-| B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | queued |
+| B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | **DONE — 22/22 checks (§16.4)** |
 | C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | queued |
 | D | Applications + documents | `/apply`, `/my-applications`, `/documents` | queued (journey done, UX pending) |
 | E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | queued |
@@ -671,3 +672,38 @@ Design notes:
   log (`[password-reset] …`), which keeps local/dev usable without a provider.
 - Residual: an existing JWT session survives a password reset for up to the 12 h cap, because there is no
   `sessionVersion` column yet (§8 blocks clean migrations). Tracked in §12.
+
+### 16.4 Section B — partner entry + guest invite
+
+Scope: `/partner/login`, `/partner/signup`, `/invite/[token]`. Known defects: signup promised a licence review
+without capturing a licence number; pending agencies saw "invalid email or password"; invite page used the
+student's name as `<h1>`, listed documents without any way to open them, and payments without dates.
+
+Plan:
+1. `PartnerSignupForm` + API: required business-registration/licence number (stored in the existing
+   `User.licenseNumber`), confirmation + live rules, consent, `autoComplete`, announced errors.
+2. `authorize` + `LoginForm`: a correct password on a `pending`/`inactive` account now returns a specific code and
+   the form explains the state (`role="status"`) instead of claiming bad credentials.
+3. Invite page: generic `<h1>`, student named in the subtitle, section-specific data, payment dates/methods,
+   document download, privacy note.
+4. Guest document endpoint `/api/invite/[token]/documents/[id]`: token must be active, include the documents
+   section, and the document must belong to the invited student; no session required.
+5. Verify with `.audit-partner.ts` (API + browser at 390) and close the section.
+
+**Result — 22/22 checks passed** (`.audit-partner.ts`, 2026-11-13, local Postgres, production build):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering | `/partner/login` and `/partner/signup` at 390 px: 0 px overflow, 0 unlabeled controls, one `h1` |
+| Consent | partner signup blocks submit until the authorisation checkbox is ticked, with an announced message |
+| Licence | missing licence → 422; valid request → 201 and `User.licenseNumber`/`companyName` persisted with `status = pending` |
+| Duplicate | re-using the email → 409 |
+| Pending state | correct password on a pending account shows "awaiting approval" (`role="status"`), not "invalid credentials" |
+| Approval | after `status = active`, the same credentials land on `/home` |
+| Invite page | anonymous `200`, generic `h1`, document download link present, payment dates/method rendered |
+| Guest download | token with the documents section → 200 `attachment`; another student's document → 404; invite without the section → 403 |
+| Revoked invite | no student data rendered (404 status or the 404 page — Next can stream a 200 shell first) |
+| Responsive | invite page at 390 px: 0 px overflow, one `h1` |
+
+Nuance worth keeping: page-level `notFound()` can surface as HTTP 200 with the 404 document in the stream, exactly
+like `redirect()` (§15). The check therefore asserts "no student data rendered", not just the status code.

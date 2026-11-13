@@ -30,6 +30,7 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -37,10 +38,19 @@ export function LoginForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     setLoading(true);
     try {
       const res = await signIn("credentials", { email, password, redirect: false });
       if (res?.error) {
+        if (res.code === "pending") {
+          setInfo("Your agency request is awaiting approval. We will email you as soon as it is reviewed.");
+          return;
+        }
+        if (res.code === "inactive") {
+          setInfo("This account is deactivated. Contact your administrator to restore access.");
+          return;
+        }
         // NextAuth folds rate limiting and bad credentials into one error.
         setError("Invalid email or password. If you have tried several times, wait 15 minutes before retrying.");
         emailRef.current?.focus();
@@ -63,6 +73,11 @@ export function LoginForm({
       {notice && (
         <div role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
           {notice}
+        </div>
+      )}
+      {info && (
+        <div role="status" className="rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-800 dark:bg-sky-900/30 dark:text-sky-200">
+          {info}
         </div>
       )}
       <div aria-live="assertive">

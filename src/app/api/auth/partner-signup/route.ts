@@ -9,6 +9,7 @@ import { requiredName, emailField, phoneField, passwordField } from "@/lib/valid
 
 const partnerSignupSchema = z.object({
   companyName: requiredName(160, "Company name is required"),
+  licenseNumber: z.string().trim().min(3, "Business registration / licence number is required").max(60),
   firstName: requiredName(80),
   lastName: requiredName(80),
   email: emailField(),
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
       return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
     }
 
-    const { companyName, firstName, lastName, email, phone, country, password } = parsed.data;
+    const { companyName, licenseNumber, firstName, lastName, email, phone, country, password } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
         phone,
         country,
         companyName,
+        licenseNumber,
         status: "pending",
       },
       select: { id: true, email: true },
