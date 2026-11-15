@@ -9,7 +9,7 @@ const bulkSchema = z.object({
   programIds: z.array(z.string().min(1)).min(1).max(50),
 });
 
-// Consolidated course-list PDF for students/consultants to share (10–50 picks).
+// Consolidated course-list PDF for students/consultants to share (1–50 picks).
 export async function POST(req: NextRequest) {
   try {
     const { error, user } = await requireUser();

@@ -85,6 +85,10 @@ export default async function HomePage() {
     { href: "/short-courses", label: "Short courses", detail: "Course catalog", icon: BookOpen },
   ];
 
+  // Non-admins have no way to create an announcement, so an empty rail would
+  // just be a dead card taking up a 20rem column.
+  const showAdRail = advertisements.length > 0 || user.role === "SUPER_ADMIN";
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 text-white shadow-lg shadow-navy-900/20">
@@ -98,7 +102,7 @@ export default async function HomePage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href="/application" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> Applications</Link>
-              <Link href="/search" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"><Users className="h-4 w-4" /> Find a student</Link>
+              <Link href="/search" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"><Users className="h-4 w-4" /> Search programs</Link>
             </div>
           </div>
         </div>
@@ -113,23 +117,23 @@ export default async function HomePage() {
         <MetricCard label="Visa-stage cases" value={visaApps} hint="Ready for attention" icon={GraduationCap} tone="violet" href="/application" />
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-5">
-          <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+      <div className={`grid grid-cols-1 gap-5 ${showAdRail ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}`}>
+        <div className="min-w-0 space-y-5">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><CardDescription>New applications over the last six months</CardDescription></div><span className="rounded-lg bg-brand-50 p-2 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-4 w-4" /></span></CardHeader>
-              <CardContent><TrendChart points={trend} /><Link href="/application" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">View application pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
+              <CardContent><TrendChart points={trend} /><Link href="/application" className="mt-4 inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">View application pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Pipeline health</CardTitle><CardDescription>Where your active cases are now</CardDescription></CardHeader>
-              <CardContent className="space-y-3">{pipeline.map((stage) => <PipelineRow key={stage} label={stage.replace(/_/g, " ")} value={stageCount.get(stage) ?? 0} max={pipelineMax} />)}<Link href="/application" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Manage pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
+              <CardContent className="space-y-3">{pipeline.map((stage) => <PipelineRow key={stage} label={stage.replace(/_/g, " ")} value={stageCount.get(stage) ?? 0} max={pipelineMax} />)}<Link href="/application" className="mt-2 inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Manage pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
             </Card>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Recent application activity</CardTitle><CardDescription>Latest updates across your portfolio</CardDescription></div><Link href="/application" className="text-sm font-semibold text-brand-600 hover:underline">View all</Link></CardHeader>
-              <CardContent>{recentApps.length === 0 ? <EmptyState text="Applications will appear here as soon as students start applying." href="/application" label="Open applications" /> : <ul className="divide-y divide-line dark:divide-navy-700">{recentApps.map((application) => <li key={application.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{application.student.firstName} {application.student.lastName}</p><p className="truncate text-xs text-ink-muted">{application.program.name} · {application.program.university.name}</p></div><div className="text-right"><Badge tone={application.stage === "REJECTED" ? "red" : application.stage === "OFFER" || application.stage === "ENROLLED" ? "green" : "brand"}>{application.stage.replace(/_/g, " ")}</Badge><p className="mt-1 text-[11px] text-slate-400">{formatDate(application.updatedAt)}</p></div></li>)}</ul>}</CardContent>
+              <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Recent application activity</CardTitle><CardDescription>Latest updates across your portfolio</CardDescription></div><Link href="/application" className="inline-flex min-h-6 items-center text-sm font-semibold text-brand-600 hover:underline">View all</Link></CardHeader>
+              <CardContent>{recentApps.length === 0 ? <EmptyState text="Applications will appear here as soon as students start applying." href="/application" label="Open applications" /> : <ul className="divide-y divide-line dark:divide-navy-700">{recentApps.map((application) => <li key={application.id} className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{application.student.firstName} {application.student.lastName}</p><p className="truncate text-xs text-ink-muted">{application.program.name} · {application.program.university.name}</p></div><div className="shrink-0 text-right"><Badge tone={application.stage === "REJECTED" ? "red" : application.stage === "OFFER" || application.stage === "ENROLLED" ? "green" : "brand"}>{application.stage.replace(/_/g, " ")}</Badge><p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{formatDate(application.updatedAt)}</p></div></li>)}</ul>}</CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Workspace tools</CardTitle><CardDescription>Common actions for today</CardDescription></CardHeader>
@@ -139,7 +143,7 @@ export default async function HomePage() {
 
           {user.role === "SUPER_ADMIN" && <section aria-label="Administration metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="indigo" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></section>}
         </div>
-        <aside className="hidden xl:block"><DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} /></aside>
+        <aside className="hidden xl:block">{showAdRail && <DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} />}</aside>
       </div>
     </div>
   );
@@ -147,7 +151,7 @@ export default async function HomePage() {
 
 function MetricCard({ label, value, hint, icon: Icon, tone, href }: { label: string; value: string | number; hint: string; icon: typeof Users; tone: "brand" | "amber" | "indigo" | "violet"; href: string | null }) {
   const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200", indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200", violet: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-200" };
-  const content = <Card className="h-full transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
+  const content = <Card data-metric={label} className="h-full transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
   return href ? <Link href={href}>{content}</Link> : content;
 }
 

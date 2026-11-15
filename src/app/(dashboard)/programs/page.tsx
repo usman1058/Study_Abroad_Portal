@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { ExternalLink, MapPin } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { listPrograms, profileCompleteness } from "@/lib/queries";
+import { profileCompleteness } from "@/lib/queries";
 import { ProgramsFilter } from "@/components/programs-filter";
 import { ShortlistToggle } from "@/components/shortlist-toggle";
 import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/pagination";
 import { formatDate } from "@/lib/utils";
 import { ProgramDetailDialog } from "@/components/program-detail-dialog";
 import { ProgramForm } from "@/components/program-form";
@@ -17,25 +18,37 @@ import { DeleteButton } from "@/components/delete-button";
 
 export const metadata = { title: "Programs" };
 
-type SearchParams = Promise<{ q?: string; country?: string; city?: string }>;
+const PAGE_SIZE = 24;
+const MAX_PAGE = 1000;
+
+type SearchParams = Promise<{ q?: string; country?: string; city?: string; page?: string }>;
 
 export default async function ProgramsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
 
-  const { q: rawQ = "", country = "", city = "" } = await searchParams;
+  const { q: rawQ = "", country = "", city = "", page: rawPage = "1" } = await searchParams;
   const q = rawQ.slice(0, 200);
+  const requestedPage = Math.min(MAX_PAGE, Math.max(1, Number.parseInt(rawPage, 10) || 1));
+
+  const where = {
+    ...(q
+      ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { field: { contains: q, mode: "insensitive" as const } }] }
+      : {}),
+    ...(country ? { university: { country } } : {}),
+    ...(city ? { university: { city } } : {}),
+  };
+
+  const total = await prisma.program.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const page = Math.min(requestedPage, pageCount);
 
   const programs = await prisma.program.findMany({
-    where: {
-      ...(q
-        ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { field: { contains: q, mode: "insensitive" } }] }
-        : {}),
-      ...(country ? { university: { country } } : {}),
-      ...(city ? { university: { city } } : {}),
-    },
+    where,
     include: { university: true },
     orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
   });
 
   const universities = await prisma.university.findMany({
@@ -48,6 +61,8 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
 
   const grouped = universities
     .filter((u) => programs.some((p) => p.universityId === u.id))
+    // Program pages are ordered by university name, so group in the same order.
+    .sort((a, b) => a.name.localeCompare(b.name))
     .map((u) => ({ university: u, programs: programs.filter((p) => p.universityId === u.id) }));
 
   const isStudent = user.role === "STUDENT";
@@ -78,6 +93,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     universityName: university.name,
     city: university.city ?? "—",
     country: university.country,
+    totalPrograms: university._count.programs,
     programs: uniPrograms.map((p) => ({
       id: p.id,
       slug: p.slug,
@@ -100,6 +116,11 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
         <p className="text-sm text-ink-muted">
           Browse every program, grouped by university and city.
           {isStudent && " Tick courses to build a shareable PDF shortlist, or apply directly."}
+        </p>
+        <p className="mt-1 text-sm text-ink-muted" aria-live="polite">
+          {total === 0
+            ? "No programs match your filters."
+            : `${total} program${total === 1 ? "" : "s"}${q || country || city ? " match your filters" : " in the catalog"}`}
         </p></div>
         {isSuperAdmin && <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} />}
       </div>
@@ -107,6 +128,16 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
       <ProgramsFilter
         countries={countries.map((c) => ({ value: c, label: c }))}
         cities={cities.map((c) => ({ value: c, label: c }))}
+      />
+
+      <Pagination
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        pageSize={PAGE_SIZE}
+        basePath="/programs"
+        query={{ q, country, city }}
+        label="Program pages"
       />
 
       {grouped.length === 0 ? (
@@ -121,26 +152,34 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
         grouped.map(({ university, programs: uniPrograms }) => (
           <Card key={university.id}>
             <CardContent className="p-0">
-              <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
-                <div className="flex items-center gap-3">
-                  {university.logoUrl && (
-                  <img
-                    src={university.logoUrl}
-                    alt={`${university.name} logo`}
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
-                  />
-                )}
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-                    {university.name[0]}
-                  </span>
-                  <div>
-                    <h2 className="font-semibold">{university.name}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
+                <div className="flex min-w-0 items-center gap-3">
+                  {university.logoUrl ? (
+                    <img
+                      src={university.logoUrl}
+                      alt={`${university.name} logo`}
+                      className="h-10 w-10 shrink-0 rounded-lg bg-canvas-subtle object-cover dark:bg-navy-800"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200"
+                    >
+                      {university.name[0]}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <h2 className="truncate font-semibold">{university.name}</h2>
                     <p className="flex items-center gap-1 text-xs text-ink-muted">
-                      <MapPin className="h-3 w-3" /> {university.city ?? "—"}, {university.country}
+                      <MapPin aria-hidden className="h-3 w-3" /> {university.city ?? "—"}, {university.country}
                     </p>
                   </div>
                 </div>
-                <Badge tone="slate">{uniPrograms.length} program{uniPrograms.length > 1 ? "s" : ""}</Badge>
+                <Badge tone="slate" className="shrink-0">
+                  {uniPrograms.length === university._count.programs
+                    ? `${uniPrograms.length} program${uniPrograms.length === 1 ? "" : "s"}`
+                    : `${uniPrograms.length} of ${university._count.programs}`}
+                </Badge>
               </div>
               <div className="divide-y divide-line dark:divide-navy-700">
                 {uniPrograms.map((p) => {
@@ -149,7 +188,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                     .filter((d) => d.getTime() > Date.now())
                     .sort((a, b) => a.getTime() - b.getTime())[0];
                   return (
-                    <div key={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                    <div key={p.id} data-program-row={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         {canViewAnalytics ? (
                           <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
@@ -181,6 +220,18 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             </CardContent>
           </Card>
         ))
+      )}
+
+      {total > PAGE_SIZE && (
+        <Pagination
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          pageSize={PAGE_SIZE}
+          basePath="/programs"
+          query={{ q, country, city }}
+          label="Program pages"
+        />
       )}
     </div>
   );

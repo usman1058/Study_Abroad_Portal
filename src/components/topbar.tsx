@@ -52,7 +52,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
         <button type="button" onClick={() => setOpenNotifications((v) => !v)} className="relative flex h-10 w-10 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas-subtle dark:text-slate-300 dark:hover:bg-navy-800" aria-label="Notifications" aria-expanded={openNotifications} aria-controls="notification-menu">
           <Bell className="h-5 w-5" />
           {unread > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
               {unread > 99 ? "99+" : unread}
             </span>
           )}

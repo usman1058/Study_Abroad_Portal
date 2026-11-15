@@ -49,7 +49,12 @@ export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?
   return (
     <div className="flex items-center gap-2">
       <span className="text-xs text-ink-muted">Currency</span>
-      <Select value={currency} onChange={(e) => apply(e.target.value)} className="h-8 w-28 text-xs">
+      <Select
+        value={currency}
+        onChange={(e) => apply(e.target.value)}
+        className="h-8 w-28 text-xs"
+        aria-label="Display currency"
+      >
         {CURRENCIES.map((c) => (
           <option key={c} value={c}>
             {c}

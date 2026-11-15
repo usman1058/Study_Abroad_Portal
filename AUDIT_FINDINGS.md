@@ -313,7 +313,7 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 4 | `/partner/login` | Needs work | **fixed (§16.4)**: pending/inactive accounts get an explanatory `role="status"` message after a correct password; `?next=`, reset link and announced errors shared with student login. Still no MFA | visibility of system status |
 | 5 | `/partner/signup` | Needs work | **fixed (§16.4)**: required licence/registration number (stored on `User.licenseNumber`), confirmation + live rules, consent, labels, announced errors | match between system and real world |
 | 6 | `/invite/[token]` | Needs work | **fixed (§16.4)**: generic `<h1>`, noindex, privacy note, payment dates/method, per-document download via a token-scoped guest endpoint (section + ownership enforced), 390 px clean | privacy by default, semantic hierarchy |
-| 7 | `/home` | Poor | blank ad card (~360 px empty), auto-rotating carousel, misleading KPI labels, 18 modules, 242 px mobile overflow | minimalist design, WCAG 2.2.2, responsive |
+| 7 | `/home` | **Good** | **fixed (§16.5)**: 390/768/1440 clean (0 overflow, 0 unlabeled controls, one `h1`, 0 sub-24 px targets, AA contrast, 0 console errors); empty ad rail removed for non-admins; role-correct prompts; metric cards match Prisma | density is still high (6 quick actions + rail), but no gate fails |
 | 8 | `/advertisements` | Needs work | carousel-only, no list/status/schedule, "New ad" two clicks deep | flexibility, visibility of status |
 | 9 | `/application` | Poor | mobile renders a raw unstyled option dump (36 students), 204 sub-24 px targets, no count/pagination/sort | error prevention, Fitts's law, responsive |
 | 10 | `/application/[id]` | Needs work | `<h1>` is the program name; terminal stage change has no confirm/undo; raw enum badge | user control & freedom (Shneiderman), semantics |
@@ -325,12 +325,12 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 16 | `/partner-commissions` | Poor | table clipped at 390 (tuition cut mid-value); 3 KPI tiles; dead `mayViewRates` branch; unweighted average | responsive, truthfulness of data |
 | 17 | `/payments` | Poor | no totals/status/method/receipts; page is a wall of identical rows (`take: 100`) | visibility of status, aesthetic-minimalist |
 | 18 | `/profile` | Poor | 8 unlabeled inputs, `alert()` errors, no grouping, 3 currency sources | recognition over recall, accessible forms |
-| 19 | `/programs` | Poor | 170 cards, unpaginated (~33 screens); names link to analytics for every role; delete hits scholarships API | Hick's law, flexible/efficient use |
+| 19 | `/programs` | **Good** | **fixed (§16.5)**: 24 per page with "Page N of M" and "N of M" badges, cross-page shortlist selection, PDF export (3.8 KB), staff view read-only, 0 overflow at 390/1440 | — |
 | 20 | `/programs/[id]/analytics` | Needs work | **authz fixed (§14 #2)**: only SUPER_ADMIN/MANAGER; student/agency/counselor are redirected and no data leaks (verified §15). Metric label fixed | authorization, privacy |
 | 21 | `/reports` | Needs work | no date range/filters; page scope (`{}`) disagrees with the transactions API; CSV only | flexibility, consistency |
 | 22 | `/scholarships` | Poor | duplicates `/programs` with different actions; 6 controls per row; truncated names | consistency & standards |
 | 23 | `/scholarships/[id]` | Poor | **no Apply CTA**; two currency renderers; share link points at localhost | clear affordance, consistency |
-| 24 | `/search` | Poor | 4 unlabeled controls; 58×19 px "View" links; table clipped at 390; silent 50-result cap | accessible names, Fitts's law |
+| 24 | `/search` | **Good** | **fixed (§16.5)**: labelled q/country/level controls, true total from Prisma (63 = 63), stated "first 50 of N" cap, `overflow-x: auto` table, 24 px `View` targets, staff-only verified, 390/1440 clean | — |
 | 25 | `/settings` | Poor | language switcher with one option; currency written to localStorage only; 5 unlabeled inputs | honesty/status, consistency |
 | 26 | `/short-courses` | Needs work | **paywall fixed (§14 #3)**: list no longer embeds `meetingLink` for non-enrolled users; "Interested"↔"Enrolled" affordance still conflates browse/enroll | authorization, match to real world |
 | 27 | `/short-courses/[id]` | Needs work | **crash + paywall fixed (§14 #3/#4)**: paid detail renders, receipt upload works, link gated until approved (verified §15); enrollment flow still confusing |
@@ -342,11 +342,11 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 33 | `/forgot-password` | Good | new page (§16.3): labelled email, generic response (no account enumeration), rate-limited, 390 px clean | privacy, error recovery |
 | 34 | `/reset-password` | Good | new page (§16.3): signed single-use 30-min token, live password rules, weak/tampered/reused token rejected, confirmation, labelled controls | security, error prevention |
 
-**Totals (post-fix):** 0 Blocked · 17 Poor · 14 Needs work · 3 Good. `/apply` is unblocked by §14 #13 and
+**Totals (post-fix):** 0 Blocked · 14 Poor · 14 Needs work · 6 Good. `/apply` is unblocked by §14 #13 and
 verified at runtime in §15.2; `/student/login`, `/student/signup` moved out of Poor in §16.3; the three partner/invite
-pages moved out of Poor in §16.4; the two recovery pages score Good. The seven pages that flipped from Blocked to
-Needs work are fixed in §14 (#2, #3, #4, #5, #10, #13) and verified at runtime in §15/§15.2, but have not been
-re-reviewed visually after the fix. The authenticated app still has no page scoring "Good".
+pages moved out of Poor in §16.4; the two recovery pages score Good; `/home`, `/programs` and `/search` moved from Poor
+to Good in §16.5. The seven pages that flipped from Blocked to Needs work are fixed in §14 (#2, #3, #4, #5, #10, #13)
+and verified at runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
 
 ### Visual capture inventory (this pass)
 
@@ -605,6 +605,17 @@ evidence. Each section covers 2–3 pages; a section is only closed when every p
 is re-verified at runtime against the local Postgres, and is recorded here. Nothing is claimed as fixed until its
 section is closed.
 
+**Progress tracker — update this table every time a section closes.**
+
+| Metric | Value |
+|---|---|
+| Sections closed with runtime evidence | **A, B, C** (9 pages) |
+| Pages code-complete, section not yet closed | 0 |
+| Pages remaining | **24** (sections D–K) |
+| Page verdicts (§9d) | 6 Good · 14 Needs work · 14 Poor · 0 Blocked |
+| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · verify 35/35 · documents 15/15 |
+| Last updated | 2026-11-14 (Section C closed) |
+
 ### 16.1 Definition of done — applied to every page
 
 | # | Gate | Test |
@@ -626,7 +637,7 @@ section is closed.
 |---|---|---|---|
 | A | Public entry + auth | `/`, `/student/login`, `/student/signup` | **DONE — 30/30 checks (§16.3)** |
 | B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | **DONE — 22/22 checks (§16.4)** |
-| C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | queued |
+| C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | **DONE — 41/41 checks (§16.5)** |
 | D | Applications + documents | `/apply`, `/my-applications`, `/documents` | queued (journey done, UX pending) |
 | E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | queued |
 | F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | queued |
@@ -707,3 +718,98 @@ Plan:
 
 Nuance worth keeping: page-level `notFound()` can surface as HTTP 200 with the 404 document in the stream, exactly
 like `redirect()` (§15). The check therefore asserts "no student data rendered", not just the status code.
+
+### 16.5 Section C — student home + discovery
+
+Scope: `/home`, `/search`, `/programs` (student view). Known defects: `/home` overflowed 253 px at 390 because its
+single-column grids had no explicit track sizing; `/search` had three unlabeled controls, no result count, a silent
+`take: 50`, and a fixed six-column table with no scroll wrapper; `/programs` rendered 170 unpaginated cards and had
+no count, no sort and no navigation. `/search` is staff-only by design (nav roles exclude STUDENT), so the only
+role question is whether a student can reach it — they cannot.
+
+Plan:
+1. `/home`: give every responsive grid an explicit zero-minimum track (`grid-cols-1`, `minmax(0,…)`) and `min-w-0`
+   on truncating flex rows; label the shell currency selector and the advertisement dialog fields.
+2. `/search`: sr-only `<label>`s for q/country/level, `role="search"`, real result count from `prisma.program.count`,
+   an explicit "first 50 of N" note, `overflow-x-auto` + `min-w` table, `scope="col"`, 24 px+ targets with
+   descriptive `aria-label`s, capitalised level labels, clear/reset actions.
+3. `/programs`: server-side pagination (24 per page) with count, clamped `page`, filter changes resetting to page 1,
+   accurate per-university badges ("N of M"), and a `Pagination` component reusable by later sections.
+4. Student shortlist: selection survives page changes (module-level store, since App Router pagination is
+   client-side), rows are no longer wrapped in `<label>` around links/buttons, tuition goes through `FeeDisplay`.
+5. Verify with `.audit-discovery.ts` (API counts vs Prisma, browser at 390/768/1440, pagination, filters, roles,
+   console) and close the section.
+
+**Result — 41/41 checks passed** (`.audit-discovery.ts`, 2026-11-14, local Postgres, production build):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering gates | 9 page/width combinations (`/home` 390/768/1440, `/search` 390/1440, student `/programs` 390/768/1440, staff `/programs` 390/1440): **0 px overflow, 0 unlabeled controls, exactly one `h1`, 0 targets under 24 px, 0 AA contrast failures, 0 console/page errors** |
+| `/home` counts | metric cards match Prisma per agency scope: 1 application in progress, 0 pending documents, 1 lead, 0 visa-stage cases |
+| `/home` roles | counselor sees no administration metrics or user management; super admin does; a student gets no partner dashboard (307) |
+| `/home` ad rail | never asks a non-admin to create announcements (0 active ads in the fixture) |
+| `/search` counts | 63 UI = 63 DB total; country 61 = 61; level 32 = 32; keyword "Bachelor" 2 = 2; the 50-row cap is stated, not silent |
+| `/search` layout | results table sits in an `overflow-x: auto` wrapper (792 px table inside 307 px at 390, page overflow 0) |
+| `/search` scope | a student cannot use the staff page (no search markers in the body) |
+| `/programs` pagination | 63 total, 24 rows on page 1, "Page 1 of 3", page 2 renders a different set, out-of-range page clamps to 3 |
+| `/programs` shortlist | selection survives page 1 → 2 → 1 (still checked), filter change resets to page 1 |
+| `/programs` roles | staff view is read-only with no shortlist checkboxes |
+| `/programs` export | 10 selections → export bar → `course-selection.pdf`, 3 794 bytes |
+| Link crawl | `/home` 14, `/search` 30, `/programs` 30 internal links all resolve |
+| Fixture | 60 QA programs seeded and removed in `finally`; DB back to 3 programs afterwards |
+
+Two harness defects were also found and fixed during this section, because a green run has to mean something:
+
+| # | Harness defect | Effect | Fix |
+|---|---|---|---|
+| H1 | `waitForLoadState("networkidle")` after pagination | App Router pagination is a client-side navigation, so the wait resolved instantly and three checks read the previous page | wait on the rendered `Page N of M` label |
+| H2 | contrast parser only understood `rgb()` | Chrome computes Tailwind v4 colours as `oklch()`, so real failures were mis-measured (badge reported 1.05:1 instead of 3.76:1) | paint the colour into a 1×1 canvas and read the pixel back |
+
+Additional defect found during the pass: the `/home` hero CTA labelled **"Find a student"** linked to `/search`,
+which searches the program catalogue (and `/users` is admin/manager-only). Renamed to "Search programs" so the
+label matches the destination.
+
+Verification fixture: the local seed carries only 3 programs, which cannot exercise 24-per-page pagination or the
+50-row search cap. `.audit-discovery.ts` therefore creates `QA Pagination University` with 60 `QA Program NN` rows
+at the start and deletes the university (and its cascaded programs) in a `finally` block. Nothing else in the
+database is touched, and the harness refuses to run unless `DATABASE_URL` points at `localhost:5433`.
+
+Further defects found while running the pass (all fixed in the same commit):
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| C1 | Staff `/programs` overflowed 123 px at 390 px | hide-and-measure probe: university header row's min-content was 513 px because its flex group lacked `min-w-0` and the name is `nowrap` | `min-w-0` on the group, `flex-wrap` on the header, `shrink-0` on the count badge |
+| C2 | University rendered both its logo and the initial-letter tile | `programs/page.tsx` rendered `{logoUrl && <img/>}` followed by an unconditional initial span | initial only when there is no logo |
+| C3 | Export bar promised "pick 10–50" but the API accepts 1–50 | `pdf-bulk/route.ts` schema is `.min(1).max(50)` | copy now says "up to 50 courses per PDF" |
+| C4 | Non-admins saw an empty 20 rem ad rail | `/home` rendered `DashboardAdRail` unconditionally in the right column | rail renders only when there are ads or the user can manage them; grid collapses to one column otherwise |
+| C5 | Empty rail told agencies to "Add one", which only SUPER_ADMIN can do | rail copy was role-blind | managers get the create prompt, everyone else "New updates from your team will appear here" |
+| C6 | Hero CTA "Find a student" led to the program catalogue | `href="/search"`, and `/users` is admin/manager-only | relabelled "Search programs" |
+| C7 | Topbar unread badge was white on `red-500` = **3.76:1** at 10 px bold (AA needs 4.5) | probe: computed background `oklch(0.637 0.237 25.331)` = `#ef4444`, foreground `#fff` | `bg-red-600` (4.83:1) |
+| C8 | `/home` card links ("View application pipeline", "Manage pipeline", "View all") were 23 px tall | measured `getBoundingClientRect().height` in the browser | `inline-flex min-h-6 items-center` → 24 px |
+| C9 | Student `/programs` program-name links were 21 px tall at 768/1440 (22–24 per page) | same measurement, one per row | same `min-h-6` treatment on the name link |
+
+Harness correction worth recording: the first strict run reported the unread badge as **1.05:1**. That was the scanner's
+fault, not the badge's — Chrome computes Tailwind v4 colours as `oklch()`, which the `rgb()`-only parser could not read,
+so it fell through to the page background. The scanner now paints each colour into a 1×1 canvas and reads the pixel
+back, which is exact for any CSS colour and immediately showed the real 3.76:1.
+
+### 16.6 Section D — student journey (`/apply`, `/my-applications`, `/documents` student view)
+
+Scope: `/apply`, `/my-applications`, `/documents` (student branch). Known defects from §9: `/my-applications`
+uses a slogan as its `<h1>` and its "Check documents" tile is a dead end for a student with no documents;
+`/apply` is titled "Apply Application", ships every program to the client, and a draft is only persisted at the
+final submit; `/documents` shows rejected documents with no re-upload affordance, no expiry warning, raw status
+badges on the staff branch, and 12 px "Open file" links.
+
+Plan:
+1. `/my-applications`: real `<h1>` ("My applications") with the slogan moved to the subtitle; hide/disable the
+   document tile when the student has no documents; link each application row to its detail page; make the stage
+   filter a proper `aria-pressed`/tab pattern with counts; announce the `submitted` confirmation via `role="status"`.
+2. `/apply`: rename the heading, cap/paginate the program picker (server search instead of shipping all rows),
+   surface the "your progress is saved up to the program step" rule, warn before leaving step 3 (`beforeunload`),
+   and label every control.
+3. `/documents` (student): "Re-upload" action on rejected documents that pre-fills the type, an expiry warning
+   (`expiresAt` within 30 days), 24 px+ targets, and a status explanation per row. Staff branch: humanised badges,
+   pending-first ordering, and a pending/all filter.
+4. Verify with a Section D harness (Profile/Education round-trip, draft create → resume → submit, document upload
+   → reject → re-upload → verify, role scoping for staff vs student) plus browser checks at 390/768/1440.
