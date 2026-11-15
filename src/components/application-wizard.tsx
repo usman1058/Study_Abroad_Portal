@@ -1,16 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ProgramPicker, type ProgramOption } from "@/components/program-picker";
+import { ProgramPicker } from "@/components/program-picker";
 import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
 import { UploadDocument } from "@/components/upload-document";
 
@@ -43,7 +43,6 @@ const STEPS = ["Personal details", "Academic history", "Documents", "University 
 const EMPTY_EDU: WizardEducation = { level: "", institution: "", fieldOfStudy: "", startYear: "", endYear: "", grade: "" };
 
 export function ApplicationWizard({
-  programs,
   personal,
   education,
   documents,
@@ -51,7 +50,6 @@ export function ApplicationWizard({
   draftProgramId,
   applications = [],
 }: {
-  programs: ProgramOption[];
   personal: WizardPersonal;
   education: WizardEducation[];
   documents: { type: string; status: string }[];
@@ -63,6 +61,19 @@ export function ApplicationWizard({
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+
+  // The wizard cannot autosave whole steps, so warn before a reload or tab close
+  // once the student has typed something.
+  useEffect(() => {
+    if (!touched) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [touched]);
 
   const [pForm, setPForm] = useState<WizardPersonal>({
     ...personal,
@@ -160,9 +171,11 @@ export function ApplicationWizard({
   }
 
   function setP<K extends keyof WizardPersonal>(k: K, v: string) {
+    setTouched(true);
     setPForm((prev) => ({ ...prev, [k]: v }) as WizardPersonal);
   }
   function setEdu(i: number, k: keyof WizardEducation, v: string) {
+    setTouched(true);
     setEduRows((prev) => prev.map((row, idx) => (idx === i ? { ...row, [k]: v } : row)));
   }
 
@@ -170,7 +183,7 @@ export function ApplicationWizard({
     <div className="rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
       <ol className="mb-5 flex flex-wrap gap-2">
         {STEPS.map((label, i) => (
-          <li key={label} className="flex items-center gap-1.5">
+          <li key={label} aria-current={i === step ? "step" : undefined} className="flex items-center gap-1.5">
             <span
               className={
                 "flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold " +
@@ -184,64 +197,57 @@ export function ApplicationWizard({
               {i < step ? "✓" : i + 1}
             </span>
             <span className={"text-xs " + (i === step ? "font-semibold" : "text-ink-muted")}>{label}</span>
-            {i < STEPS.length - 1 && <span className="mx-1 text-slate-300">→</span>}
+            {i < STEPS.length - 1 && <span aria-hidden="true" className="mx-1 text-slate-300">→</span>}
           </li>
         ))}
       </ol>
+
+      <p className="mb-4 rounded-lg bg-canvas-subtle px-3 py-2 text-xs text-ink-muted dark:bg-navy-800 dark:text-slate-300">
+        Each step is saved when you press <strong>Save &amp; continue</strong>. Anything typed but not saved is lost if you leave this page.
+      </p>
 
       {error && <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</div>}
 
       {step === 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label>First name *</Label>
+          <Field label="First name *">
             <Input maxLength={80} value={pForm.firstName ?? ""} onChange={(e) => setP("firstName", e.target.value)} />
-          </div>
-          <div>
-            <Label>Last name *</Label>
+          </Field>
+          <Field label="Last name *">
             <Input maxLength={80} value={pForm.lastName ?? ""} onChange={(e) => setP("lastName", e.target.value)} />
-          </div>
-          <div>
-            <Label>Gender *</Label>
+          </Field>
+          <Field label="Gender *">
             <Select value={pForm.gender ?? ""} onChange={(e) => setP("gender", e.target.value)}>
               <option value="">Select…</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="other">Other</option>
             </Select>
-          </div>
-          <div>
-            <Label>Date of birth *</Label>
+          </Field>
+          <Field label="Date of birth *">
             <Input type="date" value={pForm.birthday ? new Date(pForm.birthday).toISOString().slice(0, 10) : ""} onChange={(e) => setP("birthday", e.target.value)} />
-          </div>
-          <div>
-            <Label>Passport number *</Label>
+          </Field>
+          <Field label="Passport number *">
             <Input maxLength={20} value={pForm.passportNumber ?? ""} onChange={(e) => setP("passportNumber", e.target.value)} placeholder="A12345678" />
-          </div>
-          <div>
-            <Label>Nationality</Label>
+          </Field>
+          <Field label="Nationality">
             <Input maxLength={80} value={pForm.nationality ?? ""} onChange={(e) => setP("nationality", e.target.value)} />
-          </div>
-          <div>
-            <Label>Country of residence</Label>
+          </Field>
+          <Field label="Country of residence">
             <Input maxLength={80} value={pForm.countryOfResidence ?? ""} onChange={(e) => setP("countryOfResidence", e.target.value)} />
-          </div>
-          <div>
-            <Label>City of residence</Label>
+          </Field>
+          <Field label="City of residence">
             <Input maxLength={100} value={pForm.cityOfResidence ?? ""} onChange={(e) => setP("cityOfResidence", e.target.value)} />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Address</Label>
+          </Field>
+          <Field label="Address" className="sm:col-span-2">
             <Textarea rows={2} maxLength={300} value={pForm.address ?? ""} onChange={(e) => setP("address", e.target.value)} />
-          </div>
-          <div>
-            <Label>Mother&apos;s name</Label>
+          </Field>
+          <Field label="Mother&apos;s name">
             <Input maxLength={80} value={pForm.motherName ?? ""} onChange={(e) => setP("motherName", e.target.value)} />
-          </div>
-          <div>
-            <Label>Father&apos;s name</Label>
+          </Field>
+          <Field label="Father&apos;s name">
             <Input maxLength={80} value={pForm.fatherName ?? ""} onChange={(e) => setP("fatherName", e.target.value)} />
-          </div>
+          </Field>
         </div>
       )}
 
@@ -249,35 +255,29 @@ export function ApplicationWizard({
         <div className="space-y-4">
           {eduRows.map((row, i) => (
             <div key={i} className="grid gap-3 rounded-lg border border-line p-3 sm:grid-cols-3 dark:border-navy-700">
-              <div>
-                <Label>Level</Label>
+              <Field label="Level">
                 <Select value={row.level} onChange={(e) => setEdu(i, "level", e.target.value)}>
                   <option value="">Select…</option>
                   {["High School", "Diploma", "Foundation", "Bachelor", "Master", "Other"].map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
                 </Select>
-              </div>
-              <div className="sm:col-span-2">
-                <Label>Institution *</Label>
+              </Field>
+              <Field label="Institution *" className="sm:col-span-2">
                 <Input maxLength={160} value={row.institution} onChange={(e) => setEdu(i, "institution", e.target.value)} placeholder="School / college / university" />
-              </div>
-              <div>
-                <Label>Field of study</Label>
+              </Field>
+              <Field label="Field of study">
                 <Input maxLength={160} value={row.fieldOfStudy ?? ""} onChange={(e) => setEdu(i, "fieldOfStudy", e.target.value)} placeholder="e.g. Computer Science" />
-              </div>
-              <div>
-                <Label>From year</Label>
+              </Field>
+              <Field label="From year">
                 <Input maxLength={9} value={row.startYear ?? ""} onChange={(e) => setEdu(i, "startYear", e.target.value)} placeholder="2019" />
-              </div>
-              <div>
-                <Label>To year</Label>
+              </Field>
+              <Field label="To year">
                 <Input maxLength={9} value={row.endYear ?? ""} onChange={(e) => setEdu(i, "endYear", e.target.value)} placeholder="2023" />
-              </div>
-              <div>
-                <Label>Grade / CGPA</Label>
+              </Field>
+              <Field label="Grade / CGPA">
                 <Input maxLength={60} value={row.grade ?? ""} onChange={(e) => setEdu(i, "grade", e.target.value)} placeholder="e.g. CGPA 3.4" />
-              </div>
+              </Field>
               <div className="sm:col-span-3">
                 <Button type="button" size="sm" variant="ghost" className="text-red-600" disabled={eduRows.length === 1} onClick={() => setEduRows((prev) => prev.filter((_, idx) => idx !== i))}>
                   Remove this entry
@@ -330,22 +330,22 @@ export function ApplicationWizard({
             </div>
           ) : (
            <div>
-               <Label>Choose university &amp; program *</Label>
-               <ProgramPicker programs={programs} value={programId} onChange={setProgramId} emptyLabel="Search and select a program…" />
+               <p className="mb-1.5 block text-sm font-medium text-navy-900 dark:text-slate-300">Choose university &amp; program *</p>
+               <ProgramPicker value={programId} onChange={(id) => { setTouched(true); setProgramId(id); }} emptyLabel="Search and select a program…" />
                <p className="mt-1 text-xs text-ink-muted">Browse the full catalogs under Programs or Scholarships before deciding.</p>
              </div>
           )}
         </div>
       )}
 
-      <div className="mt-5 flex items-center justify-between gap-2">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
         <Button type="button" variant="outline" disabled={step === 0 || busy} onClick={() => setStep((s) => s - 1)}>
           ← Back
         </Button>
-        <div className="flex items-center gap-2">
-           <Button type="button" variant="ghost" onClick={() => router.refresh()} disabled={busy}>
-             {busy && <Spinner size={14} className="mr-1" />} Close
-           </Button>
+        <div className="flex flex-wrap items-center gap-2">
+           <Link href="/my-applications" className="inline-flex h-10 items-center justify-center rounded-lg px-4 text-sm font-semibold text-ink-muted transition hover:bg-canvas-subtle hover:text-navy-900 dark:text-slate-300 dark:hover:bg-navy-800 dark:hover:text-white">
+             My applications
+           </Link>
            {step < STEPS.length - 1 ? (
              <Button onClick={next} disabled={!canNext || busy}>
                {busy && <Spinner size={14} className="mr-1" />} {busy ? "Saving…" : step === 0 || step === 1 ? "Save & continue" : "Continue"}

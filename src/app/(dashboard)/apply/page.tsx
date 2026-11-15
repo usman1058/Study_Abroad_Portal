@@ -2,11 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { listPrograms } from "@/lib/queries";
 import { ApplicationWizard, type WizardEducation, type WizardPersonal } from "@/components/application-wizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const metadata = { title: "Apply Application" };
+export const metadata = { title: "Start an application" };
 
 type SearchParams = Promise<{ draft?: string }>;
 
@@ -17,8 +16,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
 
   const { draft: draftParam = "" } = await searchParams;
 
-  const [programs, me, documents, drafts] = await Promise.all([
-    listPrograms(),
+  const [me, documents, drafts] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -59,12 +57,12 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <Link href="/my-applications" className="text-sm text-brand-600 hover:underline">← My Applications</Link>
-        <h1 className="mt-1 text-2xl font-bold">Apply Application</h1>
+        <Link href="/my-applications" className="inline-flex min-h-6 items-center text-sm text-brand-600 hover:underline">← My applications</Link>
+        <h1 className="mt-1 text-2xl font-bold">Start an application</h1>
         <p className="text-sm text-ink-muted">
           {draftId
-            ? "Editing your saved draft — update any section, then submit it for review."
-            : "Four quick steps: your details, academics, documents, then choose a university."}
+            ? "Editing your saved draft — update any section, then submit it for review. Each step is saved when you continue."
+            : "Four steps: your details, academics, documents, then choose a university. Each step is saved when you continue."}
         </p>
       </div>
 
@@ -82,18 +80,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
         </CardHeader>
         <CardContent>
           <ApplicationWizard
-            programs={programs.map((p) => ({
-              id: p.id,
-              label: `${p.university?.name ?? ""} — ${p.name}`,
-              name: p.name,
-              university: p.university?.name ?? "",
-              universityId: p.university?.id ?? "",
-              country: p.university?.country ?? p.location ?? "",
-              city: p.university?.city ?? "",
-              level: p.level,
-              field: p.field,
-              fee: p.tuitionFee,
-            }))}            personal={personal}
+            personal={personal}
             education={education}
             documents={documents.map((d) => ({ type: d.type, status: d.status }))}
             draftId={draftId}

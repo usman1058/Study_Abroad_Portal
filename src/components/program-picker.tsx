@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Filter, X, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
 
@@ -24,50 +24,75 @@ export type ProgramOption = {
 
 type Filters = { q: string; country: string; city: string; level: string; field: string; minFee: string; maxFee: string };
 
+type Facets = { countries: string[]; cities: string[]; levels: string[]; fields: string[] };
+
+const EMPTY_FILTERS: Filters = { q: "", country: "", city: "", level: "", field: "", minFee: "", maxFee: "" };
+const EMPTY_FACETS: Facets = { countries: [], cities: [], levels: [], fields: [] };
+
+/**
+ * Searchable program picker backed by `/api/programs/picker`.
+ *
+ * The catalogue is never shipped to the browser: each keystroke (debounced)
+ * asks the server for the first 40 matches plus the true total, so the payload
+ * stays constant no matter how large the catalogue grows.
+ */
 export function ProgramPicker({
-  programs,
   value,
   onChange,
   emptyLabel = "Search and select a program…",
 }: {
-  programs: ProgramOption[];
   value: string;
   onChange: (id: string) => void;
   emptyLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({ q: "", country: "", city: "", level: "", field: "", minFee: "", maxFee: "" });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [options, setOptions] = useState<ProgramOption[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [facets, setFacets] = useState<Facets>(EMPTY_FACETS);
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const params = new URLSearchParams();
+      for (const key of ["q", "country", "city", "level", "field", "minFee", "maxFee"] as const) {
+        if (filters[key]) params.set(key, filters[key]);
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/programs/picker?${params.toString()}`, { signal: controller.signal });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error ?? "Could not load programs.");
+        setOptions(json.data.programs as ProgramOption[]);
+        setTotal(Number(json.data.total) || 0);
+        setFacets(json.data.facets as Facets);
+      } catch (e) {
+        if (controller.signal.aborted) return;
+        setError(e instanceof Error ? e.message : "Could not load programs.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, filters]);
 
   const displayName = (p: ProgramOption) => p.name || p.label.split(" — ").slice(1).join(" — ") || p.label;
   const displayUni = (p: ProgramOption) => p.university || p.label.split(" — ")[0] || "";
 
-  const countries = useMemo(() => [...new Set(programs.map((p) => p.country).filter(Boolean) as string[])].sort(), [programs]);
-  const cities = useMemo(() => [...new Set(programs.map((p) => p.city).filter(Boolean) as string[])].sort(), [programs]);
-  const levels = useMemo(() => [...new Set(programs.map((p) => p.level).filter(Boolean) as string[])].sort(), [programs]);
-  const fields = useMemo(() => [...new Set(programs.map((p) => p.field).filter(Boolean) as string[])].sort(), [programs]);
-
-  const filtered = useMemo(() => {
-    return programs.filter((p) => {
-      if (filters.q) {
-        const hay = (p.label + " " + (p.name ?? "") + " " + (p.university ?? "") + " " + (p.field ?? "")).toLowerCase();
-        if (!hay.includes(filters.q.toLowerCase())) return false;
-      }
-      if (filters.country && p.country !== filters.country) return false;
-      if (filters.city && p.city !== filters.city) return false;
-      if (filters.level && p.level !== filters.level) return false;
-      if (filters.field && p.field !== filters.field) return false;
-      if (filters.minFee && (p.fee ?? 0) < parseFloat(filters.minFee)) return false;
-      if (filters.maxFee && (p.fee ?? 0) > parseFloat(filters.maxFee)) return false;
-      return true;
-    });
-  }, [programs, filters]);
-
-  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== "q" && v !== "") || filters.q !== "";
-  const selected = programs.find((p) => p.id === value);
+  const hasActiveFilters = Object.entries(filters).some(([, v]) => v !== "");
+  const selected = options.find((p) => p.id === value);
+  const shown = options.length;
 
   function clearFilters() {
-    setFilters({ q: "", country: "", city: "", level: "", field: "", minFee: "", maxFee: "" });
+    setFilters(EMPTY_FILTERS);
   }
 
   return (
@@ -75,14 +100,20 @@ export function ProgramPicker({
       {/* Trigger / selected summary */}
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-3 rounded-lg border border-line-strong bg-white px-3 py-2.5 text-left text-sm shadow-sm transition hover:border-brand-400 dark:border-navy-700 dark:bg-navy-900"
       >
         {selected ? (
           <span className="min-w-0 flex-1">
             <span className="block truncate font-semibold text-ink">{displayName(selected)}</span>
-            <span className="block truncate text-xs text-ink-muted">{displayUni(selected)}{selected.country ? ` · ${selected.city ? selected.city + ", " : ""}${selected.country}` : ""}</span>
+            <span className="block truncate text-xs text-ink-muted">
+              {displayUni(selected)}
+              {selected.country ? ` · ${selected.city ? selected.city + ", " : ""}${selected.country}` : ""}
+            </span>
           </span>
+        ) : value ? (
+          <span className="min-w-0 flex-1 text-ink">Program selected</span>
         ) : (
           <span className="text-ink-muted">{emptyLabel}</span>
         )}
@@ -97,12 +128,13 @@ export function ProgramPicker({
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 className="pl-9"
+                aria-label="Search programs"
                 placeholder="Search program, university, field…"
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
               />
             </div>
-            <Button type="button" variant={showFilters || hasActiveFilters ? "primary" : "outline"} size="sm" onClick={() => setShowFilters((v) => !v)}>
+            <Button type="button" variant={showFilters || hasActiveFilters ? "primary" : "outline"} size="sm" onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}>
               <Filter className="h-4 w-4 mr-1.5" /> Filters {hasActiveFilters && <span className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-[10px]">•</span>}
             </Button>
             {hasActiveFilters && (
@@ -114,56 +146,56 @@ export function ProgramPicker({
 
           {showFilters && (
             <div className="grid gap-3 rounded-lg border border-line bg-white p-3 dark:border-navy-700 dark:bg-navy-900 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <Label className="text-xs">Country</Label>
+              <Field label="Country">
                 <Select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value }))}>
                   <option value="">All countries</option>
-                  {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {facets.countries.map((c) => <option key={c} value={c}>{c}</option>)}
                 </Select>
-              </div>
-              <div>
-                <Label className="text-xs">City</Label>
+              </Field>
+              <Field label="City">
                 <Select value={filters.city} onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value }))}>
                   <option value="">All cities</option>
-                  {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {facets.cities.map((c) => <option key={c} value={c}>{c}</option>)}
                 </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Level</Label>
+              </Field>
+              <Field label="Level">
                 <Select value={filters.level} onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}>
                   <option value="">All levels</option>
-                  {levels.map((l) => <option key={l} value={l}>{l}</option>)}
+                  {facets.levels.map((l) => <option key={l} value={l}>{l}</option>)}
                 </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Field</Label>
+              </Field>
+              <Field label="Field">
                 <Select value={filters.field} onChange={(e) => setFilters((f) => ({ ...f, field: e.target.value }))}>
                   <option value="">All fields</option>
-                  {fields.map((f) => <option key={f} value={f}>{f}</option>)}
+                  {facets.fields.map((f) => <option key={f} value={f}>{f}</option>)}
                 </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Min tuition</Label>
-                <Input type="number" placeholder="Min" value={filters.minFee} onChange={(e) => setFilters((f) => ({ ...f, minFee: e.target.value }))} />
-              </div>
-              <div>
-                <Label className="text-xs">Max tuition</Label>
-                <Input type="number" placeholder="Max" value={filters.maxFee} onChange={(e) => setFilters((f) => ({ ...f, maxFee: e.target.value }))} />
-              </div>
+              </Field>
+              <Field label="Min tuition">
+                <Input type="number" min={0} placeholder="Min" value={filters.minFee} onChange={(e) => setFilters((f) => ({ ...f, minFee: e.target.value }))} />
+              </Field>
+              <Field label="Max tuition">
+                <Input type="number" min={0} placeholder="Max" value={filters.maxFee} onChange={(e) => setFilters((f) => ({ ...f, maxFee: e.target.value }))} />
+              </Field>
             </div>
           )}
 
           {/* Results list */}
-          <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
-            {filtered.length === 0 ? (
+          <div className="max-h-80 overflow-y-auto space-y-2 pr-1" aria-busy={loading}>
+            {error ? (
+              <p role="alert" className="py-6 text-center text-sm text-red-700 dark:text-red-300">{error}</p>
+            ) : loading && shown === 0 ? (
+              <p className="py-6 text-center text-sm text-ink-muted">Searching programs…</p>
+            ) : shown === 0 ? (
               <p className="py-6 text-center text-sm text-ink-muted">No programs match your filters.</p>
             ) : (
-              filtered.map((p) => {
+              options.map((p) => {
                 const active = p.id === value;
                 return (
                   <button
                     key={p.id}
                     type="button"
+                    data-picker-option={p.id}
+                    aria-pressed={active}
                     onClick={() => { onChange(p.id); setOpen(false); }}
                     className={"flex w-full items-start justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition " + (active ? "border-brand-500 bg-brand-50 dark:bg-brand-900/30" : "border-line bg-white hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:bg-navy-900")}
                   >
@@ -185,7 +217,13 @@ export function ProgramPicker({
               })
             )}
           </div>
-          <p className="text-xs text-ink-muted">{filtered.length} of {programs.length} programs</p>
+          <p className="text-xs text-ink-muted" aria-live="polite">
+            {loading
+              ? "Searching programs…"
+              : total > shown
+                ? `Showing the first ${shown} of ${total} matches — refine your search to narrow it down.`
+                : `${total} program${total === 1 ? "" : "s"} available.`}
+          </p>
         </div>
       )}
     </div>

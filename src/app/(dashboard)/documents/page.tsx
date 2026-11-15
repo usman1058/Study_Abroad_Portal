@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import {
@@ -8,11 +9,23 @@ import {
 } from "@/lib/permissions";
 import { VerifyDocument } from "@/components/verify-document";
 import { UploadDocument } from "@/components/upload-document";
+import { ReuploadDocument } from "@/components/reupload-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Documents" };
+
+const STATUS_HELP: Record<"PENDING" | "VERIFIED" | "REJECTED", string> = {
+  VERIFIED: "Checked and accepted.",
+  PENDING: "Waiting for review.",
+  REJECTED: "Needs replacing — see the reason above.",
+};
+
+function daysUntil(date: Date | null): number | null {
+  if (!date) return null;
+  return Math.ceil((date.getTime() - Date.now()) / 86_400_000);
+}
 
 const documentInclude = {
   documents: {
@@ -29,7 +42,8 @@ const documentInclude = {
   },
 };
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ docs?: string }> }) {
+  const { docs: docsFilter = "all" } = await searchParams;
   const user = await currentUser();
   if (!user) redirect("/");
 
@@ -46,6 +60,7 @@ export default async function DocumentsPage() {
           rejectionReason: true,
           expiresAt: true,
           uploadedAt: true,
+          applicationId: true,
           application: { select: { program: { select: { name: true } } } },
         },
       }),
@@ -58,6 +73,10 @@ export default async function DocumentsPage() {
 
     const pending = documents.filter((document) => document.status === "PENDING").length;
     const rejected = documents.filter((document) => document.status === "REJECTED").length;
+    const applicationOptions = applications.map((application) => ({
+      id: application.id,
+      label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
+    }));
 
     return (
       <div className="space-y-6">
@@ -74,10 +93,7 @@ export default async function DocumentsPage() {
           </CardHeader>
           <CardContent>
             <UploadDocument
-              applications={applications.map((application) => ({
-                id: application.id,
-                label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
-              }))}
+              applications={applicationOptions}
             />
           </CardContent>
         </Card>
@@ -91,26 +107,47 @@ export default async function DocumentsPage() {
               <p className="py-8 text-center text-sm text-ink-muted">No documents yet. Upload your passport to get started.</p>
             ) : (
               <ul className="divide-y divide-line dark:divide-navy-700">
-                {documents.map((document) => (
+                {documents.map((document) => {
+                  const expiry = daysUntil(document.expiresAt);
+                  return (
                   <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{humanize(document.type)}</p>
                       <p className="truncate text-xs text-ink-muted">
                         {document.application ? "For " + document.application.program.name : "General"} · uploaded {formatDate(document.uploadedAt)}
                         {document.expiresAt && <span> · expires {formatDate(document.expiresAt)}</span>}
                       </p>
+                      <p className="text-xs text-ink-muted">{STATUS_HELP[document.status]}</p>
+                      {expiry !== null && expiry >= 0 && expiry <= 30 && (
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                          Expires in {expiry} day{expiry === 1 ? "" : "s"} — replace it before it lapses.
+                        </p>
+                      )}
+                      {expiry !== null && expiry < 0 && (
+                        <p className="text-xs font-medium text-red-700 dark:text-red-300">Expired {formatDate(document.expiresAt!)} — upload a current copy.</p>
+                      )}
                       {document.rejectionReason && (
                         <p className="text-xs text-red-600">Rejected: {document.rejectionReason}</p>
                       )}
-                      <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">
-                        Open file
-                      </a>
+                      <div className="mt-1 flex flex-wrap items-center gap-3">
+                        <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">
+                          Open file
+                        </a>
+                        {document.status !== "VERIFIED" && (
+                          <ReuploadDocument
+                            type={document.type}
+                            applicationId={document.applicationId}
+                            applications={applicationOptions}
+                          />
+                        )}
+                      </div>
                     </div>
                     <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>
                       {humanize(document.status)}
                     </Badge>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </CardContent>
@@ -167,7 +204,34 @@ export default async function DocumentsPage() {
         </p>
       </div>
 
-      <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} />
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Document filter">
+        <Link
+          href="/documents"
+          aria-current={docsFilter !== "pending" ? "page" : undefined}
+          className={
+            "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
+            (docsFilter !== "pending"
+              ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
+              : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
+          }
+        >
+          All documents
+        </Link>
+        <Link
+          href="/documents?docs=pending"
+          aria-current={docsFilter === "pending" ? "page" : undefined}
+          className={
+            "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
+            (docsFilter === "pending"
+              ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
+              : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
+          }
+        >
+          Pending only
+        </Link>
+      </div>
+
+      <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} onlyPending={docsFilter === "pending"} />
 
       {user.role === "MANAGER" && (
         <section className="space-y-3">
@@ -175,7 +239,7 @@ export default async function DocumentsPage() {
             <h2 className="text-lg font-semibold">Counselor activity and documents</h2>
             <p className="text-sm text-ink-muted">Cases assigned to counselors you created.</p>
           </div>
-          <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor />
+          <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor onlyPending={docsFilter === "pending"} />
         </section>
       )}
     </div>
@@ -186,6 +250,7 @@ function DocumentGroup({
   title,
   students,
   showCounselor = false,
+  onlyPending = false,
 }: {
   title: string;
   students: Array<{
@@ -204,14 +269,29 @@ function DocumentGroup({
     assignedCounselor?: { firstName: string; lastName: string } | null;
   }>;
   showCounselor?: boolean;
+  onlyPending?: boolean;
 }) {
   if (students.length === 0) {
     return <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No students with documents.</CardContent></Card>;
   }
 
+  const filtered = students
+    .map((student) => ({
+      ...student,
+      documents: [...student.documents]
+        .filter((document) => !onlyPending || document.status === "PENDING")
+        // Pending first: those are the only rows with an action.
+        .sort((a, b) => Number(b.status === "PENDING") - Number(a.status === "PENDING")),
+    }))
+    .filter((student) => student.documents.length > 0);
+
+  if (filtered.length === 0) {
+    return <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No documents match this filter.</CardContent></Card>;
+  }
+
   return (
     <div className="space-y-4">
-      {students.map((student) => (
+      {filtered.map((student) => (
         <Card key={student.id}>
           <CardHeader>
             <CardTitle>
@@ -237,10 +317,10 @@ function DocumentGroup({
                       {document.rejectionReason && <span className="text-red-600"> · {document.rejectionReason}</span>}
                       {document.expiresAt && <span> · expires {formatDate(document.expiresAt)}</span>}
                     </p>
-                    <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">Open file</a>
+                    <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Open file</a>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>{document.status}</Badge>
+                    <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>{humanize(document.status)}</Badge>
                     {document.status !== "VERIFIED" && <VerifyDocument documentId={document.id} />}
                   </div>
                 </li>

@@ -35,15 +35,11 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
     ...(user.role === "SUPER_ADMIN" || user.role === "MANAGER" ? {} : { student: studentScopeWhere(user) }),
   };
 
-  const [applicationStudents, applicationPrograms] = await Promise.all([
+  const [applicationStudents] = await Promise.all([
     prisma.user.findMany({
       where: studentScopeWhere(user),
       select: { id: true, firstName: true, lastName: true, email: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-    }),
-    prisma.program.findMany({
-      include: { university: true },
-      orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
     }),
   ]);
   const applications = await prisma.application.findMany({
@@ -67,18 +63,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
       <ApplicationCreateForm
         students={applicationStudents.map((student) => ({ id: student.id, label: student.firstName + " " + student.lastName + " (" + student.email + ")" }))}
-        programs={applicationPrograms.map((program) => ({
-          id: program.id,
-          label: program.university.name + " — " + program.name,
-          name: program.name,
-          university: program.university.name,
-          universityId: program.university.id,
-          country: program.university.country ?? "",
-          city: program.university.city ?? "",
-          level: program.level,
-          field: program.field,
-          fee: Number(program.tuitionFee),
-        }))}      />
+      />
       <Card>
         <CardContent className="p-0">
           {applications.length === 0 ? (

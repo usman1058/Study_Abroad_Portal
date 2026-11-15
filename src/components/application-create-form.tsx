@@ -6,21 +6,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ProgramPicker, type ProgramOption } from "@/components/program-picker";
+import { ProgramPicker } from "@/components/program-picker";
 import { SearchableSelect } from "@/components/searchable-select";
 
 type Option = { id: string; label: string };
 
-export function ApplicationCreateForm({
-  students,
-  programs,
-}: {
-  students: Option[];
-  programs: ProgramOption[];
-}) {
+export function ApplicationCreateForm({ students }: { students: Option[] }) {
   const router = useRouter();
   const [studentId, setStudentId] = useState(students[0]?.id ?? "");
-  const [programId, setProgramId] = useState(programs[0]?.id ?? "");
+  const [programId, setProgramId] = useState("");
   const [submitNow, setSubmitNow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -58,7 +52,7 @@ export function ApplicationCreateForm({
       </div>
       <div className="sm:col-span-2">
         <Label>Program (advanced filters)</Label>
-        <ProgramPicker programs={programs} value={programId} onChange={setProgramId} emptyLabel="Search and select a program…" />
+        <ProgramPicker value={programId} onChange={setProgramId} emptyLabel="Search and select a program…" />
       </div>
       <div className="space-y-2 sm:col-span-2">
         <label className="flex items-center gap-2 text-xs text-ink-muted dark:text-slate-300">

@@ -317,10 +317,10 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 8 | `/advertisements` | Needs work | carousel-only, no list/status/schedule, "New ad" two clicks deep | flexibility, visibility of status |
 | 9 | `/application` | Poor | mobile renders a raw unstyled option dump (36 students), 204 sub-24 px targets, no count/pagination/sort | error prevention, Fitts's law, responsive |
 | 10 | `/application/[id]` | Needs work | `<h1>` is the program name; terminal stage change has no confirm/undo; raw enum badge | user control & freedom (Shneiderman), semantics |
-| 11 | `/apply` | Needs work | **document journey fixed (§14 #13)**: wizard uploads attach to the draft/new application, so the verification gate can pass (verified §15.2). Still: one-way wizard, no save-and-exit warning | closure, user control |
-| 12 | `/documents` | Needs work | **authz fixed (§14 #5), student workspace added (§14 #13)**: SUPER_ADMIN/MANAGER see all students; students get upload + own-document list. Still: no re-upload shortcut on a rejected doc, no expiry warning | consistency, error recovery |
+| 11 | `/apply` | **Good** | **fixed (§16.6)**: task heading "Start an application", current-step marker, save-per-step rule stated, leave warning (`beforeunload`), every control labelled, server-searched program picker (40-row cap + true total), draft resume → submit verified end-to-end (36/36) | — |
+| 12 | `/documents` | **Good** | **fixed (§16.6)**: student upload → staff reject → re-upload pre-filled → staff verify round-trip verified in the browser; 30-day expiry warning, per-row status explanation, humanised staff badges, pending-first ordering, all/pending filter, 24 px targets | — |
 | 13 | `/messages` | Poor | entire user table dumped into "Start a conversation"; unlabeled textarea; no read state | recognition over recall, Miller's law |
-| 14 | `/my-applications` | Poor | `<h1>` is a slogan; "Check documents" → `/documents` → redirect (dead end); can't open detail | clear closure, error recovery |
+| 14 | `/my-applications` | **Good** | **fixed (§16.6)**: real `<h1>` with the slogan as subtitle, `aria-current` stage tabs with counts, `role="status"` confirmation, cards link to their program, document counts come from the DB (unlinked uploads included), humanised stage badges, 24 px targets | — |
 | 15 | `/my-shortlist` | Poor | shares `localhost:3001` links; DB write on GET; compare modal has no dialog semantics | user control, data integrity |
 | 16 | `/partner-commissions` | Poor | table clipped at 390 (tuition cut mid-value); 3 KPI tiles; dead `mayViewRates` branch; unweighted average | responsive, truthfulness of data |
 | 17 | `/payments` | Poor | no totals/status/method/receipts; page is a wall of identical rows (`take: 100`) | visibility of status, aesthetic-minimalist |
@@ -342,11 +342,12 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 33 | `/forgot-password` | Good | new page (§16.3): labelled email, generic response (no account enumeration), rate-limited, 390 px clean | privacy, error recovery |
 | 34 | `/reset-password` | Good | new page (§16.3): signed single-use 30-min token, live password rules, weak/tampered/reused token rejected, confirmation, labelled controls | security, error prevention |
 
-**Totals (post-fix):** 0 Blocked · 14 Poor · 14 Needs work · 6 Good. `/apply` is unblocked by §14 #13 and
-verified at runtime in §15.2; `/student/login`, `/student/signup` moved out of Poor in §16.3; the three partner/invite
-pages moved out of Poor in §16.4; the two recovery pages score Good; `/home`, `/programs` and `/search` moved from Poor
-to Good in §16.5. The seven pages that flipped from Blocked to Needs work are fixed in §14 (#2, #3, #4, #5, #10, #13)
-and verified at runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
+**Totals (post-fix):** 0 Blocked · 13 Poor · 13 Needs work · 9 Good. `/apply`, `/documents` and `/my-applications`
+moved to Good in §16.6 after a 36/36 browser run (including upload → reject → re-upload → verify and draft → submit).
+`/student/login`, `/student/signup` moved out of Poor in §16.3; the three partner/invite pages moved out of Poor in
+§16.4; the two recovery pages score Good; `/home`, `/programs` and `/search` moved from Poor to Good in §16.5. The
+seven pages that flipped from Blocked to Needs work are fixed in §14 (#2, #3, #4, #5, #10, #13) and verified at
+runtime in §15/§15.2, but have not been re-reviewed visually after the fix.
 
 ### Visual capture inventory (this pass)
 
@@ -609,12 +610,12 @@ section is closed.
 
 | Metric | Value |
 |---|---|
-| Sections closed with runtime evidence | **A, B, C** (9 pages) |
+| Sections closed with runtime evidence | **A, B, C, D** (12 pages) |
 | Pages code-complete, section not yet closed | 0 |
-| Pages remaining | **24** (sections D–K) |
-| Page verdicts (§9d) | 6 Good · 14 Needs work · 14 Poor · 0 Blocked |
-| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · verify 35/35 · documents 15/15 |
-| Last updated | 2026-11-14 (Section C closed) |
+| Pages remaining | **22** (sections E–K) |
+| Page verdicts (§9d) | 9 Good · 13 Needs work · 13 Poor · 0 Blocked |
+| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · verify 35/35 · documents 15/15 |
+| Last updated | 2026-11-15 (Section D closed) |
 
 ### 16.1 Definition of done — applied to every page
 
@@ -638,7 +639,7 @@ section is closed.
 | A | Public entry + auth | `/`, `/student/login`, `/student/signup` | **DONE — 30/30 checks (§16.3)** |
 | B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | **DONE — 22/22 checks (§16.4)** |
 | C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | **DONE — 41/41 checks (§16.5)** |
-| D | Applications + documents | `/apply`, `/my-applications`, `/documents` | queued (journey done, UX pending) |
+| D | Applications + documents | `/apply`, `/my-applications`, `/documents` | **DONE — 36/36 checks (§16.6)** |
 | E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | queued |
 | F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | queued |
 | G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | queued |
@@ -813,3 +814,52 @@ Plan:
    pending-first ordering, and a pending/all filter.
 4. Verify with a Section D harness (Profile/Education round-trip, draft create → resume → submit, document upload
    → reject → re-upload → verify, role scoping for staff vs student) plus browser checks at 390/768/1440.
+
+**Result — 36/36 checks passed** (`.audit-journey.ts`, 2026-11-15, local Postgres on 5433, production build):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering gates | 6 page/width combinations (`/my-applications`, `/documents`, `/apply` at 390 and 1440): **0 px overflow, 0 unlabeled controls, exactly one `h1`, 0 targets under 24 px, 0 AA contrast failures, 0 console/page errors** |
+| `/my-applications` semantics | `<h1>` is "My applications"; exactly one `aria-current="page"` tab; `?submitted=1` confirmation is a `role="status"` region |
+| `/my-applications` data | one card per DRAFT row in the database (counted in Prisma and re-checked after creating a draft); "Check documents" resolves 200 |
+| `/apply` shell | heading is "Start an application"; exactly one `aria-current="step"`; save-per-step copy present; typing then leaving raises a real `beforeunload` dialog |
+| Program picker | search box has an accessible name; server search narrows 3 → 1 for "Bachelor of Engineering (Electrical)"; the footer states the cap ("N programs available" / "first 40 of N") instead of truncating silently |
+| `/documents` student | rejected document offers "Re-upload" and pre-selects `TRANSCRIPT`; a document expiring in 10 days shows "Expires in 10 days"; each row explains its status in words |
+| Document lifecycle | student upload → staff reject with reason → the reason reaches the student → UI re-upload creates a replacement (PENDING) → staff verify → the student sees "Checked and accepted" |
+| Draft lifecycle | API creates a draft → it appears as one card in the Drafts tab → `/apply?draft=` resumes it → the final step says it completes the draft → submitting moves it to `SUBMITTED` and lands on `?submitted=1` |
+| Role scope | a student cannot read another student's rejection reason; `AGENCY` gets no wizard content |
+
+Defects found and fixed in this section:
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| D1 | `/my-applications` `<h1>` was the slogan "Your study journey, in one place." | rendered DOM | real task heading; slogan demoted to the subtitle |
+| D2 | Application cards were not navigable and leaked raw enums ("UNDER_REVIEW") | static + DOM | program-name link to the program page, `humanize(stage)` badges |
+| D3 | Document counts only counted documents linked to that application, so uploads made before an application existed were invisible | Prisma vs UI | tile + metric count the student's documents directly |
+| D4 | Stage filter had no selected state; the `submitted` banner was silent to screen readers | DOM | `aria-current="page"` + `role="status"` |
+| D5 | `/apply` was titled "Apply Application", never said progress was saved, and its "Close" button only reloaded the page | static + DOM | task heading, save-per-step copy, real link back to My applications |
+| D6 | The wizard had no current-step semantics and no leave guard | DOM | `aria-current="step"`, `beforeunload` once a field is edited |
+| D7 | The program picker shipped the **entire** catalogue to the client and silently cut the list at 40; its 6 filter controls and its search box were unlabelled | page payload + DOM | new `/api/programs/picker` (40-row cap, true total, facet lists), `Field` labels, stated cap, `aria-pressed` options |
+| D8 | **Verification found a real bug in the new picker API**: `Number(null)` is `0`, so `tuitionFee <= 0` filtered out every program — the picker was empty for every user | `GET /api/programs/picker` → `{programs: [], total: 0}` | only apply fee bounds when the parameter is present and non-empty |
+| D9 | `/application` (staff) pre-selected the first program, so "Add application" could file the wrong one, and it shipped the full catalogue | static | picker starts empty, submit disabled until a program is chosen, same server search |
+| D10 | Rejected documents had no re-upload path; the upload form's controls were unlabelled | DOM | `ReuploadDocument` (pre-fills type + application), `Field` labels, `role="alert"`/`role="status"` feedback |
+| D11 | No document-expiry warning | schema has `expiresAt`, never surfaced | amber "Expires in N days" and a red expired state |
+| D12 | Staff `/documents` rendered raw enum badges and had no filter | DOM | `humanize()` badges, pending-first ordering, All/Pending toggle |
+| D13 | Document status had no meaning in words | DOM | one explanation per row ("Waiting for review", "Checked and accepted", "Needs replacing") |
+| D14 | "Open file" and inline actions were 12 px tall | `getBoundingClientRect` | `inline-flex min-h-6 items-center` (≥ 24 px) |
+| D15 | "Missing or unverified documents" used `text-amber-600` (≈ 3.2:1 at 12 px) | canvas-measured contrast | `text-amber-700` |
+| D16 | `/my-applications` overflowed 80 px at 390: the course-list card links were grid items without `min-w-0` | hide-and-measure probe (blocked elements until overflow hit 0) | `min-w-0` on the card link; named text truncates instead of pushing the badge out |
+
+Harness defects found and fixed while getting to a green run (a green run has to mean something):
+
+| # | Harness defect | Effect | Fix |
+|---|---|---|---|
+| H3 | `page.locator("select").first()` inside the wizard | selected the shell currency `<select>` instead of Gender, leaving "Save & continue" disabled and timing out | label-scoped `getByLabel("Gender *")` etc. |
+| H4 | Dialog handler called `dismiss()` | Playwright's dismiss **cancels** the navigation, so the next `page.goto` aborted with `ERR_ABORTED` | `accept()` |
+| H5 | Narrowed-list assertion read the DOM immediately after `fill()` | read the pre-debounce list (3 of 3) | wait for the option count to settle |
+| H6 | Draft API response parsed as `{id}` | the route returns `{success, data:{id}}`, so the draft id was null and the created draft leaked | read `data.id` and delete any DRAFT created during the run in `finally` |
+
+Residual (recorded, not fixed): the wizard still saves profile/education **on Continue**, not continuously, and the
+final step is the only place a program can be chosen — a student who reloads mid-wizard keeps the saved steps but
+loses the unsaved one. `listPrograms()` remains unbounded for `/scholarships`, `/short-courses` and `/users/[id]`;
+those pages are handled in their own sections (E/F/H/J).

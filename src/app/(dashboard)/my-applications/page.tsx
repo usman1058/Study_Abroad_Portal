@@ -47,7 +47,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   const { tab = "all", submitted } = await searchParams;
   const now = new Date();
 
-  const [applications, courseEnrollments, availableCourses, advertisements] = await Promise.all([
+  const [applications, courseEnrollments, availableCourses, advertisements, totalDocs, pendingDocs] = await Promise.all([
     prisma.application.findMany({
       where: { studentId: user.id },
       orderBy: { createdAt: "desc" },
@@ -70,6 +70,10 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     }),
+    // Count the student's documents directly: uploads made before an
+    // application exists are unlinked and would otherwise be invisible here.
+    prisma.document.count({ where: { ownerId: user.id } }),
+    prisma.document.count({ where: { ownerId: user.id, status: { not: "VERIFIED" } } }),
   ]);
 
   type Row = (typeof applications)[number] & { docsOk: boolean };
@@ -84,7 +88,6 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   const total = rows.length;
   const offered = rows.filter((a) => ["OFFER", "DEPOSIT_PAID"].includes(a.stage)).length;
   const inProgress = rows.filter((a) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(a.stage)).length;
-  const pendingDocs = rows.reduce((s, a) => s + a.documents.filter((d) => d.status !== "VERIFIED").length, 0);
 
   const stageCounts = new Map<ApplicationStage, number>();
   for (const s of APPLICATION_STAGE_ORDER) stageCounts.set(s, 0);
@@ -103,18 +106,18 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg shadow-navy-900/20 sm:px-7 sm:py-8">
         <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Your study journey, in one place.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Track applications, find your next course, and keep every required step moving forward.</p></div>
+          <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">My applications</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Your study journey in one place — track applications, find your next course, and keep every required step moving forward.</p></div>
           <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
         </div>
       </section>
 
       <section aria-label="Student dashboard updates" className="grid gap-5 xl:grid-cols-2">
         <DashboardAdRail ads={advertisements} variant="image" />
-        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Keep your journey moving</CardTitle><p className="mt-1 text-sm text-ink-muted">Three quick checks to stay on track.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{[{ href: "/documents", title: "Check documents", detail: pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are up to date", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: ClipboardList }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-ink-muted">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card>
+        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Keep your journey moving</CardTitle><p className="mt-1 text-sm text-ink-muted">Three quick checks to stay on track.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{[{ href: "/documents", title: "Check documents", detail: totalDocs === 0 ? "Upload your first document" : pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are verified", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: ClipboardList }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-ink-muted">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card>
       </section>
 
       {submitted && (
-        <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
+        <div role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
           Application submitted. Your consultant will review it and verify your documents — track its progress in the tabs below.
         </div>
       )}
@@ -127,8 +130,8 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>My course list</CardTitle><p className="mt-1 text-sm text-ink-muted">Your current learning, or active courses ready to join.</p></div><Link href="/short-courses" className="shrink-0 text-sm font-semibold text-brand-600 hover:underline">Browse courses</Link></CardHeader>
-        <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-ink-muted">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-ink-muted">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-line-strong px-4 py-7 text-center text-sm text-ink-muted dark:border-navy-700">No active short courses are available yet.</div>}</CardContent>
+        <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>My course list</CardTitle><p className="mt-1 text-sm text-ink-muted">Your current learning, or active courses ready to join.</p></div><Link href="/short-courses" className="shrink-0 inline-flex min-h-6 items-center text-sm font-semibold text-brand-600 hover:underline">Browse courses</Link></CardHeader>
+        <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group min-w-0 rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-ink-muted">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group min-w-0 rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-ink-muted">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-line-strong px-4 py-7 text-center text-sm text-ink-muted dark:border-navy-700">No active short courses are available yet.</div>}</CardContent>
       </Card>
 
       <section aria-label="Application analytics" className="grid gap-5 xl:grid-cols-2">
@@ -137,7 +140,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       </section>
 
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-ink-muted">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-ink-muted">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
         <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-2 dark:border-navy-700 dark:bg-navy-900">
           {TABS.map((t) => {
             const count = rows.filter((r) => t.match({ stage: r.stage, docsOk: r.docsOk })).length;
@@ -145,6 +148,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
               <Link
                 key={t.key}
                 href={`/my-applications?tab=${t.key}`}
+                aria-current={activeTab === t.key ? "page" : undefined}
                 className={
                   "rounded-full border px-3.5 py-1.5 text-sm font-medium transition " +
                   (activeTab === t.key
@@ -163,17 +167,17 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
             <CardContent className="py-10 text-center text-sm text-ink-muted">
               No applications in this view.
               {(activeTab === "all" || activeTab === "drafts") && (
-                <> Use <Link href="/apply" className="font-medium text-brand-600 hover:underline">Apply Application</Link> to start one.</>
+                <> Use <Link href="/apply" className="inline-flex min-h-6 items-center font-medium text-brand-600 hover:underline">Start an application</Link> to begin one.</>
               )}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((a) => (
-              <Card key={a.id} className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
+              <Card key={a.id} data-application-card={a.id} className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
 <CardContent className="p-5">
                     <div className="mb-2 flex items-start justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         {a.program.universityLogoUrl && (
                           <img
                             src={a.program.universityLogoUrl}
@@ -181,15 +185,15 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                             className="h-8 w-8 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800 mr-2"
                           />
                         )}
-                        <p className="font-semibold">{a.program.name}</p>
+                        <Link href={`/scholarships/${a.program.slug ?? a.program.id}`} className="inline-flex min-h-6 items-center font-semibold hover:text-brand-600 hover:underline">{a.program.name}</Link>
                         <p className="text-xs text-ink-muted">{a.program.university.name}</p>
                       </div>
-                    <Badge tone={STAGE_TONE[a.stage]}>{a.stage.replace(/_/g, " ")}</Badge>
+                    <Badge tone={STAGE_TONE[a.stage]}>{humanize(a.stage)}</Badge>
                   </div>
                   {!a.docsOk && a.stage !== "WITHDRAWN" && (
-                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-600">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
                       <span>⚠ Missing or unverified documents.</span>
-                      <Link href="/documents" className="font-medium underline">Upload documents</Link>
+                      <Link href="/documents" className="inline-flex min-h-6 items-center font-medium underline">Upload documents</Link>
                     </div>
                   )}
                   {a.stage === "DRAFT" && (
@@ -238,7 +242,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
 function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string; value: number; hint: string; icon: typeof ClipboardList; tone: "brand" | "green" | "indigo" | "amber" }) {
   const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200", indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
-  return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
+  return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
 }
 
 function MonthlyActivityChart({ points }: { points: { label: string; value: number }[] }) {
