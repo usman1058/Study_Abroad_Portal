@@ -5,14 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { SearchableSelect } from "@/components/searchable-select";
+import { ProgramPicker } from "@/components/program-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
 import { humanize } from "@/lib/utils";
 
 type Props = {
-  programs: { id: string; label: string }[];
   initial?: {
     id?: string;
     title?: string;
@@ -27,12 +26,13 @@ type Props = {
     prerequisites?: string | null;
     description?: string | null;
     linkedProgramId?: string | null;
+    linkedProgramLabel?: string;
     paymentType?: "FREE" | "PAID" | "OTHER";
     bankDetails?: string;
   };
 };
 
-export function ShortCourseForm({ programs, initial }: Props) {
+export function ShortCourseForm({ initial }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -179,14 +179,22 @@ export function ShortCourseForm({ programs, initial }: Props) {
           <Input value={form.startDates} onChange={(e) => set("startDates", e.target.value)} placeholder="2026-10-01, 2027-01-15" />
         </div>
         <div>
-          <Label>Linked program (optional)</Label>
-            <SearchableSelect
-              options={[{ id: "", label: "None" }, ...programs.map((p) => ({ id: p.id, label: p.label }))]}
-              value={form.linkedProgramId}
-              onChange={(v) => set("linkedProgramId", v)}
-              placeholder="Search programs…"
-              allLabel="None"
-            />
+          <span className="mb-1.5 block text-sm font-medium text-navy-900 dark:text-slate-300">Linked program (optional)</span>
+          <ProgramPicker
+            value={form.linkedProgramId}
+            onChange={(v) => set("linkedProgramId", v)}
+            emptyLabel="No linked program"
+            selectedLabel={initial?.linkedProgramLabel}
+          />
+          {form.linkedProgramId && (
+            <button
+              type="button"
+              onClick={() => set("linkedProgramId", "")}
+              className="mt-2 inline-flex min-h-6 items-center text-xs font-medium text-brand-700 underline dark:text-brand-300"
+            >
+              Clear linked program
+            </button>
+          )}
         </div>
         <div className="sm:col-span-2">
           <Label>Prerequisites</Label>

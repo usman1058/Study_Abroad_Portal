@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { toNum } from "@/lib/utils";
-import type { Program, University, User } from "@/generated/prisma/client";
+import type { Program, ShortCourseCategory, University, User } from "@/generated/prisma/client";
 
 export type ProgramWithUniversity = Program & { university: University };
 
@@ -97,30 +97,43 @@ export async function listUniversities() {
   return prisma.university.findMany({ orderBy: { name: "asc" } });
 }
 
-export async function listShortCourses() {
-  const rows = await prisma.shortCourse.findMany({
-    where: { status: "active" },
-    include: { linkedProgram: { include: { university: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-  return rows.map((c) => ({
-    id: c.id,
-    title: c.title,
-    provider: c.provider,
-    category: c.category,
-    duration: c.duration,
-    startDates: c.startDates.map((d) => d.toISOString()),
-    fee: toNum(c.fee),
-    deliveryMode: c.deliveryMode,
-    classSchedule: c.classSchedule,
-    meetingLink: c.meetingLink,
-    prerequisites: c.prerequisites,
-    description: c.description,
-    status: c.status,
-    paymentType: c.paymentType,
-    bankDetails: c.bankDetails,
-    linkedProgram: c.linkedProgram ? serializeProgram(c.linkedProgram) : null,
-  }));
+export async function listShortCourses(options: { category?: string; take?: number } = {}) {
+  const take = options.take ?? 60;
+  const where = {
+    status: "active",
+    ...(options.category ? { category: options.category as ShortCourseCategory } : {}),
+  };
+  const [rows, total] = await Promise.all([
+    prisma.shortCourse.findMany({
+      where,
+      include: { linkedProgram: { include: { university: true } } },
+      orderBy: { createdAt: "desc" },
+      take: take + 1,
+    }),
+    prisma.shortCourse.count({ where }),
+  ]);
+  return {
+    courses: rows.slice(0, take).map((c) => ({
+      id: c.id,
+      title: c.title,
+      provider: c.provider,
+      category: c.category,
+      duration: c.duration,
+      startDates: c.startDates.map((d) => d.toISOString()),
+      fee: toNum(c.fee),
+      deliveryMode: c.deliveryMode,
+      classSchedule: c.classSchedule,
+      meetingLink: c.meetingLink,
+      prerequisites: c.prerequisites,
+      description: c.description,
+      status: c.status,
+      paymentType: c.paymentType,
+      bankDetails: c.bankDetails,
+      linkedProgram: c.linkedProgram ? serializeProgram(c.linkedProgram) : null,
+    })),
+    total,
+    truncated: total > take,
+  };
 }
 
 export async function getShortCourse(id: string) {

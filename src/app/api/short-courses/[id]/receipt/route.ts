@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { canAccessStudent } from "@/lib/permissions";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
 
 const uploadSchema = z.object({
@@ -11,6 +12,60 @@ const uploadSchema = z.object({
 });
 
 const MAX_BYTES = 5 * 1024 * 1024;
+const MIME_EXTENSIONS: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+};
+
+/**
+ * Inline receipt viewer.
+ *
+ * Receipts are stored as data URLs on the enrolment, so without this endpoint
+ * staff could see "receipt under review" but never open the file. Students may
+ * read their own receipt; staff are scoped by canAccessStudent.
+ */
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const { error, user } = await requireUser();
+    if (error) return error;
+
+    const requested = req.nextUrl.searchParams.get("studentId");
+    const studentId = user.role === "STUDENT" ? user.id : requested;
+    if (!studentId) return new Response("studentId is required", { status: 400 });
+
+    const enrollment = await prisma.shortCourseEnrollment.findUnique({
+      where: { studentId_shortCourseId: { studentId, shortCourseId: id } },
+      include: { student: true },
+    });
+    if (!enrollment?.receiptUrl) return new Response("Receipt not found", { status: 404 });
+    if (user.role !== "STUDENT" && !(await canAccessStudent(user, enrollment.student))) {
+      return new Response("Forbidden", { status: 403 });
+    }
+
+    const match = /^data:([^;,]+);base64,(.*)$/s.exec(enrollment.receiptUrl);
+    if (!match) return new Response("Receipt is not readable", { status: 422 });
+    const [, mime, payload] = match;
+    if (!isAllowedMimeType(mime)) return new Response("Receipt type is not allowed", { status: 415 });
+
+    const bytes = Buffer.from(payload, "base64");
+    return new Response(new Uint8Array(bytes), {
+      headers: {
+        "Content-Type": mime,
+        "Content-Disposition": `inline; filename="receipt-${id}.${MIME_EXTENSIONS[mime] ?? "bin"}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (e) {
+    console.error("[api] receipt read failed:", e);
+    return new Response("Failed to read receipt", { status: 500 });
+  }
+}
+
 
 function dataUrlByteLength(value: string): number {
   const payload = value.split(",", 2)[1];
@@ -56,7 +111,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       select: { id: true },
     });
 
-    await logAudit({ actorId: user.id, action: "upload_receipt", entityType: "ShortCourseEnrollment", entityId: id, after: { receiptUrl: base64 } });
+    await logAudit({
+      actorId: user.id,
+      action: "upload_receipt",
+      entityType: "ShortCourseEnrollment",
+      entityId: updated.id,
+      after: { fileName, bytes: dataUrlByteLength(base64), mime },
+    });
 
     return ok({ id: updated.id }, { status: 201 });
   } catch (e) {

@@ -16,6 +16,12 @@ const addSchema = z.object({
   studentId: z.string().max(64).optional(),
 });
 
+const moveSchema = z.object({
+  programId: z.string().min(1).max(64),
+  direction: z.enum(["up", "down"]),
+  studentId: z.string().max(64).optional(),
+});
+
 export async function POST(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
@@ -33,8 +39,8 @@ export async function POST(req: NextRequest) {
     if (user.role === "STUDENT") {
       studentId = user.id;
     } else {
-      studentId = parsed.data.studentId ?? user.id;
-      if (!studentId) return fail("studentId is required", 422);
+      if (!parsed.data.studentId) return fail("Choose a student first", 422);
+      studentId = parsed.data.studentId;
       const student = await prisma.user.findUnique({ where: { id: studentId } });
       if (!student || student.role !== "STUDENT") return fail("Invalid student", 404);
       if (!(await canAccessStudent(user, student))) return fail("You do not have access to this student", 403);
@@ -59,6 +65,50 @@ export async function POST(req: NextRequest) {
     }
 
     return ok({ id: item.id }, { status: 201 });
+  } catch (e) {
+    return serverError(e);
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { error, user } = await requireUser();
+    if (error) return error;
+
+    const parsed = moveSchema.safeParse(await req.json().catch(() => ({})));
+    if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
+
+    let studentId: string;
+    if (user.role === "STUDENT") {
+      studentId = user.id;
+    } else {
+      if (!parsed.data.studentId) return fail("Choose a student first", 422);
+      studentId = parsed.data.studentId;
+      const student = await prisma.user.findUnique({ where: { id: studentId } });
+      if (!student || student.role !== "STUDENT") return fail("Invalid student", 404);
+      if (!(await canAccessStudent(user, student))) return fail("You do not have access to this student", 403);
+    }
+
+    const shortlist = await prisma.shortlist.findUnique({
+      where: { studentId },
+      include: { items: { orderBy: { position: "asc" }, select: { id: true, programId: true, position: true } } },
+    });
+    if (!shortlist) return ok({ moved: false });
+
+    const targetIndex = shortlist.items.findIndex((item) => item.programId === parsed.data.programId);
+    if (targetIndex < 0) return fail("Course is not on this shortlist", 404);
+
+    const current = shortlist.items[targetIndex];
+    const neighbourIndex = parsed.data.direction === "up" ? targetIndex - 1 : targetIndex + 1;
+    const neighbour = shortlist.items[neighbourIndex];
+    if (!current || !neighbour) return ok({ moved: false });
+
+    await prisma.$transaction([
+      prisma.shortlistItem.update({ where: { id: current.id }, data: { position: neighbour.position } }),
+      prisma.shortlistItem.update({ where: { id: neighbour.id }, data: { position: current.position } }),
+    ]);
+
+    return ok({ moved: true });
   } catch (e) {
     return serverError(e);
   }
@@ -90,8 +140,8 @@ export async function DELETE(req: NextRequest) {
     if (user.role === "STUDENT") {
       studentId = user.id;
     } else {
-      studentId = studentIdParam ?? user.id;
-      if (!studentId) return fail("studentId is required", 422);
+      if (!studentIdParam) return fail("Choose a student first", 422);
+      studentId = studentIdParam;
       const student = await prisma.user.findUnique({ where: { id: studentId } });
       if (!student || student.role !== "STUDENT") return fail("Invalid student", 404);
       if (!(await canAccessStudent(user, student))) return fail("You do not have access to this student", 403);

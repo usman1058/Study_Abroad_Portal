@@ -15,10 +15,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const course = await prisma.shortCourse.findUnique({
       where: { id },
-      select: { id: true, title: true, fee: true, paymentType: true },
+      select: { id: true, title: true, fee: true, paymentType: true, status: true },
     });
 
-    if (!course) return fail("Course not found", 404);
+    if (!course || course.status !== "active") return fail("Course not found", 404);
 
     const existing = await prisma.shortCourseEnrollment.findUnique({
       where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },

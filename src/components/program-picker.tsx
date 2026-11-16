@@ -40,10 +40,13 @@ export function ProgramPicker({
   value,
   onChange,
   emptyLabel = "Search and select a program…",
+  selectedLabel,
 }: {
   value: string;
   onChange: (id: string) => void;
   emptyLabel?: string;
+  /** Shown when the selected program is known by name but not in the fetched page. */
+  selectedLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -113,7 +116,7 @@ export function ProgramPicker({
             </span>
           </span>
         ) : value ? (
-          <span className="min-w-0 flex-1 text-ink">Program selected</span>
+          <span className="min-w-0 flex-1 truncate text-ink">{selectedLabel ?? "Program selected"}</span>
         ) : (
           <span className="text-ink-muted">{emptyLabel}</span>
         )}

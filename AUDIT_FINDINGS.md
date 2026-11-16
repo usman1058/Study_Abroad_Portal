@@ -321,9 +321,9 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 12 | `/documents` | **Good** | **fixed (§16.6)**: student upload → staff reject → re-upload pre-filled → staff verify round-trip verified in the browser; 30-day expiry warning, per-row status explanation, humanised staff badges, pending-first ordering, all/pending filter, 24 px targets | — |
 | 13 | `/messages` | Poor | entire user table dumped into "Start a conversation"; unlabeled textarea; no read state | recognition over recall, Miller's law |
 | 14 | `/my-applications` | **Good** | **fixed (§16.6)**: real `<h1>` with the slogan as subtitle, `aria-current` stage tabs with counts, `role="status"` confirmation, cards link to their program, document counts come from the DB (unlinked uploads included), humanised stage badges, 24 px targets | — |
-| 15 | `/my-shortlist` | Poor | shares `localhost:3001` links; DB write on GET; compare modal has no dialog semantics | user control, data integrity |
+| 15 | `/my-shortlist` | **Good** | **fixed (§16.7)**: read-only page (no `ShortlistView` writes), share text lists courses with no URL, reorder/remove verified against DB positions, compare dialog semantics + focus restore + 3-chip cap, staff mutations need `studentId` (422), 390/768/1440 clean (97/97) | — |
 | 16 | `/partner-commissions` | Poor | table clipped at 390 (tuition cut mid-value); 3 KPI tiles; dead `mayViewRates` branch; unweighted average | responsive, truthfulness of data |
-| 17 | `/payments` | Poor | no totals/status/method/receipts; page is a wall of identical rows (`take: 100`) | visibility of status, aesthetic-minimalist |
+| 17 | `/payments` | **Good** | **fixed (§16.7)**: real KPIs matched to Prisma, refunds separated/signed, method + type filter with counts, staff 100-row cap stated with true total, scoped and focusable tables, card rows at 390, 390/768/1440 clean | — |
 | 18 | `/profile` | Poor | 8 unlabeled inputs, `alert()` errors, no grouping, 3 currency sources | recognition over recall, accessible forms |
 | 19 | `/programs` | **Good** | **fixed (§16.5)**: 24 per page with "Page N of M" and "N of M" badges, cross-page shortlist selection, PDF export (3.8 KB), staff view read-only, 0 overflow at 390/1440 | — |
 | 20 | `/programs/[id]/analytics` | Needs work | **authz fixed (§14 #2)**: only SUPER_ADMIN/MANAGER; student/agency/counselor are redirected and no data leaks (verified §15). Metric label fixed | authorization, privacy |
@@ -332,7 +332,7 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 23 | `/scholarships/[id]` | Poor | **no Apply CTA**; two currency renderers; share link points at localhost | clear affordance, consistency |
 | 24 | `/search` | **Good** | **fixed (§16.5)**: labelled q/country/level controls, true total from Prisma (63 = 63), stated "first 50 of N" cap, `overflow-x: auto` table, 24 px `View` targets, staff-only verified, 390/1440 clean | — |
 | 25 | `/settings` | Poor | language switcher with one option; currency written to localStorage only; 5 unlabeled inputs | honesty/status, consistency |
-| 26 | `/short-courses` | Needs work | **paywall fixed (§14 #3)**: list no longer embeds `meetingLink` for non-enrolled users; "Interested"↔"Enrolled" affordance still conflates browse/enroll | authorization, match to real world |
+| 26 | `/short-courses` | **Good** | **fixed (§16.7)**: honest enrolment state machine verified end-to-end (free enrol/withdraw, paid receipt → staff approve/reject), class link only after approval, category filter with counts, 60-row stated cap, server-searched program picker (no catalogue leak), staff receipt queue scoped, archived courses 404, 390/768/1440 clean | — |
 | 27 | `/short-courses/[id]` | Needs work | **crash + paywall fixed (§14 #3/#4)**: paid detail renders, receipt upload works, link gated until approved (verified §15); enrollment flow still confusing |
 | 28 | `/transaction` | Poor | 9-column ledger on mobile (514 px table at 390, confirmed §15.1); `take: 100`; `confirm()` delete; raw "v1" copy | responsive, user control |
 | 29 | `/users` | Poor | Actions column clipped at 1440; "Make Super Admin" on **every** row; no search/filter/pagination; AGENCY can open by URL (table 455 px wide at 390, §15.1) | error prevention, flexibility |
@@ -610,12 +610,12 @@ section is closed.
 
 | Metric | Value |
 |---|---|
-| Sections closed with runtime evidence | **A, B, C, D** (12 pages) |
+| Sections closed with runtime evidence | **A, B, C, D, E** (15 pages) |
 | Pages code-complete, section not yet closed | 0 |
-| Pages remaining | **22** (sections E–K) |
-| Page verdicts (§9d) | 9 Good · 13 Needs work · 13 Poor · 0 Blocked |
-| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · verify 35/35 · documents 15/15 |
-| Last updated | 2026-11-15 (Section D closed) |
+| Pages remaining | **19** (sections F–K) |
+| Page verdicts (§9d) | 12 Good · 12 Needs work · 11 Poor · 0 Blocked |
+| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · money 97/97 · verify 35/35 · documents 15/15 |
+| Last updated | 2026-11-16 (Section E closed) |
 
 ### 16.1 Definition of done — applied to every page
 
@@ -640,8 +640,8 @@ section is closed.
 | B | Partner entry + invite | `/partner/login`, `/partner/signup`, `/invite/[token]` | **DONE — 22/22 checks (§16.4)** |
 | C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | **DONE — 41/41 checks (§16.5)** |
 | D | Applications + documents | `/apply`, `/my-applications`, `/documents` | **DONE — 36/36 checks (§16.6)** |
-| E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | queued |
-| F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | queued |
+| E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | **DONE — 97/97 checks (§16.7)** |
+| F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | in progress (plan §16.8) |
 | G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | queued |
 | H | Catalogue | `/programs`, `/scholarships`, `/scholarships/[id]` | queued |
 | I | Finance + reports | `/partner-commissions`, `/transaction`, `/reports` | queued |
@@ -863,3 +863,131 @@ Residual (recorded, not fixed): the wizard still saves profile/education **on Co
 final step is the only place a program can be chosen — a student who reloads mid-wizard keeps the saved steps but
 loses the unsaved one. `listPrograms()` remains unbounded for `/scholarships`, `/short-courses` and `/users/[id]`;
 those pages are handled in their own sections (E/F/H/J).
+
+### 16.7 Section E — student money + shortlist (`/payments`, `/my-shortlist`, `/short-courses`)
+
+Scope: the three pages where a student checks what they owe/have paid, curates their shortlist, and enrols in
+short courses. Known defects from §5/§9: `/payments` uses a KPI slot for a disclaimer, counts refunds as payments,
+ships inconsistent caps (unbounded for students, silent `take: 100` for staff), has no method column on the staff
+table and no totals; `/my-shortlist` writes a `ShortlistView` row on every GET, shares a login-walled
+`localhost:3001` URL over WhatsApp, has no remove/reorder and a compare modal without dialog semantics (and a 4th
+selection is silently ignored); `/short-courses` labels the enrol button "Enrolled ✓" even though clicking it
+withdraws, ships the whole program catalogue to the super-admin form, has no category filter, an actionless
+"pending" KPI, a MYR-only fee line, no empty-state CTA, and **no staff UI anywhere to review the receipts the paid
+flow collects** (`PATCH /api/short-courses/enrollments/[id]` exists but nothing calls it, and there is no way to
+open a stored receipt).
+
+Plan:
+1. `/payments`: real KPIs (total paid, payments recorded, refunds — refunds no longer counted as payments); humanised
+   type badges; method on both tables; per-currency totals for staff; a type filter with counts for staff; the
+   `take: 100` cap stated with the true total; responsive card rows at 390 instead of a 218 px sideways scroll;
+   `scope="col"` and a focusable scroll region where tables remain; `text-slate-400`/`text-amber-600` contrast
+   fixed; copy that explains payments are recorded by staff (no fake pay-now button).
+2. `/my-shortlist`: remove the GET-side `ShortlistView` write; sentence-case heading; share text lists the courses
+   instead of linking an authenticated page (and never `NEXT_PUBLIC_BASE_URL`); row actions for reorder + remove
+   (`PATCH /api/shortlist` added) with inline confirm; compare modal gets `role="dialog"`, `aria-modal`,
+   `aria-labelledby`, Escape-to-close, focus restore, `aria-pressed` chips, a stated 1–3 range and a disabled 4th
+   chip; row-number contrast fixed; responsive rows; `rel` on the PDF link.
+3. `/short-courses`: honest enrolment state machine — browse → enrol (free) / enrol-and-pay (paid) → payment
+   pending → receipt under review → enrolled/rejected, each with its own label and next step; "Enrolled" is no
+   longer a withdraw button; inline confirm instead of `window.confirm`; category filter with counts; bounded
+   course list (60) with the cap stated; super-admin linked-program field uses the server-searched `ProgramPicker`
+   so `/short-courses` stops calling `listPrograms()`; empty-state CTAs; sentence-case heading; `h2` card titles.
+4. Staff receipt review: new `GET /api/short-courses/[id]/receipt` (student sees own, staff scoped by
+   `canAccessStudent`), and a "Receipts awaiting review" panel on `/short-courses` with student, course, receipt
+   link, Approve and Reject (`PATCH`), making the pending KPI actionable.
+5. Verify with `.audit-e.ts` at 390/768/1440: rendering gates, payment totals vs Prisma, refund/payment counts,
+   staff cap + filter, role scoping, shortlist GET-write removal, reorder/remove against DB positions, share text,
+   dialog semantics, category filter, the full free and paid enrolment lifecycles including receipt review and
+   access to the class link only after approval, and the receipt endpoint's 403 for outsiders.
+
+**Result — 97/97 checks passed** (`.audit-e.ts`, 2026-11-16, local Postgres on 5433, production build):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering gates | 14 page/width combinations (`/payments` student + admin, `/my-shortlist` student, `/short-courses` student at 390/768/1440, `/short-courses` admin at 768/1440): **0 px overflow, 0 unlabeled controls, exactly one `h1`, 0 targets under 24 px, 0 AA contrast failures, 0 console/page errors** |
+| `/payments` student | "Total paid" equals the summed non-refund rows per currency from Prisma; "Payments recorded" equals the non-refund row count; "Refunded" equals the refund rows as a positive amount; refund history rows are signed `−` in amber; types ("Service Fee", "Deposit", "Refund") and methods ("Bank transfer", "Card", "Online payment") are humanised; a payment with no application says "General payment · not linked to an application"; another student's note is absent; 390 px renders cards, not the table |
+| `/payments` staff | the 100-row cap is stated in both the KPI and the table footer with the **true** total, and exactly 100 rows render; every `th` has `scope="col"` and a Method column; `?type=REFUND` narrows to the true refund count with one `aria-current`; `?type=BOGUS` falls back to the full list; agency/counselor do not see another student's payments |
+| `/my-shortlist` | `<h1>` is "My shortlist"; opening the page leaves `ShortlistView` count unchanged (8 → 8); the WhatsApp text lists every shortlisted course and contains **no** URL; the PDF responds 200 `application/pdf`; staff `POST`/`PATCH` without `studentId` return 422; a staff account cannot read the page (lands on `/home` with no shortlist data); chips expose `aria-pressed`, Compare is disabled until 2 are chosen, a 4th chip is disabled at 3; the dialog has `role="dialog"`, `aria-modal="true"`, focus moves to Close, Escape closes it and restores focus to the trigger; moving a row down swaps both DB positions and the rendered order; removing a course asks inline, deletes the row and leaves the page |
+| `/short-courses` list | `<h1>` is "Short courses"; students see no Add/Delete/Receipt controls and partners see no enrol controls; the category filter narrows the list (1 `LANGUAGE` card, one `aria-current`); `?category=NOPE` falls back; 61 extra fixtures produce "Showing the first 60 of N short courses." with exactly 60 `h2` cards; the super-admin HTML contains **no** program names (the form uses server search) |
+| Free enrolment | "Enrol free" writes `enrolled`; the class link is absent before enrolment ("A meeting link will be shared closer") and present after; "Withdraw" asks inline and deletes the row, re-offering "Enrol free"; an archived course returns 404 through the API and staff get 403 when they try the student endpoint |
+| Paid enrolment | "Enrol and pay" starts `pending_payment`, offers the receipt step, and keeps the class link out of the page; upload moves the row to `pending_approval` with a stored PNG data URL and "Receipt under review."; staff approval sets `enrolled`, records `approvedById`/`approvedAt`, empties the queue, and the student then sees "You are enrolled in this course!" plus the Join Class link |
+| Receipt access | own receipt 200 (`image/png`); staff with access 200; unassigned counselor 403; another student 404; anonymous 401; the upload's `AuditLog.after` payload is 56 characters of `{fileName, bytes, mime}` and contains no base64 |
+| Staff receipt queue | the pending KPI links to `#receipts` and matches the Prisma pending count; the row names the student and course and links to the scoped receipt; Approve leaves an empty queue; Reject asks inline, keeps the row as `rejected` and records the reviewer; agency/counselor queues hide an unassigned student's receipt; with 51 pending rows the queue renders 50 and says "Showing the 50 oldest of 51 receipts." |
+
+Defects found and fixed in this section:
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| E1 | `/payments` used a KPI slot for a disclaimer, so the "metrics" were a sentence, a count of **all** transaction types and no money total | rendered DOM vs Prisma | real KPIs: Total paid, Payments recorded, Refunded |
+| E2 | Refunds were counted as payments and displayed as unsigned amounts | Prisma cross-check | refunds excluded from paid/count, totalled separately as a positive magnitude, signed `−` in the history |
+| E3 | Raw enums (`SERVICE_FEE`, `COMMISSION_PAYOUT`) and raw method keys (`bank_transfer`) reached the UI | rendered DOM | `humanize()` badges and a method-label map |
+| E4 | The staff list silently cut at 100 rows and never said so | `take: 101` + true total | the cap is stated in the KPI and the footer (e.g. "the 100 most recent of 106") |
+| E5 | The staff table had no method column, no totals and no way to narrow 100+ rows | static + DOM | Method column, per-currency net totals, type tabs with counts and `aria-current`, invalid-filter fallback |
+| E6 | At 390 px the student history was a 218 px sideways-scrolling table | overflow probe | card list under `sm` for both roles; remaining tables are focusable regions with `scope="col"` |
+| E7 | A payment with no application rendered an empty "Details" cell | rendered DOM | "General payment · not linked to an application" |
+| E8 | `text-slate-400` dates and `text-amber-600` labels failed AA | canvas-measured contrast | `ink-muted`/`amber-700` |
+| E9 | Every GET of `/my-shortlist` inserted a `ShortlistView` row — a page read wrote to the database and inflated the staff "last viewed" metric | DB count before/after | page is read-only; the metric is no longer polluted |
+| E10 | The WhatsApp share text linked `http://localhost:3001/short-courses/<id>` (auth-walled, wrong host) | rendered `href` | share text lists the courses and their key facts, no URL |
+| E11 | The shortlist had no remove and no reorder despite a `position` column | schema vs UI | new `PATCH /api/shortlist` swaps positions in a transaction; up/down (disabled at the ends) + inline-confirm remove; rendered order matches the DB |
+| E12 | The compare modal was a bare overlay: no dialog semantics, no focus move/restore, and a 4th selection was silently ignored | DOM + keyboard | `role="dialog"`, `aria-modal`, label, Escape + focus restore, `aria-pressed` chips, stated 1–3 range, disabled 4th chip |
+| E13 | A staff POST/PATCH/DELETE on `/api/shortlist` ran against the caller with no student chosen | API calls | staff mutations require `studentId` and return `422 "Choose a student first"` |
+| E14 | The enrol control said "Enrolled ✓" but clicking it **withdrew** the student, "Interested" silently enrolled, and confirms used `window.confirm` | DOM + click | honest labels (Enrol free / Enrol and pay / Request a place / Complete payment / Upload a new receipt / Withdraw), status badges, inline confirm, `aria-expanded`/`aria-controls` |
+| E15 | Paid students reached `pending_payment` with no way to pay or upload; the whole receipt review loop had no staff UI (`PATCH` existed with zero callers) | static + runtime | detail receipt form, `UploadReceipt` state machine, and a "Receipts awaiting review" panel with Open receipt / Approve / Reject |
+| E16 | There was no endpoint to open a stored receipt at all, so "receipt under review" was unverifiable by staff | static | new `GET /api/short-courses/[id]/receipt`: own student 200, staff scoped by `canAccessStudent`, others 403/404/401 |
+| E17 | The receipt audit entry stored the entire base64 file in `AuditLog.after` | audit row inspection | stores `{fileName, bytes, mime}` on the enrolment id (56 chars) |
+| E18 | Archived courses could still be enrolled through the API | direct API call | non-active courses return 404 from the enrol endpoint |
+| E19 | The receipt queue silently cut at 50 rows | `take: 50` | 50 rows plus "Showing the 50 oldest of N receipts."; approving/rejecting reveals the rest |
+| E20 | `/short-courses` shipped the full program catalogue to the super-admin form, had no category filter, Title Case headings, `h3` card titles, no empty-state CTA and a MYR-only fee | page payload + DOM | server-searched `ProgramPicker` (no `listPrograms()` call), category tabs with counts, sentence-case `h1`, `h2` cards, CTAs, `FeeDisplay` |
+| E21 | The course list was unbounded | `take` audit | 60-row bound with the true total stated |
+
+Harness defects found and fixed while getting to a green run:
+
+| # | Harness defect | Effect | Fix |
+|---|---|---|---|
+| H7 | `page.waitForResponse(...)` was created **after** the click | the fast response was missed, so DB assertions ran before the mutation landed | register the wait before clicking, with `.catch` attached immediately |
+| H8 | A second "Details" click after `router.refresh()` | refresh preserves the client's open state, so the second click **closed** the panel | wait for the class link and only click when it is absent |
+| H9 | Partner-denial checks used the seeded counselor/agency | the seeded student is genuinely assigned to both, so their access was correct and the test was invalid | fixture outsider + a fixture unassigned counselor; assertions now prove denial |
+
+Residual (recorded, not fixed): receipts are stored as base64 data URLs on `ShortCourseEnrollment` (up to 5 MB
+per row) because the schema has no file store; the student payment list is intentionally **not** capped (a
+student's own ledger should be complete, unlike the staff 100-row view); `ShortlistView` is now written nowhere, so
+the "last viewed" signal staff had is orphaned. `/short-courses/[id]` share host, `pending_payment` bank details and
+raw enum badges are Section F.
+
+### 16.8 Section F — course detail + profile (`/short-courses/[id]`, `/messages`, `/profile`)
+
+Scope: the three authenticated pages Section E deliberately left open. Known defects: `/short-courses/[id]`
+builds its WhatsApp link from `NEXT_PUBLIC_BASE_URL` (`http://localhost:3001`), hides the bank details exactly when
+the enrolment reaches `pending_payment` (the moment the student needs them), renders raw `PAID`/`active` badges,
+duplicates the fee, and answers an unknown or archived id with a 200 "Course not found." card; `/messages` appears
+to be fixed in A15 but still dumps the user table into "Start a conversation", has an unlabeled composer using
+`alert()`, caps history at 200 messages across all threads, and never shows or updates read state; `/profile` has
+eight unlabeled controls, `alert()` errors, an invisible first/last name (allowed by the API but not rendered), no
+`autoComplete`, no grouping, a completeness bar with no semantics, and the API accepts `new Date("garbage")` and a
+future birthday, which reach Prisma as an invalid date and 500.
+
+Plan:
+1. `/short-courses/[id]`: `notFound()` for unknown ids (and for archived/inactive courses when the viewer is not
+   staff); share URL derived from the request host (never `NEXT_PUBLIC_BASE_URL`); keep bank details, fee and a
+   payment reference visible in `pending_payment` and `rejected`; one currency-aware fee renderer; humanised
+   payment/session badges; a state-driven enrolment panel (not enrolled free/paid, pending payment, receipt under
+   review with a link to the uploaded file, rejected with re-upload, enrolled/completed with class link + calendar)
+   and no student controls for staff; 24 px+ actions, `rel="noreferrer"`, labelled file input with `role="alert"`
+   errors and focus.
+2. `/messages`: replace the user dump with a searchable, role-scoped contact list (server query, stated cap);
+   unread badges and a thread that marks the opened conversation read; per-conversation pagination ("Load older")
+   instead of one 200-message global cap; labelled composer with `role="alert"`/`role="status"` feedback instead of
+   `alert()`; `<h2>` for both panes, `<time>` for timestamps, AA contrast on the 10 px timestamps; empty state for
+   a student with no assigned contact; invalid `?with=` falls back safely.
+3. `/profile`: associate every label (`Field`/`htmlFor`), render the first/last name fields the API already accepts,
+   `autoComplete` on name/phone/country/birthday, grouped fieldsets with legends, birth date bounded to today on
+   both client and server (reject invalid/future dates with 422, not 500), replace `alert()` with inline
+   `role="alert"` + focus and a `role="status"` save confirmation, role-appropriate fields only, one currency
+   source shared with the shell, and a `role="progressbar"` completeness bar that names what is missing.
+4. Verify with `.audit-f.ts` at 390/768/1440: rendering gates; detail-page states across free/paid/pending/approved/
+   rejected with the class link gated until approval and bank details present while payment is pending; share host;
+   404 for unknown/archived ids; message send → receive → unread → read round-trip plus outsider/role denial;
+   profile save round-trip (names, phone, birthday, currency) with invalid/future birthday rejected 422 and
+   completeness/announcements correct.
+
