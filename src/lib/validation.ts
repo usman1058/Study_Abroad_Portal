@@ -45,10 +45,13 @@ export const httpUrl = (max = 300) =>
       .refine((v) => /^https?:\/\/[^\s]+$/i.test(v), "Must be a valid http(s) URL")
   );
 
-/** Dashboard art may be a remote URL or a small file selected in the admin. */
+/** Dashboard art may be a remote URL, a small file selected in the admin, or an
+ * already-stored object reference (`s3:<key>`) sent back unchanged when the
+ * admin edits other fields. Routes re-check stored refs against the row. */
 const dashboardImageUrl = emptyToNull(
   z.string().trim().max(1_400_000, "Image must be smaller than 1 MB").refine((value) => {
     if (/^https?:\/\/[^\s]+$/i.test(value)) return true;
+    if (/^s3:[A-Za-z0-9][A-Za-z0-9/_.-]{0,300}$/.test(value)) return true;
     const match = value.match(/^data:image\/(?:png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$/i);
     return !!match && Math.floor((match[1].length * 3) / 4) <= 1_000_000;
   }, "Use an http(s) image URL or a PNG, JPEG, WebP, or GIF smaller than 1 MB")

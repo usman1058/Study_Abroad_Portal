@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { fail, ok, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { dashboardAdSchema } from "@/lib/validation";
+import { storeImageUrl } from "@/lib/media";
+import { StorageError } from "@/lib/storage";
 
 export async function GET() {
   try {
@@ -31,6 +33,15 @@ export async function POST(req: NextRequest) {
     const parsed = dashboardAdSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid advertisement", 422);
     const data = parsed.data;
+    // A new advertisement cannot point at an arbitrary stored object; only the
+    // upload path (data URL) or an external URL is allowed.
+    if (data.imageUrl?.startsWith("s3:")) return fail("Upload the image instead of referencing a stored file", 422);
+    try {
+      data.imageUrl = await storeImageUrl(data.imageUrl, user.id);
+    } catch (error) {
+      if (error instanceof StorageError) return fail(error.message, error.status);
+      throw error;
+    }
     const ad = await prisma.dashboardAdvertisement.create({
       data: {
         title: data.title, body: data.body ?? null, imageUrl: data.imageUrl ?? null, linkUrl: data.linkUrl ?? null,

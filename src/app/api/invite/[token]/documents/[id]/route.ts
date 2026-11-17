@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { isStorageRef, readStoredFile, StorageError } from "@/lib/storage";
 
 type Params = { params: Promise<{ token: string; id: string }> };
 
@@ -30,15 +31,24 @@ export async function GET(_req: NextRequest, { params }: Params) {
   });
   if (!doc || doc.ownerId !== link.studentId) return new Response("Not found", { status: 404 });
 
-  const match = /^data:([^;]+);base64,(.+)$/.exec(doc.fileUrl);
-  if (!match) return Response.redirect(doc.fileUrl, 302);
+  if (!isStorageRef(doc.fileUrl) && !doc.fileUrl.startsWith("data:")) {
+    return Response.redirect(doc.fileUrl, 302);
+  }
 
-  const extension = match[1] === "application/pdf" ? "pdf" : match[1].split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
-  return new Response(Buffer.from(match[2], "base64"), {
-    headers: {
-      "Content-Type": match[1],
-      "Content-Disposition": `attachment; filename="${doc.type.toLowerCase()}-document.${extension}"`,
-      "Cache-Control": "private, no-store",
-    },
-  });
+  try {
+    const file = await readStoredFile(doc.fileUrl);
+    const extension =
+      file.contentType === "application/pdf" ? "pdf" : file.contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+    return new Response(new Uint8Array(file.bytes), {
+      headers: {
+        "Content-Type": file.contentType,
+        "Content-Disposition": `attachment; filename="${doc.type.toLowerCase()}-document.${extension}"`,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch (error) {
+    const status = error instanceof StorageError ? error.status : 500;
+    return new Response("Document could not be read", { status });
+  }
 }

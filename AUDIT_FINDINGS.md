@@ -319,12 +319,12 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 10 | `/application/[id]` | Needs work | `<h1>` is the program name; terminal stage change has no confirm/undo; raw enum badge | user control & freedom (Shneiderman), semantics |
 | 11 | `/apply` | **Good** | **fixed (§16.6)**: task heading "Start an application", current-step marker, save-per-step rule stated, leave warning (`beforeunload`), every control labelled, server-searched program picker (40-row cap + true total), draft resume → submit verified end-to-end (36/36) | — |
 | 12 | `/documents` | **Good** | **fixed (§16.6)**: student upload → staff reject → re-upload pre-filled → staff verify round-trip verified in the browser; 30-day expiry warning, per-row status explanation, humanised staff badges, pending-first ordering, all/pending filter, 24 px targets | — |
-| 13 | `/messages` | Poor | entire user table dumped into "Start a conversation"; unlabeled textarea; no read state | recognition over recall, Miller's law |
+| 13 | `/messages` | **Good** | **fixed (§16.8)**: role-scoped searchable contacts (20-cap stated), unread badges, open thread marked read with `aria-current`, per-thread 50-message pagination, labelled composer with `role="alert"`/`role="status"` (no `alert()`), sender sees "Read", 390/1440 clean (54/54 with the section) | — |
 | 14 | `/my-applications` | **Good** | **fixed (§16.6)**: real `<h1>` with the slogan as subtitle, `aria-current` stage tabs with counts, `role="status"` confirmation, cards link to their program, document counts come from the DB (unlinked uploads included), humanised stage badges, 24 px targets | — |
 | 15 | `/my-shortlist` | **Good** | **fixed (§16.7)**: read-only page (no `ShortlistView` writes), share text lists courses with no URL, reorder/remove verified against DB positions, compare dialog semantics + focus restore + 3-chip cap, staff mutations need `studentId` (422), 390/768/1440 clean (97/97) | — |
 | 16 | `/partner-commissions` | Poor | table clipped at 390 (tuition cut mid-value); 3 KPI tiles; dead `mayViewRates` branch; unweighted average | responsive, truthfulness of data |
 | 17 | `/payments` | **Good** | **fixed (§16.7)**: real KPIs matched to Prisma, refunds separated/signed, method + type filter with counts, staff 100-row cap stated with true total, scoped and focusable tables, card rows at 390, 390/768/1440 clean | — |
-| 18 | `/profile` | Poor | 8 unlabeled inputs, `alert()` errors, no grouping, 3 currency sources | recognition over recall, accessible forms |
+| 18 | `/profile` | **Good** | **fixed (§16.8)**: every field labelled and grouped in fieldsets, first/last name editable, `autoComplete`, `role="alert"` summary + focus, `role="status"` save, invalid/future birthday 422, `role="progressbar"` completeness with a named missing list, one currency source, role-appropriate fields | — |
 | 19 | `/programs` | **Good** | **fixed (§16.5)**: 24 per page with "Page N of M" and "N of M" badges, cross-page shortlist selection, PDF export (3.8 KB), staff view read-only, 0 overflow at 390/1440 | — |
 | 20 | `/programs/[id]/analytics` | Needs work | **authz fixed (§14 #2)**: only SUPER_ADMIN/MANAGER; student/agency/counselor are redirected and no data leaks (verified §15). Metric label fixed | authorization, privacy |
 | 21 | `/reports` | Needs work | no date range/filters; page scope (`{}`) disagrees with the transactions API; CSV only | flexibility, consistency |
@@ -333,7 +333,7 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 24 | `/search` | **Good** | **fixed (§16.5)**: labelled q/country/level controls, true total from Prisma (63 = 63), stated "first 50 of N" cap, `overflow-x: auto` table, 24 px `View` targets, staff-only verified, 390/1440 clean | — |
 | 25 | `/settings` | Poor | language switcher with one option; currency written to localStorage only; 5 unlabeled inputs | honesty/status, consistency |
 | 26 | `/short-courses` | **Good** | **fixed (§16.7)**: honest enrolment state machine verified end-to-end (free enrol/withdraw, paid receipt → staff approve/reject), class link only after approval, category filter with counts, 60-row stated cap, server-searched program picker (no catalogue leak), staff receipt queue scoped, archived courses 404, 390/768/1440 clean | — |
-| 27 | `/short-courses/[id]` | Needs work | **crash + paywall fixed (§14 #3/#4)**: paid detail renders, receipt upload works, link gated until approved (verified §15); enrollment flow still confusing |
+| 27 | `/short-courses/[id]` | **Good** | **fixed (§16.8)**: unknown/archived ids return a real 404 for students (staff see the archived state), request-host share link, humanised badges, one fee renderer, bank details from enrolment through rejection, state-driven panel (pending payment / review / rejected / enrolled / completed), own-receipt link, staff see no student controls, 390/768/1440 clean | — |
 | 28 | `/transaction` | Poor | 9-column ledger on mobile (514 px table at 390, confirmed §15.1); `take: 100`; `confirm()` delete; raw "v1" copy | responsive, user control |
 | 29 | `/users` | Poor | Actions column clipped at 1440; "Make Super Admin" on **every** row; no search/filter/pagination; AGENCY can open by URL (table 455 px wide at 390, §15.1) | error prevention, flexibility |
 | 30 | `/users/[id]` | Poor | "More Details" is now gated (§14 #2), but "Student" layout still renders any role and documented controls are missing | least privilege, conceptual model |
@@ -461,18 +461,25 @@ Untracked audit artifacts:
 - `.audit-auth.ts` — 30-check Section A verification (login/next, signup, forgot/reset, labels, 390 px) (§16.3).
 - `.audit-partner.ts` — 22-check Section B verification (partner signup/licence/pending login, guest invite + download) (§16.4).
 - `.audit-visual2.ts` — the capture/metrics harness behind `.audit-shots/v2/`.
+- `.audit-f.ts` — 54-check Section F verification (course detail, messages, profile, S3 media) (§16.8).
+- `.audit-lib.ts`, `.audit-warm.ts` — shared login/metrics helpers and the cold-start warmer used by the later harnesses.
 
-Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files.
+Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files; the one-off S3/diagnostic scripts written during section F (`.audit-s3*.ts`, `.audit-diag.ts`, `.audit-overflow-diag.ts`, `.audit-404-diag.ts`, `.audit-s3-list.mjs`) were deleted once the run was green.
 
 - No source files were modified during the audit itself; the follow-up fix pass is recorded in §14.
 - Production server `next start -p 3210` was started for verification and stopped afterwards.
 - Local test DB: Docker container `sa-portal-pg` (postgres:17-alpine, host port 5433, database `studyabroad`,
   schema via `prisma db push` + `prisma db seed`). It is **not** referenced by `.env`; it only ever existed as a
   per-process `DATABASE_URL` override. Remove with `docker rm -f sa-portal-pg`.
-- **Pending Neon DB cleanup:** the interrupted run left five temporary accounts
-  (`qa-admin-…@studyabroad.test`, `qa-manager-…`, `qa-counselor-…`, `qa-agency-…`, `qa-student-…`, all
-  `active`) plus their QA courses/transactions. They are visible in `/users`. `.audit-check.ts` deletes
-  exactly these rows; re-run it as soon as Neon is reachable.
+- **Section F on Neon (2026-11-17):** Docker Desktop's Linux engine stopped starting on this machine, so section F
+  was verified against a dedicated database on the same Neon instance, `studyabroad_audit`, created and seeded with
+  `prisma db push` + `prisma db seed` (the harness accepts only `localhost:5433` or that database name). The app
+  database `neondb` was never used for audit mutations.
+- **Neon DB cleanup — done (2026-11-17):** `.audit-check.ts` removed the five leftover `qa-*@studyabroad.test`
+  accounts and the one `QA Provider` short course; 96 users remain and `/users` no longer lists fixtures.
+- **Object storage — done:** the `assets` bucket was created on the Neon S3 gateway, the direct round-trip test
+  (PUT → GET byte-identical → DELETE → 404) passed, and the two receipt objects left by the section F runs were
+  pruned; the bucket is empty again.
 - No production data (Neon) was modified, and nothing was deleted outside the `qa-*` fixture namespace.
 
 `git status` shows this file plus the temporary audit artifacts above, plus the source changes listed in §14 (the S0 fix pass was applied after the audit). `.env` is unchanged and still points at Neon.
@@ -610,12 +617,12 @@ section is closed.
 
 | Metric | Value |
 |---|---|
-| Sections closed with runtime evidence | **A, B, C, D, E** (15 pages) |
+| Sections closed with runtime evidence | **A, B, C, D, E, F** (18 pages) |
 | Pages code-complete, section not yet closed | 0 |
-| Pages remaining | **19** (sections F–K) |
-| Page verdicts (§9d) | 12 Good · 12 Needs work · 11 Poor · 0 Blocked |
-| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · money 97/97 · verify 35/35 · documents 15/15 |
-| Last updated | 2026-11-16 (Section E closed) |
+| Pages remaining | **16** (sections G–K) |
+| Page verdicts (§9d) | 15 Good · 10 Needs work · 9 Poor · 0 Blocked |
+| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · money 97/97 · section F 54/54 · verify 35/35 · documents 15/15 |
+| Last updated | 2026-11-17 (Section F closed) |
 
 ### 16.1 Definition of done — applied to every page
 
@@ -641,7 +648,7 @@ section is closed.
 | C | Student home + discovery | `/home`, `/search`, `/programs` (student view) | **DONE — 41/41 checks (§16.5)** |
 | D | Applications + documents | `/apply`, `/my-applications`, `/documents` | **DONE — 36/36 checks (§16.6)** |
 | E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | **DONE — 97/97 checks (§16.7)** |
-| F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | in progress (plan §16.8) |
+| F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | **DONE — 54/54 checks (§16.8)** |
 | G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | queued |
 | H | Catalogue | `/programs`, `/scholarships`, `/scholarships/[id]` | queued |
 | I | Finance + reports | `/partner-commissions`, `/transaction`, `/reports` | queued |
@@ -949,11 +956,11 @@ Harness defects found and fixed while getting to a green run:
 | H8 | A second "Details" click after `router.refresh()` | refresh preserves the client's open state, so the second click **closed** the panel | wait for the class link and only click when it is absent |
 | H9 | Partner-denial checks used the seeded counselor/agency | the seeded student is genuinely assigned to both, so their access was correct and the test was invalid | fixture outsider + a fixture unassigned counselor; assertions now prove denial |
 
-Residual (recorded, not fixed): receipts are stored as base64 data URLs on `ShortCourseEnrollment` (up to 5 MB
-per row) because the schema has no file store; the student payment list is intentionally **not** capped (a
+Residual (recorded, not fixed): receipts were stored as base64 data URLs on `ShortCourseEnrollment` (up to 5 MB
+per row) because the schema has no file store — **superseded by §16.8: all media now lives in Neon object storage
+and Postgres keeps only an `s3:<key>` reference**; the student payment list is intentionally **not** capped (a
 student's own ledger should be complete, unlike the staff 100-row view); `ShortlistView` is now written nowhere, so
-the "last viewed" signal staff had is orphaned. `/short-courses/[id]` share host, `pending_payment` bank details and
-raw enum badges are Section F.
+the "last viewed" signal staff had is orphaned.
 
 ### 16.8 Section F — course detail + profile (`/short-courses/[id]`, `/messages`, `/profile`)
 
@@ -990,4 +997,53 @@ Plan:
    404 for unknown/archived ids; message send → receive → unread → read round-trip plus outsider/role denial;
    profile save round-trip (names, phone, birthday, currency) with invalid/future birthday rejected 422 and
    completeness/announcements correct.
+
+**Result — 54/54 checks passed** (`.audit-f.ts`, 2026-11-17, production build, `next start` against the disposable
+Neon database `studyabroad_audit` and the Neon S3 bucket `assets`):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering gates | `/profile` student 390/1440 + agency 1440; `/short-courses/[id]` student 390/768/1440, admin 1440, free course 390; `/messages` student 390/1440 + admin 390 — every run: **0 px overflow, 0 unlabeled controls, exactly one `h1`, 0 targets under 24 px, 0 AA contrast failures, 0 console/page errors** |
+| Profile | the completeness bar is a real `progressbar` (`aria-valuenow` 0, `aria-valuetext` "0% complete") and moves to 9 after one of eleven fields is saved; the missing list names Birthday; first/last name are rendered and editable; a blank first name is announced, focused and **not** saved; a future birthday is rejected inline and focused; the API answers 422 for invalid, future, blank and unknown-gender payloads; a valid save (200) persists names, phone and currency, announces `role="status"`, and `router.refresh()` updates the bar and the heading subtitle; the currency reaches the shell through `localStorage`; an agency profile shows company/licence, no student fields and no progressbar |
+| Course detail | unknown id → **404**; archived course → **404** for a student and 200 + "Archived" badge for staff; the share link uses the request host; badges read "Paid"/"Test Prep"; the class link is withheld before enrolment; bank details are present from the start of the paid flow; "Enrol and pay" reaches `pending_payment` with the upload form; the uploaded receipt moves the row to `pending_approval` with an `s3:receipts/…` reference (**no base64**); the student opens their own receipt (200 `image/png`); approval reveals the class link and calendar; a completed enrolment keeps access and is labelled completed; rejection keeps the bank details, offers re-upload and links the old receipt; staff see the course state and **no** student controls; a free course unlocks on enrolment |
+| Messages | both permitted contacts can message the student (201/201); opening a thread sets `readAt`; the other thread keeps its badge at 1; the open thread carries `aria-current="page"`; the composer sends, the thread log shows the message exactly once and `role="status"` announces it; an empty composer cannot be sent; the sender sees "Read"; a long thread renders 50 messages and the older page the remaining 7; a student's contact list holds only their counselor and agency; an invalid/forbidden `?with=` falls back to a permitted thread; student→student and a student→unassigned counselor are 403; an agency cannot message a student it did not create (403) but can message its own (201) |
+| Media storage | a document upload returns `s3:documents/…` (no base64), streams back **byte-for-byte** (70/70) as `image/png`, and delete removes both row and object |
+
+Defects found by this run and fixed:
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| F9 | The root `app/loading.tsx` and `(dashboard)/loading.tsx` boundaries started streaming the shell before the page ran, so `notFound()` could no longer set the status: `/short-courses/does-not-exist` answered **200** with the 404 UI, and an archived course was 200 for students too. The same streaming produced a transient second `h1` at 390 px | direct GET status + rendered DOM | both loading boundaries removed; page-level `notFound()`/`redirect()` now return real 404/307 (verified) |
+| F10 | `/messages` overflowed by 2 px at 390 px: both grid cards defaulted to `min-width: auto` and their content set a larger min-content width than the grid column | overflow probe + `min-width` override experiment | `min-w-0` on both cards |
+| F11 | Editing an advertisement without touching its image would have failed validation (`s3:` was not an accepted image value), and allowing arbitrary `s3:` values would let an admin attach any stored object | schema + route review | `dashboardImageUrl` accepts `s3:<key>`; the PATCH route accepts only the row's own reference, POST refuses stored references, and the form maps stored images to `/api/dashboard-ads/<id>/image` |
+
+Harness defects found and fixed while getting to a green run:
+
+| # | Harness defect | Effect | Fix |
+|---|---|---|---|
+| H10 | The rendering gate compared `metrics.unlabeled.length === 0`, but `METRICS_JS` already returns a **count** | every gate failed with "unlabeled undefined" | compare `metrics.unlabeled === 0` |
+| H11 | `page.locator("[role=alert]")` was not scoped | Next's route announcer (`#__next-route-announcer__`) also has `role="alert"`, so strict mode aborted the run | scope to `form [role=alert]` |
+| H12 | Server-rendered values were read immediately after the toast/status appeared | the completeness bar and subtitle looked stale, and the sent message was counted page-wide (the conversation list also previews it) | wait for `router.refresh()` to land (`waitForFunction`), then assert inside `role="log"` |
+
+**Media moved to Neon object storage (applies to every section).** Every uploaded file used to be stored as a
+base64 `data:` URL in Postgres (documents, short-course receipts, advertisement art). The database now stores only a
+reference, `s3:<key>`, and the bytes live in the Neon S3-compatible bucket:
+
+| Concern | Behaviour (as implemented) |
+|---|---|
+| Client | `src/lib/storage.ts` speaks the S3 REST API over HTTPS and signs each request with AWS Signature V4 (`node:crypto`), so no SDK dependency (the `@aws-sdk/client-s3` install stalled repeatedly on this network). Path-style addressing, region `ap-southeast-1`, bucket from `S3_BUCKET` (`assets`). |
+| Operations | PutObject / GetObject / DeleteObject only. Upload failures surface as `502` with "The file could not be stored"; a missing object is `404`; unconfigured storage is `503`. |
+| Keys | `documents/<ownerId>/<uuid>.<ext>`, `receipts/<studentId>/<uuid>.<ext>`, `dashboard-ads/<adminId>/<uuid>.<ext>`. The key never contains a user-supplied filename, and the owner id is stripped to `[A-Za-z0-9_-]`, so a key cannot escape its prefix. |
+| Privacy | The bucket is private and objects are `Cache-Control: private, no-store`; files are streamed by authenticated routes only: `/api/documents/[id]` (student self or `canAccessStudentDocuments`), `/api/invite/[token]/documents/[id]` (invite scope), `/api/short-courses/[id]/receipt` (own receipt or staff), `/api/dashboard-ads/[id]/image` (any signed-in user, matching ad visibility). |
+| Lifecycle | Replacing a receipt deletes the previous object; deleting a document or an advertisement deletes its object; a failed row update after a successful upload deletes the orphan. |
+| Legacy rows | `readStoredFile()` still decodes old `data:` URLs, so no data migration is required and previously uploaded files keep working. |
+| Ad images | Uploaded `data:image/…` payloads are stored and the form shows `/api/dashboard-ads/<id>/image`; an edit that leaves the image untouched sends the existing `s3:` reference back and the route refuses any stored reference that is not the row's own (no attaching another object). External `https:` art is untouched. |
+| Config | `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET` in `.env` (gitignored); `.env.example` documents the names with placeholders. Audit runs use a dedicated disposable Neon database (`studyabroad_audit`), never the app database. |
+
+Residual (recorded, not fixed): advertisement `https:` URLs are still rendered directly by the browser, so that image
+host sees the viewer's IP (the stored path does not); legacy `data:` rows stay in Postgres until re-uploaded or
+deleted; the S3 bucket is reachable only from networks that allow outbound 443 to the Neon storage gateway (this
+machine intermittently reset the TLS connection to it, which is why the harness runs were repeated); and the orphaned
+`DocumentViewer` component still assumes `data:`/http URLs. Section F share-link host, `pending_payment` bank details,
+raw enum badges and the `/messages`/`/profile` defects are closed.
 

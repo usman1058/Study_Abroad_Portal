@@ -5,15 +5,29 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { optionalText } from "@/lib/validation";
 import { CURRENCIES } from "@/lib/constants";
 
+const birthdayField = z
+  .string()
+  .max(32)
+  .optional()
+  .nullable()
+  .refine((value) => {
+    if (!value) return true;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    return date <= endOfToday;
+  }, "Enter a valid birth date that is not in the future");
+
 const profileSchema = z.object({
   userTitle: optionalText(10),
-  firstName: z.string().trim().max(80).optional(),
-  lastName: z.string().trim().max(80).optional(),
-  gender: optionalText(20),
+  firstName: z.string().trim().min(1, "First name is required").max(80).optional(),
+  lastName: z.string().trim().min(1, "Last name is required").max(80).optional(),
+  gender: z.preprocess((value) => (value === "" ? null : value), z.enum(["male", "female", "other"]).nullable()).optional(),
   phone: optionalText(30),
   country: optionalText(80),
   passportNumber: optionalText(20),
-  birthday: z.string().max(32).optional().nullable(),
+  birthday: birthdayField,
   countryOfResidence: optionalText(80),
   nationality: optionalText(80),
   cityOfResidence: optionalText(100),

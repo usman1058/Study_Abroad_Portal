@@ -5,6 +5,14 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { canAccessStudent } from "@/lib/permissions";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
+import {
+  buildMediaKey,
+  deleteObject,
+  parseDataUrl,
+  putObject,
+  readStoredFile,
+  StorageError,
+} from "@/lib/storage";
 
 const uploadSchema = z.object({
   fileName: z.string().min(1).max(255),
@@ -23,7 +31,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
 /**
  * Inline receipt viewer.
  *
- * Receipts are stored as data URLs on the enrolment, so without this endpoint
+ * Receipts are stored in object storage, so without this endpoint
  * staff could see "receipt under review" but never open the file. Students may
  * read their own receipt; staff are scoped by canAccessStudent.
  */
@@ -46,20 +54,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return new Response("Forbidden", { status: 403 });
     }
 
-    const match = /^data:([^;,]+);base64,(.*)$/s.exec(enrollment.receiptUrl);
-    if (!match) return new Response("Receipt is not readable", { status: 422 });
-    const [, mime, payload] = match;
-    if (!isAllowedMimeType(mime)) return new Response("Receipt type is not allowed", { status: 415 });
-
-    const bytes = Buffer.from(payload, "base64");
-    return new Response(new Uint8Array(bytes), {
-      headers: {
-        "Content-Type": mime,
-        "Content-Disposition": `inline; filename="receipt-${id}.${MIME_EXTENSIONS[mime] ?? "bin"}"`,
-        "Cache-Control": "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
+    try {
+      const file = await readStoredFile(enrollment.receiptUrl);
+      if (!isAllowedMimeType(file.contentType)) {
+        return new Response("Receipt type is not allowed", { status: 415 });
+      }
+      return new Response(new Uint8Array(file.bytes), {
+        headers: {
+          "Content-Type": file.contentType,
+          "Content-Disposition": `inline; filename="receipt-${id}.${MIME_EXTENSIONS[file.contentType] ?? "bin"}"`,
+          "Cache-Control": "private, no-store",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
+    } catch (error) {
+      if (error instanceof StorageError) return new Response(error.message, { status: error.status });
+      throw error;
+    }
   } catch (e) {
     console.error("[api] receipt read failed:", e);
     return new Response("Failed to read receipt", { status: 500 });
@@ -102,14 +113,35 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return fail("File type not allowed. Allowed: PDF, JPEG, PNG, DOC, DOCX", 415);
     }
 
-    const updated = await prisma.shortCourseEnrollment.update({
-      where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
-      data: {
-        receiptUrl: base64,
-        status: "pending_approval",
-      },
-      select: { id: true },
-    });
+    const previousReceipt = enrollment.receiptUrl;
+
+    const bytes = parseDataUrl(base64);
+    if (!bytes) return fail("Invalid file data", 422);
+
+    let receiptUrl: string;
+    try {
+      receiptUrl = await putObject(buildMediaKey("receipts", user.id, mime), bytes.bytes, mime);
+    } catch (error) {
+      if (error instanceof StorageError) return fail(error.message, error.status);
+      throw error;
+    }
+
+    let updated: { id: string };
+    try {
+      updated = await prisma.shortCourseEnrollment.update({
+        where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
+        data: {
+          receiptUrl,
+          status: "pending_approval",
+        },
+        select: { id: true },
+      });
+    } catch (error) {
+      // Do not leave an orphaned object when the row could not be updated.
+      await deleteObject(receiptUrl);
+      throw error;
+    }
+    await deleteObject(previousReceipt);
 
     await logAudit({
       actorId: user.id,

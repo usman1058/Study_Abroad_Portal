@@ -81,8 +81,19 @@ export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }
   );
 }
 
+/**
+ * Stored advertisement images keep only an `s3:<key>` reference in Postgres and
+ * are streamed through the session-scoped image endpoint; external http(s) URLs
+ * and legacy `data:` values are rendered as-is.
+ */
+export function adImageSrc(ad: Pick<DashboardAd, "id" | "imageUrl">): string | null {
+  if (!ad.imageUrl) return null;
+  return ad.imageUrl.startsWith("s3:") ? `/api/dashboard-ads/${ad.id}/image` : ad.imageUrl;
+}
+
 function AdImage({ ad, className }: { ad: DashboardAd; className: string }) {
-  return ad.imageUrl ? <img src={ad.imageUrl} alt={ad.title} className={`w-full object-cover ${className}`} /> : <div className={`bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 ${className}`} />;
+  const src = adImageSrc(ad);
+  return src ? <img src={src} alt={ad.title} className={`w-full object-cover ${className}`} /> : <div className={`bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 ${className}`} />;
 }
 
 function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean; onClose: () => void; ads: DashboardAd[]; onChange: (ads: DashboardAd[]) => void }) {
@@ -115,8 +126,16 @@ function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean;
       const response = await fetch(editing ? `/api/dashboard-ads/${editing.id}` : "/api/dashboard-ads", { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const json = await response.json();
       if (!response.ok) { setError(json.error ?? "Could not save the advertisement."); return; }
-      const next = editing ? ads.map((ad) => ad.id === editing.id ? { ...ad, ...payload } : ad) : [{ ...payload, ...json.data, createdAt: new Date().toISOString() }, ...ads];
-      onChange(next.sort((a, b) => a.sortOrder - b.sortOrder));
+      // Uploaded images are replaced by an `s3:` reference, so re-read the
+      // server's copy rather than trusting the optimistic payload.
+      const listResponse = await fetch("/api/dashboard-ads");
+      const listJson = await listResponse.json();
+      if (listResponse.ok && Array.isArray(listJson.data)) {
+        onChange(listJson.data as DashboardAd[]);
+      } else {
+        const next = editing ? ads.map((ad) => ad.id === editing.id ? { ...ad, ...payload } : ad) : [{ ...payload, ...json.data, createdAt: new Date().toISOString() }, ...ads];
+        onChange(next.sort((a, b) => a.sortOrder - b.sortOrder));
+      }
       startCreate();
     } catch { setError("Network error. Please try again."); } finally { setBusy(false); }
   }
@@ -141,7 +160,7 @@ function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean;
       <form onSubmit={save} className="space-y-3 rounded-xl border border-line p-4 dark:border-navy-700"><p className="font-medium">{editing ? "Edit announcement" : "New announcement"}</p>{error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
         <div><Label htmlFor="ad-title">Title</Label><Input id="ad-title" value={form.title} onChange={(event) => field("title", event.target.value)} maxLength={120} required /></div>
         <div><Label htmlFor="ad-body">Message</Label><Textarea id="ad-body" value={form.body} onChange={(event) => field("body", event.target.value)} maxLength={400} /></div>
-        <div className="space-y-2"><Label htmlFor="dashboard-ad-image">Advertisement image (optional)</Label><div className="flex flex-wrap items-center gap-2"><Input id="dashboard-ad-image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={selectImage} className="max-w-xs" aria-label="Upload advertisement image" /><span className="text-xs text-ink-muted">PNG, JPEG, WebP, or GIF · up to 1 MB</span></div><Input type="url" value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl} onChange={(event) => field("imageUrl", event.target.value)} placeholder="Or paste an https:// image URL" aria-label="Advertisement image URL" />{form.imageUrl && <div className="relative overflow-hidden rounded-lg border border-line dark:border-navy-700"><img src={form.imageUrl} alt="Advertisement preview" className="h-28 w-full object-cover" /><Button type="button" size="sm" variant="secondary" className="absolute right-2 top-2" onClick={() => field("imageUrl", "")}><X className="h-3.5 w-3.5" /> Remove image</Button></div>}</div>
+        <div className="space-y-2"><Label htmlFor="dashboard-ad-image">Advertisement image (optional)</Label><div className="flex flex-wrap items-center gap-2"><Input id="dashboard-ad-image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={selectImage} className="max-w-xs" aria-label="Upload advertisement image" /><span className="text-xs text-ink-muted">PNG, JPEG, WebP, or GIF · up to 1 MB</span></div><Input type="url" value={form.imageUrl.startsWith("data:") || form.imageUrl.startsWith("s3:") ? "" : form.imageUrl} onChange={(event) => field("imageUrl", event.target.value)} placeholder="Or paste an https:// image URL" aria-label="Advertisement image URL" />{form.imageUrl && <div className="relative overflow-hidden rounded-lg border border-line dark:border-navy-700"><img src={form.imageUrl.startsWith("s3:") && editing ? `/api/dashboard-ads/${editing.id}/image` : form.imageUrl} alt="Advertisement preview" className="h-28 w-full object-cover" /><Button type="button" size="sm" variant="secondary" className="absolute right-2 top-2" onClick={() => field("imageUrl", "")}><X className="h-3.5 w-3.5" /> Remove image</Button></div>}</div>
         <div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="ad-link">Destination URL</Label><Input id="ad-link" type="url" value={form.linkUrl} onChange={(event) => field("linkUrl", event.target.value)} placeholder="https://…" /></div><div><Label htmlFor="ad-cta">Button label</Label><Input id="ad-cta" value={form.ctaLabel} onChange={(event) => field("ctaLabel", event.target.value)} maxLength={40} /></div></div>
         <div className="grid gap-3 sm:grid-cols-3"><div><Label htmlFor="ad-order">Order</Label><Input id="ad-order" type="number" min="0" max="999" value={form.sortOrder} onChange={(event) => field("sortOrder", event.target.value)} /></div><div><Label htmlFor="ad-starts">Starts</Label><Input id="ad-starts" type="date" value={form.startsAt} onChange={(event) => field("startsAt", event.target.value)} /></div><div><Label htmlFor="ad-ends">Ends</Label><Input id="ad-ends" type="date" value={form.endsAt} onChange={(event) => field("endsAt", event.target.value)} /></div></div>
         <div className="flex items-center gap-2"><input id="ad-active" type="checkbox" checked={form.active} onChange={(event) => field("active", event.target.checked)} /><Label htmlFor="ad-active">Show this announcement</Label></div>

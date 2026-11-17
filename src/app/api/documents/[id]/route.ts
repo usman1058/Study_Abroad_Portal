@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudentDocuments } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
+import { deleteObject, readStoredFile, StorageError } from "@/lib/storage";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,16 +27,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return fail("Forbidden", 403);
     }
 
-    const match = /^data:([^;]+);base64,(.+)$/.exec(doc.fileUrl);
-    if (!match) return Response.redirect(doc.fileUrl, 302);
-    return new Response(Buffer.from(match[2], "base64"), {
+    const file = await readStoredFile(doc.fileUrl);
+    const extension = file.contentType === "application/pdf" ? "pdf" : file.contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "bin";
+    return new Response(new Uint8Array(file.bytes), {
       headers: {
-        "Content-Type": match[1],
-        "Content-Disposition": `inline; filename="${doc.type.toLowerCase()}-document"`,
+        "Content-Type": file.contentType,
+        "Content-Disposition": `inline; filename="${doc.type.toLowerCase()}-document.${extension}"`,
         "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (e) {
+    if (e instanceof StorageError) return new Response(e.message, { status: e.status });
     return serverError(e);
   }
 }
@@ -100,6 +103,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     }
 
     await prisma.document.delete({ where: { id } });
+    await deleteObject(doc.fileUrl);
     await logAudit({ actorId: user.id, action: "delete", entityType: "Document", entityId: id });
     return ok({ id });
   } catch (e) {

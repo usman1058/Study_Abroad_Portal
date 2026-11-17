@@ -16,5 +16,5 @@ export function AddCourseToCalendar({ title, provider, startDate, duration }: { 
     URL.revokeObjectURL(url);
   }
 
-  return <button type="button" onClick={download} className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:underline"><Calendar className="h-3 w-3" /> Add to Calendar</button>;
+  return <button type="button" onClick={download} className="inline-flex min-h-8 items-center gap-1 text-sm font-medium text-brand-600 hover:underline"><Calendar className="h-3 w-3" aria-hidden="true" /> Add to Calendar</button>;
 }

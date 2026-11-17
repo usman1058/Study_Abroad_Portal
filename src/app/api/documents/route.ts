@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
+import { buildMediaKey, parseDataUrl, putObject, StorageError } from "@/lib/storage";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { DocumentType } from "@/generated/prisma/client";
 import { directDocumentStudentScopeWhere } from "@/lib/permissions";
@@ -52,9 +53,16 @@ export async function POST(req: NextRequest) {
       if (!app || app.studentId !== user.id) return fail("Invalid application", 403);
     }
 
-    // v1 stores files as data URLs in the DB — no external storage needed.
-    // Swap this for object storage later without a migration.
-    const fileUrl = base64;
+    const bytes = parseDataUrl(base64);
+    if (!bytes) return fail("Invalid file data", 422);
+
+    let fileUrl: string;
+    try {
+      fileUrl = await putObject(buildMediaKey("documents", user.id, mime), bytes.bytes, mime);
+    } catch (error) {
+      if (error instanceof StorageError) return fail(error.message, error.status);
+      throw error;
+    }
 
     const doc = await prisma.document.create({
       data: {
