@@ -1,43 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, Megaphone, Pause, Pencil, Play, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Megaphone, Pause, Pencil, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { AdvertisementManager, adImageSrc, type DashboardAd } from "@/components/advertisement-manager";
 
-export type DashboardAd = {
-  id: string;
-  title: string;
-  body: string | null;
-  imageUrl: string | null;
-  linkUrl: string | null;
-  ctaLabel: string | null;
-  active: boolean;
-  sortOrder: number;
-  startsAt: Date | string | null;
-  endsAt: Date | string | null;
-};
+export type { DashboardAd };
 
-type FormState = {
-  title: string; body: string; imageUrl: string; linkUrl: string; ctaLabel: string;
-  active: boolean; sortOrder: string; startsAt: string; endsAt: string;
-};
-
-const blankForm: FormState = { title: "", body: "", imageUrl: "", linkUrl: "", ctaLabel: "Learn more", active: true, sortOrder: "0", startsAt: "", endsAt: "" };
-
-function toDateInput(value: Date | string | null): string {
-  if (!value) return "";
-  return new Date(value).toISOString().slice(0, 10);
-}
-
-function adToForm(ad: DashboardAd): FormState {
-  return { title: ad.title, body: ad.body ?? "", imageUrl: ad.imageUrl ?? "", linkUrl: ad.linkUrl ?? "", ctaLabel: ad.ctaLabel ?? "Learn more", active: ad.active, sortOrder: String(ad.sortOrder), startsAt: toDateInput(ad.startsAt), endsAt: toDateInput(ad.endsAt) };
-}
-
-export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }: { ads: DashboardAd[]; canManage?: boolean; variant?: "rail" | "hero" | "image"; id?: string }) {
+export function DashboardAdRail({
+  ads,
+  canManage = false,
+  variant = "rail",
+  id,
+}: {
+  ads: DashboardAd[];
+  canManage?: boolean;
+  variant?: "rail" | "hero" | "image";
+  id?: string;
+}) {
   const [allItems, setAllItems] = useState(ads);
   const [index, setIndex] = useState(0);
   const [manageOpen, setManageOpen] = useState(false);
@@ -45,9 +26,17 @@ export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }
   const [paused, setPaused] = useState(false);
   const [hovering, setHovering] = useState(false);
   const now = Date.now();
-  const items = allItems.filter((item) => item.active && (!item.startsAt || new Date(item.startsAt).getTime() <= now) && (!item.endsAt || new Date(item.endsAt).getTime() >= now));
+  const items = allItems.filter(
+    (item) =>
+      item.active &&
+      (!item.startsAt || new Date(item.startsAt).getTime() <= now) &&
+      (!item.endsAt || new Date(item.endsAt).getTime() >= now),
+  );
 
-  useEffect(() => { setAllItems(ads); setIndex(0); }, [ads]);
+  useEffect(() => {
+    setAllItems(ads);
+    setIndex(0);
+  }, [ads]);
   useEffect(() => {
     if (items.length < 2 || paused || hovering) return;
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % items.length), 6500);
@@ -59,113 +48,161 @@ export function DashboardAdRail({ ads, canManage = false, variant = "rail", id }
   const imageOnly = variant === "image";
 
   return (
-    <aside id={id} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} className="h-fit overflow-hidden rounded-2xl border border-line bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900" aria-label="Dashboard carousel">
-      {!imageOnly && <div className="flex items-center justify-between border-b border-line px-4 py-3 dark:border-navy-700">
-        <div><div className="flex items-center gap-2 text-sm font-semibold"><Megaphone className="h-4 w-4 text-brand-600" /> {variant === "hero" ? "Featured updates" : "Dashboard carousel"}</div>{variant === "hero" && <p className="mt-0.5 text-xs text-ink-muted">News, offers, and important deadlines</p>}</div>
-        {canManage && <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)} aria-label="Manage advertisements"><Pencil className="h-3.5 w-3.5" /> Manage ads</Button>}
-      </div>}
-      {!ad ? (
-        <div className={imageOnly ? "flex h-56 items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 p-5 text-center text-sm text-white sm:h-64" : "p-5 text-sm text-ink-muted"}>{imageOnly ? "New updates will appear here." : canManage ? "No active announcements. Add one to highlight an offer, partner, or deadline." : "No announcements right now. New updates from your team will appear here."}</div>
-      ) : (
-        <div className="relative">
-          {imageOnly ? (ad.linkUrl ? <a href={ad.linkUrl} target="_blank" rel="noreferrer" aria-label={ad.title} className="block"><AdImage ad={ad} className="h-56 sm:h-64" /></a> : <AdImage ad={ad} className="h-56 sm:h-64" />) : <AdImage ad={ad} className={variant === "hero" ? "h-48 sm:h-60" : "h-28"} />}
-          {!imageOnly && <div className="space-y-3 p-4">
-            <div><p className="text-sm font-semibold">{ad.title}</p>{ad.body && <p className="mt-1 text-xs leading-5 text-ink-muted dark:text-slate-400">{ad.body}</p>}</div>
-            {ad.linkUrl && <a href={ad.linkUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline">{ad.ctaLabel || "Learn more"}<ExternalLink className="h-3 w-3" /></a>}
-          </div>}
-          {items.length > 1 && (imageOnly ? <><button type="button" onClick={() => move(-1)} aria-label="Previous announcement" className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80"><ChevronLeft className="h-4 w-4" /></button><button type="button" onClick={() => move(1)} aria-label="Next announcement" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80"><ChevronRight className="h-4 w-4" /></button><button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play announcements" : "Pause announcements"} aria-pressed={paused} className="absolute bottom-3 right-3 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80">{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button></> : <div className="flex items-center justify-between border-t border-line px-3 py-2 dark:border-navy-700"><button type="button" onClick={() => move(-1)} aria-label="Previous announcement" className="rounded-md p-1 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800"><ChevronLeft className="h-4 w-4" /></button><div className="flex items-center gap-1"><span className="text-[11px] text-slate-500 dark:text-slate-400">{index + 1} of {items.length}</span><button type="button" onClick={() => setPaused((value) => !value)} aria-label={paused ? "Play announcements" : "Pause announcements"} aria-pressed={paused} className="rounded-md p-1 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800">{paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}</button></div><button type="button" onClick={() => move(1)} aria-label="Next announcement" className="rounded-md p-1 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800"><ChevronRight className="h-4 w-4" /></button></div>)}
+    <aside
+      id={id}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      className="h-fit overflow-hidden rounded-2xl border border-line bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900"
+      aria-label="Dashboard carousel"
+    >
+      {!imageOnly && (
+        <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3 dark:border-navy-700">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Megaphone className="h-4 w-4 text-brand-600" /> {variant === "hero" ? "Featured updates" : "Dashboard carousel"}
+            </div>
+            {variant === "hero" && <p className="mt-0.5 text-xs text-ink-muted">News, offers, and important deadlines</p>}
+          </div>
+          {canManage && (
+            <Button size="sm" variant="ghost" onClick={() => setManageOpen(true)} aria-label="Manage advertisements">
+              <Pencil className="h-3.5 w-3.5" /> Manage ads
+            </Button>
+          )}
         </div>
       )}
-      {canManage && <AdvertisementManager open={manageOpen} onClose={() => setManageOpen(false)} ads={allItems} onChange={(next) => { setAllItems(next); setIndex(0); }} />}
+      {!ad ? (
+        <div
+          className={
+            imageOnly
+              ? "flex h-56 items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 p-5 text-center text-sm text-white sm:h-64"
+              : "p-5 text-sm text-ink-muted"
+          }
+        >
+          {imageOnly
+            ? "New updates will appear here."
+            : canManage
+              ? "No active announcements. Add one to highlight an offer, partner, or deadline."
+              : "No announcements right now. New updates from your team will appear here."}
+        </div>
+      ) : (
+        <div className="relative">
+          {imageOnly ? (
+            ad.linkUrl ? (
+              <a href={ad.linkUrl} target="_blank" rel="noreferrer" aria-label={ad.title} className="block">
+                <AdImage ad={ad} className="h-56 sm:h-64" />
+              </a>
+            ) : (
+              <AdImage ad={ad} className="h-56 sm:h-64" />
+            )
+          ) : (
+            <AdImage ad={ad} className={variant === "hero" ? "h-48 sm:h-60" : "h-28"} />
+          )}
+          {!imageOnly && (
+            <div className="space-y-3 p-4">
+              <div>
+                <p className="text-sm font-semibold">{ad.title}</p>
+                {ad.body && <p className="mt-1 text-xs leading-5 text-ink-muted">{ad.body}</p>}
+              </div>
+              {ad.linkUrl && (
+                <a
+                  href={ad.linkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:underline"
+                >
+                  {ad.ctaLabel || "Learn more"}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
+          {items.length > 1 &&
+            (imageOnly ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => move(-1)}
+                  aria-label="Previous announcement"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(1)}
+                  aria-label="Next announcement"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaused((value) => !value)}
+                  aria-label={paused ? "Play announcements" : "Pause announcements"}
+                  aria-pressed={paused}
+                  className="absolute bottom-3 right-3 rounded-full bg-navy-950/55 p-2 text-white transition hover:bg-navy-950/80"
+                >
+                  {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center justify-between border-t border-line px-3 py-2 dark:border-navy-700">
+                <button
+                  type="button"
+                  onClick={() => move(-1)}
+                  aria-label="Previous announcement"
+                  className="rounded-md p-1.5 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-ink-muted">
+                    {index + 1} of {items.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPaused((value) => !value)}
+                    aria-label={paused ? "Play announcements" : "Pause announcements"}
+                    aria-pressed={paused}
+                    className="rounded-md p-1.5 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800"
+                  >
+                    {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => move(1)}
+                  aria-label="Next announcement"
+                  className="rounded-md p-1.5 text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+        </div>
+      )}
+      {canManage && (
+        <Dialog open={manageOpen} onClose={() => setManageOpen(false)} title="Manage dashboard announcements" wide>
+          <AdvertisementManager
+            initialAds={allItems}
+            headingLevel="h3"
+            onChange={(next) => {
+              setAllItems(next);
+              setIndex(0);
+            }}
+          />
+        </Dialog>
+      )}
     </aside>
   );
 }
 
-/**
- * Stored advertisement images keep only an `s3:<key>` reference in Postgres and
- * are streamed through the session-scoped image endpoint; external http(s) URLs
- * and legacy `data:` values are rendered as-is.
- */
-export function adImageSrc(ad: Pick<DashboardAd, "id" | "imageUrl">): string | null {
-  if (!ad.imageUrl) return null;
-  return ad.imageUrl.startsWith("s3:") ? `/api/dashboard-ads/${ad.id}/image` : ad.imageUrl;
-}
-
 function AdImage({ ad, className }: { ad: DashboardAd; className: string }) {
   const src = adImageSrc(ad);
-  return src ? <img src={src} alt={ad.title} className={`w-full object-cover ${className}`} /> : <div className={`bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 ${className}`} />;
-}
-
-function AdvertisementManager({ open, onClose, ads, onChange }: { open: boolean; onClose: () => void; ads: DashboardAd[]; onChange: (ads: DashboardAd[]) => void }) {
-  const [editing, setEditing] = useState<DashboardAd | null>(null);
-  const [form, setForm] = useState<FormState>(blankForm);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  function startCreate() { setEditing(null); setForm(blankForm); setError(null); }
-  function startEdit(ad: DashboardAd) { setEditing(ad); setForm(adToForm(ad)); setError(null); }
-  function field(key: keyof FormState, value: string | boolean) { setForm((current) => ({ ...current, [key]: value })); }
-
-  function selectImage(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]).has(file.type)) { setError("Choose a PNG, JPEG, WebP, or GIF image."); return; }
-    if (file.size > 1_000_000) { setError("Image must be 1 MB or smaller."); return; }
-    const reader = new FileReader();
-    reader.onload = () => { field("imageUrl", String(reader.result)); setError(null); };
-    reader.onerror = () => setError("The image could not be read. Please try another file.");
-    reader.readAsDataURL(file);
-  }
-
-  async function save(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true); setError(null);
-    const payload = { ...form, sortOrder: Number(form.sortOrder), startsAt: form.startsAt ? new Date(`${form.startsAt}T00:00:00.000Z`).toISOString() : null, endsAt: form.endsAt ? new Date(`${form.endsAt}T23:59:59.999Z`).toISOString() : null };
-    try {
-      const response = await fetch(editing ? `/api/dashboard-ads/${editing.id}` : "/api/dashboard-ads", { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const json = await response.json();
-      if (!response.ok) { setError(json.error ?? "Could not save the advertisement."); return; }
-      // Uploaded images are replaced by an `s3:` reference, so re-read the
-      // server's copy rather than trusting the optimistic payload.
-      const listResponse = await fetch("/api/dashboard-ads");
-      const listJson = await listResponse.json();
-      if (listResponse.ok && Array.isArray(listJson.data)) {
-        onChange(listJson.data as DashboardAd[]);
-      } else {
-        const next = editing ? ads.map((ad) => ad.id === editing.id ? { ...ad, ...payload } : ad) : [{ ...payload, ...json.data, createdAt: new Date().toISOString() }, ...ads];
-        onChange(next.sort((a, b) => a.sortOrder - b.sortOrder));
-      }
-      startCreate();
-    } catch { setError("Network error. Please try again."); } finally { setBusy(false); }
-  }
-
-  async function remove(ad: DashboardAd) {
-    if (!window.confirm(`Delete “${ad.title}”?`)) return;
-    setBusy(true); setError(null);
-    try {
-      const response = await fetch(`/api/dashboard-ads/${ad.id}`, { method: "DELETE" });
-      const json = await response.json();
-      if (!response.ok) { setError(json.error ?? "Could not delete the advertisement."); return; }
-      onChange(ads.filter((item) => item.id !== ad.id));
-      if (editing?.id === ad.id) startCreate();
-    } catch { setError("Network error. Please try again."); } finally { setBusy(false); }
-  }
-
-  return <Dialog open={open} onClose={onClose} title="Manage dashboard announcements" wide>
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-      <section className="space-y-3"><div className="flex items-center justify-between"><p className="text-sm font-medium">All announcements</p><Button size="sm" variant="outline" onClick={startCreate}><Plus className="h-3.5 w-3.5" /> New</Button></div>
-        {ads.length === 0 ? <p className="rounded-lg border border-dashed border-line-strong p-4 text-sm text-ink-muted">No announcements yet.</p> : <ul className="space-y-2">{ads.map((ad) => <li key={ad.id} className="flex items-center gap-2 rounded-lg border border-line p-3 dark:border-navy-700"><span className={`h-2 w-2 rounded-full ${ad.active ? "bg-emerald-500" : "bg-slate-300"}`} /><button className="min-w-0 flex-1 text-left" onClick={() => startEdit(ad)}><span className="block truncate text-sm font-medium">{ad.title}</span><span className="text-xs text-ink-muted">Order {ad.sortOrder} · {ad.active ? "Live" : "Paused"}</span></button><button className="rounded-md p-2 text-red-600 hover:bg-red-50" onClick={() => remove(ad)} aria-label={`Delete ${ad.title}`} disabled={busy}><Trash2 className="h-4 w-4" /></button></li>)}</ul>}
-      </section>
-      <form onSubmit={save} className="space-y-3 rounded-xl border border-line p-4 dark:border-navy-700"><p className="font-medium">{editing ? "Edit announcement" : "New announcement"}</p>{error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-        <div><Label htmlFor="ad-title">Title</Label><Input id="ad-title" value={form.title} onChange={(event) => field("title", event.target.value)} maxLength={120} required /></div>
-        <div><Label htmlFor="ad-body">Message</Label><Textarea id="ad-body" value={form.body} onChange={(event) => field("body", event.target.value)} maxLength={400} /></div>
-        <div className="space-y-2"><Label htmlFor="dashboard-ad-image">Advertisement image (optional)</Label><div className="flex flex-wrap items-center gap-2"><Input id="dashboard-ad-image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={selectImage} className="max-w-xs" aria-label="Upload advertisement image" /><span className="text-xs text-ink-muted">PNG, JPEG, WebP, or GIF · up to 1 MB</span></div><Input type="url" value={form.imageUrl.startsWith("data:") || form.imageUrl.startsWith("s3:") ? "" : form.imageUrl} onChange={(event) => field("imageUrl", event.target.value)} placeholder="Or paste an https:// image URL" aria-label="Advertisement image URL" />{form.imageUrl && <div className="relative overflow-hidden rounded-lg border border-line dark:border-navy-700"><img src={form.imageUrl.startsWith("s3:") && editing ? `/api/dashboard-ads/${editing.id}/image` : form.imageUrl} alt="Advertisement preview" className="h-28 w-full object-cover" /><Button type="button" size="sm" variant="secondary" className="absolute right-2 top-2" onClick={() => field("imageUrl", "")}><X className="h-3.5 w-3.5" /> Remove image</Button></div>}</div>
-        <div className="grid gap-3 sm:grid-cols-2"><div><Label htmlFor="ad-link">Destination URL</Label><Input id="ad-link" type="url" value={form.linkUrl} onChange={(event) => field("linkUrl", event.target.value)} placeholder="https://…" /></div><div><Label htmlFor="ad-cta">Button label</Label><Input id="ad-cta" value={form.ctaLabel} onChange={(event) => field("ctaLabel", event.target.value)} maxLength={40} /></div></div>
-        <div className="grid gap-3 sm:grid-cols-3"><div><Label htmlFor="ad-order">Order</Label><Input id="ad-order" type="number" min="0" max="999" value={form.sortOrder} onChange={(event) => field("sortOrder", event.target.value)} /></div><div><Label htmlFor="ad-starts">Starts</Label><Input id="ad-starts" type="date" value={form.startsAt} onChange={(event) => field("startsAt", event.target.value)} /></div><div><Label htmlFor="ad-ends">Ends</Label><Input id="ad-ends" type="date" value={form.endsAt} onChange={(event) => field("endsAt", event.target.value)} /></div></div>
-        <div className="flex items-center gap-2"><input id="ad-active" type="checkbox" checked={form.active} onChange={(event) => field("active", event.target.checked)} /><Label htmlFor="ad-active">Show this announcement</Label></div>
-        <div className="flex gap-2"><Button type="submit" disabled={busy}>{busy ? "Saving…" : editing ? "Save changes" : "Create announcement"}</Button>{editing && <Button type="button" variant="outline" onClick={startCreate}>Cancel edit</Button>}</div>
-      </form>
-    </div>
-  </Dialog>;
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={ad.title} className={`w-full object-cover ${className}`} />
+  ) : (
+    <div className={`bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 ${className}`} />
+  );
 }

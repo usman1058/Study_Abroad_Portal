@@ -1,6 +1,6 @@
 # Study Abroad Portal — Consolidated Audit Record
 
-Last updated: 2026-11-12 (audit + S0 fix pass; see §14)
+Last updated: 2026-11-18 (Neon runtime verification and visitor-lead follow-up; see §16.9–§16.13)
 Auditor: automated code + runtime audit (static read of all pages/routes, live exploit verification, partial visual QA)
 
 This file is the single source of truth for the audit. It records **facts**, **evidence**, **severity**, **what was corrected**, and **what is still unverified**. Do not restate findings from memory without checking here.
@@ -14,7 +14,7 @@ This file is the single source of truth for the audit. It records **facts**, **e
 | Static review of all pages | DONE | 32 `page.tsx` files read |
 | Static review of all API routes | DONE | 38 `route.ts` files read |
 | Libs / schema / proxy / config / tests | DONE | permissions, auth, session, api, stages, validation, schema.prisma, proxy.ts, next.config.ts, playwright config, seed |
-| Build + typecheck | DONE (pass) | Baseline `pnpm build` + `pnpm typecheck`, 47 routes; both re-run green after the §14 fixes |
+| Build + typecheck | DONE (pass) | Final `pnpm build` compiled all 52 routes; `pnpm typecheck` and `git diff --check` passed after the final source/audit edits |
 | Runtime role/exploit verification | DONE | temporary accounts, NextAuth cookie login, cleanup verified |
 | Full Playwright E2E | NOT DONE | 31 passed / 5 failed / 73 never ran (stale seeded hashes) |
 | Visual review of every page | DONE | 136 screenshots @1440/768/390 for public + admin + manager + counselor (agency partial), plus **75 more** covering all 25 student/agency pages (§15.1); per-page verdict in §9d |
@@ -314,35 +314,37 @@ Scale: **Blocked** (security/functional failure), **Poor** (multiple P1/P2 defec
 | 5 | `/partner/signup` | Needs work | **fixed (§16.4)**: required licence/registration number (stored on `User.licenseNumber`), confirmation + live rules, consent, labels, announced errors | match between system and real world |
 | 6 | `/invite/[token]` | Needs work | **fixed (§16.4)**: generic `<h1>`, noindex, privacy note, payment dates/method, per-document download via a token-scoped guest endpoint (section + ownership enforced), 390 px clean | privacy by default, semantic hierarchy |
 | 7 | `/home` | **Good** | **fixed (§16.5)**: 390/768/1440 clean (0 overflow, 0 unlabeled controls, one `h1`, 0 sub-24 px targets, AA contrast, 0 console errors); empty ad rail removed for non-admins; role-correct prompts; metric cards match Prisma | density is still high (6 quick actions + rail), but no gate fails |
-| 8 | `/advertisements` | Needs work | carousel-only, no list/status/schedule, "New ad" two clicks deep | flexibility, visibility of status |
-| 9 | `/application` | Poor | mobile renders a raw unstyled option dump (36 students), 204 sub-24 px targets, no count/pagination/sort | error prevention, Fitts's law, responsive |
-| 10 | `/application/[id]` | Needs work | `<h1>` is the program name; terminal stage change has no confirm/undo; raw enum badge | user control & freedom (Shneiderman), semantics |
+| 8 | `/advertisements` | **Good** | **fixed (§16.9)**: shared manager list with live/scheduled/paused/expired counts derived once from the data, schedule/order/destination per row, one-click focused editor, inline delete confirmation, live preview fed by the same state, stored `s3:` images streamed per row, non-owner writes 403, 390/1440 clean (39/39 with the section) | — |
+| 9 | `/application` | **Good** | **fixed (§16.9)**: 25-row server pagination with true range/count, stage chips with counts that preserve the sort, three orderings, page-clamp redirect, scoped cards/table, empty and invalid-stage states, empty-by-default create form, 390/1440 clean | — |
+| 10 | `/application/[id]` | **Good** | **fixed (§16.9)**: 404 for unknown and out-of-scope ids, student-name `h1` with program subtitle, canonical stage labels, `<dl>` facts, "N of M verified", per-document named 36 px file links, inline rejection with a reason shown to the student, terminal-stage confirmation before writing, 390/1440 clean | — |
 | 11 | `/apply` | **Good** | **fixed (§16.6)**: task heading "Start an application", current-step marker, save-per-step rule stated, leave warning (`beforeunload`), every control labelled, server-searched program picker (40-row cap + true total), draft resume → submit verified end-to-end (36/36) | — |
 | 12 | `/documents` | **Good** | **fixed (§16.6)**: student upload → staff reject → re-upload pre-filled → staff verify round-trip verified in the browser; 30-day expiry warning, per-row status explanation, humanised staff badges, pending-first ordering, all/pending filter, 24 px targets | — |
 | 13 | `/messages` | **Good** | **fixed (§16.8)**: role-scoped searchable contacts (20-cap stated), unread badges, open thread marked read with `aria-current`, per-thread 50-message pagination, labelled composer with `role="alert"`/`role="status"` (no `alert()`), sender sees "Read", 390/1440 clean (54/54 with the section) | — |
 | 14 | `/my-applications` | **Good** | **fixed (§16.6)**: real `<h1>` with the slogan as subtitle, `aria-current` stage tabs with counts, `role="status"` confirmation, cards link to their program, document counts come from the DB (unlinked uploads included), humanised stage badges, 24 px targets | — |
 | 15 | `/my-shortlist` | **Good** | **fixed (§16.7)**: read-only page (no `ShortlistView` writes), share text lists courses with no URL, reorder/remove verified against DB positions, compare dialog semantics + focus restore + 3-chip cap, staff mutations need `studentId` (422), 390/768/1440 clean (97/97) | — |
-| 16 | `/partner-commissions` | Poor | table clipped at 390 (tuition cut mid-value); 3 KPI tiles; dead `mayViewRates` branch; unweighted average | responsive, truthfulness of data |
+| 16 | `/partner-commissions` | **Needs work** | §16.11 adds search, pagination, weighted commission rates, and mobile cards; production browser metrics remain unverified | responsive, truthfulness of data |
 | 17 | `/payments` | **Good** | **fixed (§16.7)**: real KPIs matched to Prisma, refunds separated/signed, method + type filter with counts, staff 100-row cap stated with true total, scoped and focusable tables, card rows at 390, 390/768/1440 clean | — |
 | 18 | `/profile` | **Good** | **fixed (§16.8)**: every field labelled and grouped in fieldsets, first/last name editable, `autoComplete`, `role="alert"` summary + focus, `role="status"` save, invalid/future birthday 422, `role="progressbar"` completeness with a named missing list, one currency source, role-appropriate fields | — |
 | 19 | `/programs` | **Good** | **fixed (§16.5)**: 24 per page with "Page N of M" and "N of M" badges, cross-page shortlist selection, PDF export (3.8 KB), staff view read-only, 0 overflow at 390/1440 | — |
 | 20 | `/programs/[id]/analytics` | Needs work | **authz fixed (§14 #2)**: only SUPER_ADMIN/MANAGER; student/agency/counselor are redirected and no data leaks (verified §15). Metric label fixed | authorization, privacy |
-| 21 | `/reports` | Needs work | no date range/filters; page scope (`{}`) disagrees with the transactions API; CSV only | flexibility, consistency |
-| 22 | `/scholarships` | Poor | duplicates `/programs` with different actions; 6 controls per row; truncated names | consistency & standards |
-| 23 | `/scholarships/[id]` | Poor | **no Apply CTA**; two currency renderers; share link points at localhost | clear affordance, consistency |
+| 21 | `/reports` | **Needs work** | §16.11 scopes totals to related students and applies the chosen date period to both summary and CSV; visual/runtime checks remain open | flexibility, consistency |
+| 22 | `/scholarships` | **Needs work** | §16.10 sends the duplicate listing to `/programs`, leaving one catalogue path; runtime review remains open | consistency & standards |
+| 23 | `/scholarships/[id]` | **Needs work** | §16.10 adds a student Apply CTA, shared currency fee display, request-host sharing and generic heading; runtime review remains open | clear affordance, consistency |
 | 24 | `/search` | **Good** | **fixed (§16.5)**: labelled q/country/level controls, true total from Prisma (63 = 63), stated "first 50 of N" cap, `overflow-x: auto` table, 24 px `View` targets, staff-only verified, 390/1440 clean | — |
-| 25 | `/settings` | Poor | language switcher with one option; currency written to localStorage only; 5 unlabeled inputs | honesty/status, consistency |
+| 25 | `/settings` | **Needs work** | §16.13 removes the one-language control; currency persistence and labels/errors were improved; session revocation and security headers remain separate hardening work | honesty/status, consistency |
 | 26 | `/short-courses` | **Good** | **fixed (§16.7)**: honest enrolment state machine verified end-to-end (free enrol/withdraw, paid receipt → staff approve/reject), class link only after approval, category filter with counts, 60-row stated cap, server-searched program picker (no catalogue leak), staff receipt queue scoped, archived courses 404, 390/768/1440 clean | — |
 | 27 | `/short-courses/[id]` | **Good** | **fixed (§16.8)**: unknown/archived ids return a real 404 for students (staff see the archived state), request-host share link, humanised badges, one fee renderer, bank details from enrolment through rejection, state-driven panel (pending payment / review / rejected / enrolled / completed), own-receipt link, staff see no student controls, 390/768/1440 clean | — |
-| 28 | `/transaction` | Poor | 9-column ledger on mobile (514 px table at 390, confirmed §15.1); `take: 100`; `confirm()` delete; raw "v1" copy | responsive, user control |
-| 29 | `/users` | Poor | Actions column clipped at 1440; "Make Super Admin" on **every** row; no search/filter/pagination; AGENCY can open by URL (table 455 px wide at 390, §15.1) | error prevention, flexibility |
-| 30 | `/users/[id]` | Poor | "More Details" is now gated (§14 #2), but "Student" layout still renders any role and documented controls are missing | least privilege, conceptual model |
+| 28 | `/transaction` | **Needs work** | §16.11 adds 25-row pagination/counts, type filtering, human labels, responsive cards and labelled transaction form; browser review remains open | responsive, user control |
+| 29 | `/users` | **Needs work** | §16.12 adds server pagination/search/role/status filters, mobile cards, scoped role editing and invite-copy feedback; browser review remains open | error prevention, flexibility |
+| 30 | `/users/[id]` | **Needs work** | §16.12 replaces the full-catalogue shortlist picker with a server-search picker and exposes document links/status; browser review remains open | least privilege, conceptual model |
 | 31 | `/users/[id]/analytics` | Needs work | **authz + money fixed (§14 #2/#10)**: SUPER_ADMIN/MANAGER only, refunds excluded, per-currency totals; page-level redirect surfaces as a 200 payload redirect (§15 nuance) | authorization, data integrity |
-| 32 | `/visitor-form` | Poor | 6 unlabeled fields; promises follow-up but only Delete exists; MANAGER sees a dead branch | match to real world, accessible forms |
+| 32 | `/visitor-form` | **Needs work** | §16.13 enables manager access and create/update/delete lead actions, status filtering and responsive cards; runtime review remains open | match to real world, accessible forms |
 | 33 | `/forgot-password` | Good | new page (§16.3): labelled email, generic response (no account enumeration), rate-limited, 390 px clean | privacy, error recovery |
 | 34 | `/reset-password` | Good | new page (§16.3): signed single-use 30-min token, live password rules, weak/tampered/reused token rejected, confirmation, labelled controls | security, error prevention |
 
-**Totals (post-fix):** 0 Blocked · 13 Poor · 13 Needs work · 9 Good. `/apply`, `/documents` and `/my-applications`
+**Totals (post-fix, current table):** 0 Blocked · 0 Poor · 16 Needs work · 18 Good. Section G moved `/advertisements` and
+`/application/[id]` to Good (39/39 checks), so `/application` and those two pages all score Good.
+`/apply`, `/documents` and `/my-applications`
 moved to Good in §16.6 after a 36/36 browser run (including upload → reject → re-upload → verify and draft → submit).
 `/student/login`, `/student/signup` moved out of Poor in §16.3; the three partner/invite pages moved out of Poor in
 §16.4; the two recovery pages score Good; `/home`, `/programs` and `/search` moved from Poor to Good in §16.5. The
@@ -395,18 +397,18 @@ Recorded so they are not repeated as findings:
 
 ### S1 — Core flows / role model
 7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`. → **DONE (§14 #13, verified §15.2)**
-8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs.
+8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs. → **code updated (§16.10); runtime review open.**
 9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3), approval-state messaging DONE (§16.4)**; session revocation on reset still open.
-10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`.
-11. Reconcile nav/guards (`/users` AGENCY, `/transaction` COUNSELOR, `/visitor-form` MANAGER). *(`/programs` proxy matcher entry: DONE, §14 #7.)*
-12. Fix reports transaction scope; add date range.
+10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`. → **`/my-documents` dead matcher removed (§16.13); `/sub-agencies` remains open pending scope/schema decision.**
+11. Reconcile nav/guards (`/users` AGENCY, `/transaction` COUNSELOR, `/visitor-form` MANAGER). → **visitor manager route/API now implemented (§16.13); broader per-role runtime matrix remains open.** *(`/programs` proxy matcher entry: DONE, §14 #7.)*
+12. Fix reports transaction scope; add date range. → **code updated (§16.11); runtime review open.**
 
 ### S2 — UX / accessibility / responsive
-13. Label every dashboard form (`htmlFor`/`id`, `autoComplete`, `aria-invalid`, `role="alert"`); replace `alert`/`confirm` with toast + AlertDialog.
-14. Mobile reflow: `/home` (253 px), `/search` (395 px), `/partner-commissions` (146 px), `/transaction` (514 px table), `/users` (455 px table), `/scholarships` (+ detail header), `/my-applications` (80 px), `/payments`, `/my-shortlist` — all confirmed in §15.1. `/scholarships` also overflows at 1440.
-15. Pagination + result counts + sorting on users/programs/scholarships/application/transaction; mobile cards.
+13. Label every dashboard form (`htmlFor`/`id`, `autoComplete`, `aria-invalid`, `role="alert"`); replace `alert`/`confirm` with toast + AlertDialog. → **code updates across G–K; browser/keyboard sweep remains open.**
+14. Mobile reflow on affected staff pages → **responsive layouts updated for G–K (§16.9–§16.13); remaining visual metrics require browser reruns.**
+15. Pagination + result counts + sorting on users/programs/scholarships/application/transaction; mobile cards. → **users, application, and transaction updated; scholarships now redirects to the single paginated programs catalogue. Runtime review remains open.**
 16. Enrollment affordance split; compare modal semantics; carousel pause (**DONE, §14 #12**); contrast tokens.
-17. Real i18n or remove the language switcher; persist currency to `User.preferredCurrency`.
+17. Real i18n or remove the language switcher; persist currency to `User.preferredCurrency`. → **language selector removed; currency persistence added (§16.13), runtime check open.**
 
 ### S3 — Polish / hardening
 18. `not-found.tsx`, corrected `error.tsx`, content-only skeleton.
@@ -427,10 +429,10 @@ Recorded so they are not repeated as findings:
 (`ep-weathered-glitter-azj3pb39-pooler.c-3.ap-southeast-1.aws.neon.tech:5432`) became unreachable during
 the audit. Re-diagnosed on 2026-11-12: DNS resolves correctly (CNAME → `c-3.ap-southeast-1.aws.neon.tech`,
 A records `52.76.108.241`, `52.76.128.157`, `13.251.213.89`), but TCP connect to **all three** on 5432
-times out, for both the pooled and direct hostnames. There was no local Postgres, so a disposable Docker
-Postgres was used to finish the runtime work (§15). Neon itself is still unreachable, which means the
-`qa-*` fixtures there are still not deleted; everything else below is now either verified locally or still
-genuinely open.
+timed out during the 2026-11-12 pass. A dedicated `studyabroad_audit` Neon DB was reachable for Section F
+(54/54 checks on 2026-11-17), then timed out during the Section G rerun later that day. Earlier `qa-*`
+fixture cleanup is recorded in §13. For this continuation, that transient DB access prevents closing the
+runtime checks for sections G–K; the local Docker engine was unavailable.
 
 - ~~Student visual QA (14 pages)~~ — **done**: 75 captures in `.audit-shots/v2/` (§15.1).
 - ~~Agency visual QA for the remaining pages~~ — **done** (same batch).
@@ -462,11 +464,14 @@ Untracked audit artifacts:
 - `.audit-partner.ts` — 22-check Section B verification (partner signup/licence/pending login, guest invite + download) (§16.4).
 - `.audit-visual2.ts` — the capture/metrics harness behind `.audit-shots/v2/`.
 - `.audit-f.ts` — 54-check Section F verification (course detail, messages, profile, S3 media) (§16.8).
+- `.audit-g.ts` — 39-check Section G verification (pipeline, detail, advertisements) (§16.9).
+- `.audit-hk.ts` — shared 78-check Sections H–K responsive/render/error and role-navigation sweep (§16.10–§16.13).
+- `.audit-hk-workflows.ts` — report export and visitor-lead workflow/role/unique-ID regression.
 - `.audit-lib.ts`, `.audit-warm.ts` — shared login/metrics helpers and the cold-start warmer used by the later harnesses.
 
 Removed after inspection: `.audit-playwright.ts`, `.audit-runtime*.ts`, `.audit-visual.ts`, `.audit-debug.ts`, the 31 full-page dev PNGs, and the empty/stale metrics files; the one-off S3/diagnostic scripts written during section F (`.audit-s3*.ts`, `.audit-diag.ts`, `.audit-overflow-diag.ts`, `.audit-404-diag.ts`, `.audit-s3-list.mjs`) were deleted once the run was green.
 
-- No source files were modified during the audit itself; the follow-up fix pass is recorded in §14.
+- The prior audit's original source fixes are recorded in §14; continuation source edits and runtime-found fixes are recorded in §16.9–§16.13.
 - Production server `next start -p 3210` was started for verification and stopped afterwards.
 - Local test DB: Docker container `sa-portal-pg` (postgres:17-alpine, host port 5433, database `studyabroad`,
   schema via `prisma db push` + `prisma db seed`). It is **not** referenced by `.env`; it only ever existed as a
@@ -613,16 +618,15 @@ evidence. Each section covers 2–3 pages; a section is only closed when every p
 is re-verified at runtime against the local Postgres, and is recorded here. Nothing is claimed as fixed until its
 section is closed.
 
-**Progress tracker — update this table every time a section closes.**
+**Progress tracker — update this table as sections close.**
 
 | Metric | Value |
 |---|---|
-| Sections closed with runtime evidence | **A, B, C, D, E, F** (18 pages) |
-| Pages code-complete, section not yet closed | 0 |
-| Pages remaining | **16** (sections G–K) |
-| Page verdicts (§9d) | 15 Good · 10 Needs work · 9 Poor · 0 Blocked |
-| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · money 97/97 · section F 54/54 · verify 35/35 · documents 15/15 |
-| Last updated | 2026-11-17 (Section F closed) |
+| Sections closed with runtime evidence | **A, B, C, D, E, F, G** (21 pages) |
+| Sections with code updates pending runtime closure | **H, I, J, K** |
+| Page verdicts (§9d) | 18 Good · 16 Needs work · 0 Poor · 0 Blocked (current table; Section G moved two pages) |
+| Harnesses green | auth 30/30 · partner 22/22 · discovery 41/41 · journey 36/36 · money 97/97 · section F 54/54 · section G 39/39 · verify 35/35 · documents 15/15 |
+| Last updated | 2026-11-18 (Section G closed on the disposable Neon DB; advertisement edit 500 fixed) |
 
 ### 16.1 Definition of done — applied to every page
 
@@ -649,11 +653,11 @@ section is closed.
 | D | Applications + documents | `/apply`, `/my-applications`, `/documents` | **DONE — 36/36 checks (§16.6)** |
 | E | Student money + shortlist | `/payments`, `/my-shortlist`, `/short-courses` | **DONE — 97/97 checks (§16.7)** |
 | F | Course detail + profile | `/short-courses/[id]`, `/messages`, `/profile` | **DONE — 54/54 checks (§16.8)** |
-| G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | queued |
-| H | Catalogue | `/programs`, `/scholarships`, `/scholarships/[id]` | queued |
-| I | Finance + reports | `/partner-commissions`, `/transaction`, `/reports` | queued |
-| J | People | `/users`, `/users/[id]`, `/users/[id]/analytics` | queued |
-| K | Analytics + settings | `/programs/[id]/analytics`, `/settings`, `/visitor-form` | queued |
+| G | Staff application pipeline | `/application`, `/application/[id]`, `/advertisements` | **DONE — 39/39 checks (§16.9)** |
+| H | Catalogue | `/programs`, `/scholarships`, `/scholarships/[id]` | **78/78 shared H–K render/role checks passed; catalogue actions open (§16.10)** |
+| I | Finance + reports | `/partner-commissions`, `/transaction`, `/reports` | **78/78 shared H–K render/role checks passed; export/transaction flows open (§16.11)** |
+| J | People | `/users`, `/users/[id]`, `/users/[id]/analytics` | **78/78 shared H–K render/role checks passed; CRUD/scope flows open (§16.12)** |
+| K | Analytics + settings | `/programs/[id]/analytics`, `/settings`, `/visitor-form` | **78/78 render/role checks + 12/12 report/lead workflow checks; settings/dashboard behavior open (§16.13)** |
 
 ### 16.3 Section A — public entry + auth
 
@@ -1047,3 +1051,91 @@ machine intermittently reset the TLS connection to it, which is why the harness 
 `DocumentViewer` component still assumes `data:`/http URLs. Section F share-link host, `pending_payment` bank details,
 raw enum badges and the `/messages`/`/profile` defects are closed.
 
+
+### 16.9 Section G — staff application pipeline (`/application`, `/application/[id]`, `/advertisements`)
+
+Scope: the three staff pages that drive an application from draft to enrolled and control the dashboards' announcements. Known defects carried in from §5/§9d: the pipeline loaded every visible application with no paging, no counts and no sort; the stage filter was a JavaScript-only `<select>` that silently dropped the active sort; the create form pre-selected the first student; `/application/[id]` answered an unknown id with a **200** "Application not found." card, redirected out-of-scope ids back to the list (revealing that the record exists), used the program name as the `h1`, rendered raw enum stages, and gave every document link the same accessible name "Open file"; rejections went through `window.confirm()` and always stored the reason "Rejected by staff"; `/advertisements` hid schedule, order, destination and paused/scheduled/expired state, offered a one-click destructive delete, and **every edit answered 500** (see G1). The pass also completed the interrupted rewrite of `application/page.tsx` that was already in the working tree.
+
+**Changes made:**
+
+- `/application`: 25-row server page (`skip`/`take`), true filtered total and visible range ("Showing 1–25 of 54 applications"), out-of-range pages redirected to the last real page, stage counts from a scoped `groupBy`, and three orderings (recently updated, oldest update, student A–Z). The stage filter is now server-rendered links carrying real counts, marking exactly one `aria-current`, and preserving the active sort; unknown stage/sort values fall back instead of erroring. Empty filtered results explain the state and offer "Show all stages". Rows are cards below `sm` and a captioned, column-scoped table above it, with humanised stage labels and a Visa column.
+- Create form: starts with **no** student, requires both a student and a program before submit, shows `role="alert"`/`role="status"` feedback, resets the selection after a successful draft, and explains the case where a counselor has no assigned students instead of rendering a dead form.
+- `SearchableSelect`: a native collapsed `<select>` under a search field (the old exposed listbox dumped every option onto the page), keeping a filtered-out selection visible and stating "N of M options".
+- `/application/[id]`: unknown **and** out-of-scope ids both answer a real **404**; the student name is the `h1` with the program/university as subtitle; canonical stage labels/tone; program facts in a `<dl>`; "N of M verified" from the documents the viewer may see; per-document 24 px+ "Open file" links with distinct `aria-label`s; the document-gate hint is `amber-700`; responsive document rows.
+- Document verification: rejection is inline (no browser dialog), requires a reason shown to the student, announces success in `role="status"` and displays the stored reason on the row.
+- `/advertisements`: new shared `AdvertisementManager` + `AdvertisementsClient`. The list is the primary surface — live/scheduled/paused/expired status (one derivation shared by rows and counts), schedule, order and destination host per row, one-click "New announcement" that focuses `#ad-title`, inline delete confirmation with `role="alert"`, and a live preview rail fed by the same state so the preview cannot disagree with the editor. Stored `s3:` images render through `/api/dashboard-ads/<id>/image`; external URLs still render directly.
+
+**Result — 39/39 checks passed** (`.audit-g.ts`, 2026-11-18, production build, `next start` against the disposable Neon database `studyabroad_audit`; fixtures removed by the harness `finally` block):
+
+| Area | Verified behaviour |
+|---|---|
+| Rendering gates | counselor `/application` 390/1440, counselor `/application/[id]` 390/1440, admin `/advertisements` 390/1440 — every run: **0 px overflow, 0 unlabeled controls, exactly one `h1`, 0 targets under 24 px, 0 AA contrast failures, 0 console/page errors** |
+| Access | a student requesting `/application` is 307'd to `/my-applications`; a visible detail id answers 200 while a counselor's out-of-scope id and an unknown id both answer **404**; `/advertisements` 307s a counselor to `/home`; student and agency `PUT /api/applications/:id` are **403** and an illegal DRAFT→ENROLLED move is **422**; a counselor's advertisement `PATCH`/`POST` are **403/403** |
+| Pipeline | seeded counselor scope: 54 visible applications → 25 rows, "Showing 1–25 of 54", page 2 "26–50", `page=999` → `page=3` "51–54"; stage chips equal the `groupBy` counts (all 54, rejected 1) with one `aria-current`; `?stage=REJECTED&sort=student_asc` renders exactly the rejected row and every chip href keeps `sort=student_asc`; the empty OFFER filter explains itself and offers a reset; `?stage=BOGUS` falls back to the full first page; student A–Z puts the QA Alpha row first and marks the sort current |
+| Create | the select starts empty, the out-of-scope student is absent (4 options), submit is disabled; choosing a student + server-searched program files a **DRAFT**, announces `role="status"`, shows the new row and resets the select to empty; a duplicate for the same program is **409**; a counselor with no students sees the explanation and no student control |
+| Detail | `h1` = student name with program subtitle; UNDER_REVIEW offers only Under Review/Rejected/Withdrawn and hides the document-gated Offer with the required-documents hint; DRAFT offers Draft/Submitted/Withdrawn; "0 of 2 verified" matches the visible documents; each "Open file" link names its document and is 36 px tall; Verify → `VERIFIED` + `verifiedById` + announced; Reject stores the typed reason, shows it on the row, and raises **no** browser dialog; VISA→ENROLLED asks "This is a terminal stage." and does **not** write before confirmation, then stores ENROLLED and announces |
+| Advertisements | counters match a database-derived status model (7 total · 3 live · 1 scheduled · 2 paused · 1 expired); "New announcement" focuses `#ad-title`; create stores order 9 and shows **Live**; edit persists the new title; unchecking "Show" stores `active: false` and the row says **Paused**; a future start date stores and the row says **Scheduled**; delete requires the inline confirmation and removes the row; the preview rail shows only a currently-live ad; a foreign `s3:` reference is **422** on POST and on PATCH, the row's own reference round-trips **200**, and the stored value is unchanged |
+| Cross-role | only `SUPER_ADMIN` reaches `/advertisements` and can write advertisements; staff scoping is applied by the shared `studentScopeWhere` (the out-of-scope application is invisible in both the list and the detail) |
+
+Defects found by this run and fixed:
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| G1 | **No advertisement could be edited.** `PATCH /api/dashboard-ads/[id]` called `dashboardAdSchema.partial()`, and Zod refuses `.partial()` on an object schema carrying a `superRefine`, so the handler threw before touching the row and answered **500** every time | instrumented harness response (`500 {"success":false,"error":"Internal server error"}`) + server log `Error: .partial() cannot be used on object schemas containing refinements` | validation split into `dashboardAdFields` (plain object), `dashboardAdSchema` (fields + schedule refinement) and a new `dashboardAdPatchSchema` (`fields.partial()` + the same refinement); the PATCH route uses it. Create, rename, pause, schedule and delete now round-trip |
+| G2 | Rejecting a document used `window.confirm()` and always stored "Rejected by staff" | component diff | inline reason field (required, labelled, 500-char cap), `role="alert"`/`role="status"`, the stored reason rendered on the row |
+| G3 | An unknown application id answered **200** with "Application not found.", and an out-of-scope id redirected to `/application` (which confirms the record exists) | direct GET status | both paths now `notFound()` (verified 404/404) |
+| G4 | The create form pre-selected the first student and enabled submit with no program, so one click could file the wrong application | rendered `/application` | empty initial selection, submit gated on both fields, one-click feedback, reset after create, no-students explanation |
+| G5 | `SearchableSelect` rendered an always-open listbox (`size`) that dumped every option into the page and pushed the layout past 390 px; a filtered-out selection disappeared from view | 390 px probe + component review | native collapsed `<select>` + search field, filtered-out selection kept visible, "N of M" count |
+| G6 | `/application/[id]` used the program name as `h1`, raw enum stages, ambiguous facts, identical "Open file" names and a 20 px back link; `/advertisements` showed no status/schedule/order and deleted on one click | rendered DOM + target measurement | student-name heading with program subtitle, canonical labels, `<dl>` facts, per-document `aria-label`s, `min-h-8` link (36 px measured), status model with counts and inline delete confirmation |
+
+Harness defects found and fixed while getting to a green run:
+
+| # | Harness defect | Effect | Fix |
+|---|---|---|---|
+| H13 | The page-2 assertion read the URL and the DOM immediately after a client-side navigation | the click was reported as "no navigation" and the range was assumed to end at the last row | `waitForURL(/page=2/)`, then compute the page range from the real total |
+| H14 | The rejection reason was asserted straight after the success toast | `router.refresh()` had not repainted the server row yet | wait for the reason text, then assert |
+| H15 | The editor `fill` raced `startEdit`'s re-render | the stored title overwrote the typed one — which for a while hid G1 behind an apparent harness race | wait until `#ad-title` holds the clicked row's title before typing; once that was fixed the real 500 surfaced |
+
+Residual (recorded, not fixed): the pipeline still shows a counselor's applications grouped only by stage (no saved views or bulk transitions); advertisement edits are not optimistic beyond the refetched list, so two admins editing at once keep last-write-wins. Because `SearchableSelect` is shared with the H–K pages (invite and program forms), the H–K sweep was re-run: all 78 rendering/role checks passed. That script's separate visitor-lead step still times out locating a newly created lead's status control — a pre-existing harness/list-pagination issue left open with Section K (no fixture is left behind; the `finally` block removed it).
+
+### 16.10 Section H — catalogue (`/programs`, `/scholarships`, `/scholarships/[id]`)
+
+**Changes made:** `/scholarships` now redirects to `/programs`, avoiding the second catalogue implementation. The scholarship detail keeps an Apply action for students, uses the shared currency-aware fee display, shares using the request host, has a generic page heading, and shows a fallback university mark when no logo exists. Program detail dialogs now link to the actual program route and no longer trigger analytics requests as a navigation side effect.
+
+**Verification:** `.audit-hk.ts` ran against the production build and Neon audit DB. The shared 78-check H–K sweep passed: all 12 routes at 390/768/1440 had 0 overflow, 0 unlabeled controls, one `h1`, 0 under-24 px targets, 0 AA contrast failures, and 0 console/page errors; redirects and error UI were also checked. This covers rendering, not student Apply submission or program editing/deletion.
+
+**Runtime defects found and fixed:** the detail action group overflowed 39 px at 390; program links were under 24 px; the report currency caption failed contrast. Actions now wrap, links meet the minimum target height, and the caption uses the muted contrast token. These fixes passed the final H–K rendering sweep.
+
+### 16.11 Section I — finance + reports (`/partner-commissions`, `/transaction`, `/reports`)
+
+**Changes made:** commission rows now have search and pagination, weighted rate calculations, and responsive mobile cards. Transactions use a 25-row page, true counts, type filtering, responsive cards, labelled form fields, and inline deletion feedback. Reports scope totals to the current actor's related students and apply the chosen date window to both the summary and CSV export; aggregate values use database grouping rather than loading all transactions into application memory.
+
+**Verification:** all Section I pages passed shared H–K rendering checks at 390/768/1440. A further workflow pass verified the 90-day report filter updates the page and CSV/Excel links, and the 90-day CSV endpoint returns valid content. Transaction creation/deletion, commission-rate editing, and staff/agency data scoping still need dedicated behavior checks.
+
+### 16.12 Section J — people (`/users`, `/users/[id]`, `/users/[id]/analytics`)
+
+**Changes made:** user search, role/status filters, pagination and mobile cards; role changes constrained to `creatableRoles`; invite form requires an explicit student selection and exposes accessible labels/status. User detail uses the server-search program picker for shortlist additions, humanised status, and authenticated document links. The obsolete promote-user control was removed.
+
+**Verification:** `/users`, user detail, and both analytics routes passed shared H–K rendering checks at 390/768/1440; agency navigation to `/users` passed. Runtime layout probes found user detail overflow/short links and 28 px overflow at 768 on the user table. Detail widths/targets and the user table breakpoint were fixed; the final H–K sweep passed. Role edits, invite lifecycle, agency record scope, and document authorization still need behavior checks.
+
+### 16.13 Section K — analytics, settings, visitor leads
+
+**Changes made:** the home dashboard replaces the 1,000-row transaction and application reads with grouped/monthly aggregates. Currency selection persists through `/api/profile`; the pretend single-option language selector was removed. Password/profile/user forms expose labels, autocomplete, and inline errors. Visitor leads support manager access, status filtering, create/update/delete actions and responsive cards; manager navigation now matches that access. Agency navigation now includes `/users`, whose page and APIs scope agency accounts to students they created. Dead `/my-documents` proxy matcher entry was removed because that route has no page or API; `/documents` is the supported route.
+
+**Verification:** `/programs/[id]/analytics`, `/settings`, and `/visitor-form` passed shared H–K rendering checks at 390/768/1440; agency Users and manager Visitor Form navigation/route checks passed. The 12-check follow-up verified visitor leads at all three widths with unique IDs and no render errors; manager create → status update → confirmed delete; counselor create denial; and manager API read access. The temporary lead and its audit rows were cleaned up. Dashboard aggregation, currency persistence, and other feedback states still need behavior checks. Final `pnpm typecheck`, production build (all 52 routes), and `git diff --check` passed.
+
+**Neon/object storage regression:** `.audit-f.ts` was rerun against `studyabroad_audit` and bucket `assets` on 2026-11-18; **54/54 checks passed**, including S3 receipt/document upload, private scoped reads, byte-for-byte document streaming (70/70), object/row deletion, and cleanup. No application database was used.
+
+**Runtime defect found and fixed:** the desktop table and mobile lead cards had duplicate status-control IDs because both responsive layouts exist in the DOM. Each copy now has a unique, correctly associated label. The 12-check workflow run verified no duplicate IDs at 390/768/1440 and the desktop status update end-to-end.
+
+**Still open from the earlier audit:** `/sub-agencies` has no schema/page and its intended scope is unresolved; password reset does not revoke already-issued JWTs (12-hour expiry); CSP/security headers and production image-host policy are not configured; in-memory rate limits do not coordinate across instances; full seeded Playwright E2E, keyboard/screen-reader, Firefox/WebKit, Lighthouse/Core Web Vitals, and production share/email/PDF fidelity remain unverified. Sections G–K have rendering and targeted behavior evidence, not complete business-flow coverage. Neon DNS/connection requests were intermittent, but the 23-check G suite, 78-check H–K render/role suite, 12-check report/lead workflow, and 54-check Neon/S3 regression all passed.
+
+### 16.14 Full Playwright regression attempt (2026-11-18)
+
+Ran `pnpm test:e2e` against a dedicated `studyabroad_audit` Neon database on a separate local port. Result: **67 passed, 23 failed, 18 skipped/not run, and 1 flaky setup case**. No run was made against the application database. The failures cluster into three groups:
+
+- **Stale assertions/selectors:** signup tests expect an old heading and do not account for the confirmation-password field; catalog tests still expect `/scholarships` to be a page even though it redirects to `/programs`; student shell selectors match both desktop and mobile sidebars; admin assertions match duplicated responsive content without scoping to the table/card; some home/visitor headings no longer match the current UI.
+- **Missing product scope:** `/sub-agencies` remains absent (no page/schema), despite being required by the brief and referenced in legacy E2E tests. The proxy matcher now includes `/sub-agencies/:path*` so anonymous access is guarded; authenticated agency hierarchy and commission-visibility flows are still not implemented.
+- **Unresolved E2E behavior/fixture issues:** seeded application, transaction, advertisement removal, and the long program CRUD journey had failures; student auth setup had one transient 401; remaining journey tests were skipped after the program CRUD failure. These were not treated as passed based on the focused route-rendering checks.
+
+This run does **not** establish a clean full regression. Existing targeted Section G–K and Neon/S3 checks remain passing, but the full E2E failures above must be resolved or deliberately retired against the current product scope before calling the system error-free.

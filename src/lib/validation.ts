@@ -64,23 +64,36 @@ const optionalDateTime = z
   .nullable()
   .optional();
 
-export const dashboardAdSchema = z
-  .object({
-    title: requiredName(120),
-    body: optionalText(400),
-    imageUrl: dashboardImageUrl.optional(),
-    linkUrl: httpUrl(1200).optional(),
-    ctaLabel: optionalText(40),
-    active: z.boolean().optional(),
-    sortOrder: intRange(0, 999).optional(),
-    startsAt: optionalDateTime,
-    endsAt: optionalDateTime,
-  })
-  .superRefine((value, context) => {
-    if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
-      context.addIssue({ code: "custom", message: "End date must be after start date", path: ["endsAt"] });
-    }
-  });
+const dashboardAdFields = z.object({
+  title: requiredName(120),
+  body: optionalText(400),
+  imageUrl: dashboardImageUrl.optional(),
+  linkUrl: httpUrl(1200).optional(),
+  ctaLabel: optionalText(40),
+  active: z.boolean().optional(),
+  sortOrder: intRange(0, 999).optional(),
+  startsAt: optionalDateTime,
+  endsAt: optionalDateTime,
+});
+
+/** End must follow start whenever both are supplied by the same request. */
+function checkAdSchedule(
+  value: { startsAt?: string | null; endsAt?: string | null },
+  context: { addIssue: (issue: { code: "custom"; message: string; path: string[] }) => void },
+) {
+  if (value.startsAt && value.endsAt && Date.parse(value.endsAt) <= Date.parse(value.startsAt)) {
+    context.addIssue({ code: "custom", message: "End date must be after start date", path: ["endsAt"] });
+  }
+}
+
+export const dashboardAdSchema = dashboardAdFields.superRefine(checkAdSchedule);
+
+/**
+ * Zod refuses `.partial()` on an object schema that carries a refinement, so
+ * edits validate the same fields through a separate partial schema. Using
+ * `.partial()` directly on `dashboardAdSchema` throws at request time.
+ */
+export const dashboardAdPatchSchema = dashboardAdFields.partial().superRefine(checkAdSchedule);
 
 export const futureExpiry = (maxDays = 90) =>
   z

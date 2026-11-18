@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { fail, ok, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
-import { dashboardAdSchema } from "@/lib/validation";
+import { dashboardAdPatchSchema } from "@/lib/validation";
 import { storeImageUrl } from "@/lib/media";
 import { deleteObject, readStoredFile, StorageError } from "@/lib/storage";
 
@@ -14,7 +14,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const { error, user } = await requireUser();
     if (error) return error;
     if (user.role !== "SUPER_ADMIN") return fail("Only the portal owner can manage dashboard advertisements", 403);
-    const parsed = dashboardAdSchema.partial().safeParse(await req.json());
+    const parsed = dashboardAdPatchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid advertisement", 422);
     if (Object.keys(parsed.data).length === 0) return fail("No changes supplied", 422);
     const before = await prisma.dashboardAdvertisement.findUnique({ where: { id }, select: { id: true, title: true, active: true, imageUrl: true } });

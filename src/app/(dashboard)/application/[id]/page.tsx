@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { canAccessStudent, canAccessStudentDocuments } from "@/lib/permissions";
@@ -9,8 +9,8 @@ import { MessageForm } from "@/components/message-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, toNum, fullName, humanize } from "@/lib/utils";
-import { DOCUMENT_STATUS_LABELS } from "@/lib/constants";
-import type { DocumentStatus } from "@/generated/prisma/client";
+import { APPLICATION_STAGES, DOCUMENT_STATUS_LABELS } from "@/lib/constants";
+import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
 import { hasVerifiedRequiredDocuments } from "@/lib/application-stages";
 
 export const metadata = { title: "Application Detail" };
@@ -22,6 +22,21 @@ const DOC_TONE: Record<DocumentStatus, "green" | "red" | "amber"> = {
   REJECTED: "red",
   PENDING: "amber",
 };
+
+const STAGE_TONE: Record<string, "green" | "brand" | "red" | "slate"> = {
+  ENROLLED: "green",
+  OFFER: "green",
+  DEPOSIT_PAID: "green",
+  VISA: "brand",
+  UNDER_REVIEW: "brand",
+  SUBMITTED: "brand",
+  REJECTED: "red",
+  WITHDRAWN: "red",
+};
+
+function stageLabel(stage: ApplicationStage): string {
+  return APPLICATION_STAGES.find((item) => item.value === stage)?.label ?? humanize(stage);
+}
 
 export default async function ApplicationDetailPage({ params }: PageProps) {
   const { id } = await params;
@@ -37,40 +52,42 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
     },
   });
 
-  if (!application) {
-    return <Card><CardContent className="py-12 text-center text-ink-muted">Application not found.</CardContent></Card>;
-  }
-
-  const allowed = await canAccessStudent(user, application.student);
-  if (!allowed) redirect("/application");
+  // Unknown and out-of-scope ids answer the same 404: a counselor or agency
+  // must not be able to probe which applications exist.
+  if (!application || !(await canAccessStudent(user, application.student))) notFound();
 
   const canViewDocuments = await canAccessStudentDocuments(user, application.student);
   const visibleDocuments = canViewDocuments ? application.documents : [];
-
   const verifiedDocs = visibleDocuments.filter((d) => d.status === "VERIFIED").length;
   const hasPendingVerification = visibleDocuments.some((d) => d.status === "PENDING");
   const documentsReady = hasVerifiedRequiredDocuments(application.documents, application.program.requiredDocuments);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/application" className="text-sm text-brand-600 hover:underline">← Applications</Link>
-          <h1 className="mt-1 text-2xl font-bold">{application.program.name}</h1>
-          <p className="text-sm text-ink-muted">
-            {application.program.university.name} · Student:{" "}
-            <Link href={`/users/${application.student.id}`} className="hover:underline">
-              {fullName(application.student)}
-            </Link>
-          </p>
+      <div>
+        <Link href="/application" className="inline-flex min-h-8 items-center text-sm text-brand-600 hover:underline">
+          ← Applications
+        </Link>
+        <div className="mt-1 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            {/* The student is the subject of this page, so their name is the heading. */}
+            <h1 className="text-2xl font-bold break-words">{fullName(application.student)}</h1>
+            <p className="text-sm text-ink-muted break-words">
+              {application.program.name} · {application.program.university.name}
+            </p>
+            <p className="mt-1 text-xs text-ink-muted">
+              Created {formatDate(application.createdAt)} · Updated {formatDate(application.updatedAt)} ·{" "}
+              <Link href={`/users/${application.student.id}`} className="inline-flex min-h-6 items-center text-brand-600 hover:underline">
+                View student record
+              </Link>
+            </p>
+          </div>
+          <Badge tone={STAGE_TONE[application.stage] ?? "slate"}>{stageLabel(application.stage)}</Badge>
         </div>
-        <Badge tone={application.stage === "REJECTED" || application.stage === "WITHDRAWN" ? "red" : application.stage === "ENROLLED" || application.stage === "OFFER" ? "green" : "brand"}>
-          {application.stage.replace(/_/g, " ")}
-        </Badge>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Pipeline</CardTitle>
@@ -91,37 +108,52 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
               <CardTitle>
                 Documents
                 <span className="ml-2 text-xs font-normal text-ink-muted">
-                  {verifiedDocs}/{application.documents.length} verified
+                  {canViewDocuments ? `${verifiedDocs} of ${visibleDocuments.length} verified` : "Restricted"}
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               {visibleDocuments.length === 0 ? (
-                <p className="text-sm text-ink-muted">{canViewDocuments ? "No documents uploaded for this application." : "Documents are restricted to the student’s assigned counselor or owner."}</p>
+                <p className="text-sm text-ink-muted">
+                  {canViewDocuments
+                    ? "No documents uploaded for this application."
+                    : "Documents are restricted to the student’s assigned counselor or owner."}
+                </p>
               ) : (
                 <ul className="divide-y divide-line dark:divide-navy-700">
-                  {visibleDocuments.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between gap-3 py-3">
+                  {visibleDocuments.map((document) => (
+                    <li
+                      key={document.id}
+                      className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
+                    >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">{humanize(d.type)}</p>
-                        <p className="truncate text-xs text-ink-muted">
-                          Uploaded {formatDate(d.uploadedAt)}
-                          {d.rejectionReason && <span className="text-red-600"> · {d.rejectionReason}</span>}
+                        <p className="text-sm font-medium">{humanize(document.type)}</p>
+                        <p className="text-xs text-ink-muted">
+                          Uploaded {formatDate(document.uploadedAt)}
+                          {document.rejectionReason && (
+                            <span className="text-red-700 dark:text-red-300"> · {document.rejectionReason}</span>
+                          )}
                         </p>
-                        <a href={"/api/documents/" + d.id} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">
-                          Open file
+                        <a
+                          href={`/api/documents/${document.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={`Open ${humanize(document.type)} file (opens in a new tab)`}
+                          className="mt-1 inline-flex min-h-8 items-center text-sm font-medium text-brand-600 hover:underline"
+                        >
+                          Open file<span className="sr-only"> (opens in a new tab)</span>
                         </a>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge tone={DOC_TONE[d.status]}>{DOCUMENT_STATUS_LABELS[d.status]}</Badge>
-                        {d.status !== "VERIFIED" && <VerifyDocument documentId={d.id} />}
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <Badge tone={DOC_TONE[document.status]}>{DOCUMENT_STATUS_LABELS[document.status]}</Badge>
+                        {document.status !== "VERIFIED" && <VerifyDocument documentId={document.id} />}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
               {hasPendingVerification && (
-                <p className="mt-3 text-xs text-amber-600">
+                <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
                   Applications can only progress once all required documents are verified.
                 </p>
               )}
@@ -129,17 +161,34 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Program details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-ink-muted">University</span><span>{application.program.university.name}</span></div>
-              <div className="flex justify-between"><span className="text-ink-muted">Level</span><span className="capitalize">{application.program.level}</span></div>
-              <div className="flex justify-between"><span className="text-ink-muted">Field</span><span>{application.program.field}</span></div>
-              <div className="flex justify-between"><span className="text-ink-muted">Tuition</span><span>{formatCurrency(toNum(application.program.tuitionFee))}</span></div>
-              <div className="flex justify-between"><span className="text-ink-muted">Visa required</span><span>{application.program.visaRequired ? "Yes" : "No"}</span></div>
+              <dl className="space-y-2">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">University</dt>
+                  <dd className="text-right">{application.program.university.name}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">Level</dt>
+                  <dd className="text-right capitalize">{application.program.level}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">Field</dt>
+                  <dd className="text-right">{application.program.field}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">Tuition</dt>
+                  <dd className="text-right">{formatCurrency(toNum(application.program.tuitionFee))}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-muted">Visa required</dt>
+                  <dd className="text-right">{application.program.visaRequired ? "Yes" : "No"}</dd>
+                </div>
+              </dl>
             </CardContent>
           </Card>
 
