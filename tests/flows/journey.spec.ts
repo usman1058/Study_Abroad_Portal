@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { controlFor, rowForAction, acceptNextConfirm, selectByPartialLabel } from "../helpers";
+import { controlFor, rowForAction, selectByPartialLabel } from "../helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -569,18 +569,21 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await controlFor(page, "Phone").fill("+60129876543");
     await controlFor(page, "Course of interest").fill("E2E Course");
     await page.getByRole("button", { name: "Save lead" }).click();
-    await expect(page.getByText(name)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("cell", { name, exact: true })).toBeVisible({ timeout: 15_000 });
 
     // Cancel button hides the form without saving
     await page.getByRole("button", { name: "+ Add visitor" }).click();
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(controlFor(page, "Name")).toHaveCount(0);
 
-    acceptNextConfirm(page);
-    await rowForAction(page, name, { name: "Delete", exact: true })
-      .getByRole("button", { name: "Delete", exact: true })
-      .click();
-    await expect(page.getByText(name)).toHaveCount(0, { timeout: 15_000 });
+    const leadRow = rowForAction(page, name, { name: "Delete", exact: true });
+    await leadRow.getByRole("button", { name: "Delete", exact: true }).click();
+    const [deleteResponse] = await Promise.all([
+      page.waitForResponse((response) => response.url().includes("/api/visitor-form/") && response.request().method() === "DELETE"),
+      leadRow.getByRole("button", { name: "Confirm delete" }).click(),
+    ]);
+    expect(deleteResponse.status()).toBe(200);
+    await expect(page.getByRole("cell", { name, exact: true })).toHaveCount(0, { timeout: 15_000 });
   });
 
   test("admin generates guest invite link; anonymous visitor can open it", async ({ page, browser }) => {
@@ -588,29 +591,32 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.getByRole("button", { name: "+ Generate guest invite link" }).click();
     await expect(page.getByRole("heading", { name: "Guest invite link", exact: true })).toBeVisible();
 
-    // validation: no section selected (Applications starts pre-checked)
+    await selectByPartialLabel(controlFor(page, "Student"), "Sam Student");
+
+    // Validation: no section selected. The action is enabled after choosing a student.
     await page.getByLabel("Applications", { exact: true }).uncheck();
     await page.getByRole("button", { name: "Generate link" }).click();
     await expect(page.getByText("Select at least one section.")).toBeVisible();
 
     await page.getByLabel("Applications", { exact: true }).check();
-    await page.getByText("Edit", { exact: true }).first().click(); // view/edit badges are clickable
-    await selectByPartialLabel(controlFor(page, "Student (data scope)"), "Sam Student");
-    await page.getByRole("button", { name: "Generate link" }).click();
+    const [inviteResponse] = await Promise.all([
+      page.waitForResponse((response) => response.url().endsWith("/api/invites") && response.request().method() === "POST"),
+      page.getByRole("button", { name: "Generate link" }).click(),
+    ]);
+    expect(inviteResponse.status()).toBe(201);
 
     // success panel shows the shareable link even after the form closes
     const sharePanel = page.locator("div.bg-emerald-50");
     const code = sharePanel.locator("code").first();
     await expect(sharePanel).toBeVisible({ timeout: 15_000 });
-    const codeText = await code.textContent();
-    console.log("Code element text:", codeText);
     await expect(code).toContainText("/invite/");
     const url = (await code.textContent())!.trim();
 
     const anon = await browser.newContext();
     const guestPage = await anon.newPage();
     await guestPage.goto(url);
-    await expect(guestPage.getByRole("heading", { level: 1, name: "Sam Student" })).toBeVisible();
+    await expect(guestPage.getByRole("heading", { level: 1, name: "Shared student file" })).toBeVisible();
+    await expect(guestPage.getByText("For Sam Student", { exact: false })).toBeVisible();
     await expect(guestPage.getByRole("heading", { name: "Applications" })).toBeVisible();
     await expect(guestPage.getByRole("heading", { name: "Contact your agency" })).toBeVisible();
     await anon.close();
@@ -633,11 +639,12 @@ test("admin search filters return filtered results", async ({ page }) => {
 
   test("admin stage filter navigates with query param", async ({ page }) => {
     await page.goto("/application");
-    await page.locator('select[name="stage"]').selectOption({ label: "Offer" });
+    const stageFilter = page.getByRole("navigation", { name: "Filter applications by stage" });
+    await stageFilter.getByRole("link").filter({ hasText: "Offer" }).click();
     await expect(page).toHaveURL(/\?stage=OFFER$/, { timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1, name: "Applications" })).toBeVisible();
 
-    await page.locator('select[name="stage"]').selectOption({ label: "All stages" });
+    await stageFilter.getByRole("link", { name: /^All/ }).click();
     await expect(page).toHaveURL(/\/application$/, { timeout: 15_000 });
   });
 
@@ -660,8 +667,8 @@ test("admin search filters return filtered results", async ({ page }) => {
     expect((await dl).suggestedFilename()).toMatch(/\.pdf$/);
 
     await page.goto("/my-shortlist");
-    const href = await page.getByRole("link", { name: "Download Full Shortlist PDF" }).getAttribute("href");
-    const res = await page.request.get(href!);
+    const href = await page.getByRole("link", { name: "Download shortlist PDF" }).getAttribute("href");
+    const res = await page.request.get(new URL(href!, page.url()).toString());
     expect(res.status()).toBe(200);
     expect(await res.text()).toBeTruthy();
     await ctx.close();

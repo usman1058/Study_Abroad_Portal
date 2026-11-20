@@ -1,6 +1,6 @@
 # Study Abroad Portal — Consolidated Audit Record
 
-Last updated: 2026-11-20 (shared audit-payload redaction; see §16.20)
+Last updated: 2026-11-20 (full local E2E pass and Neon object-storage recheck; see §16.21)
 Auditor: automated code + runtime audit (static read of all pages/routes, live exploit verification, partial visual QA)
 
 This file is the single source of truth for the audit. It records **facts**, **evidence**, **severity**, **what was corrected**, and **what is still unverified**. Do not restate findings from memory without checking here.
@@ -16,13 +16,13 @@ This file is the single source of truth for the audit. It records **facts**, **e
 | Libs / schema / proxy / config / tests | DONE | permissions, auth, session, api, stages, validation, schema.prisma, proxy.ts, next.config.ts, playwright config, seed |
 | Build + typecheck | DONE (pass) | Final `pnpm build` compiled all 52 routes; `pnpm typecheck` and `git diff --check` passed after the final source/audit edits |
 | Runtime role/exploit verification | DONE | temporary accounts, NextAuth cookie login, cleanup verified |
-| Full Playwright E2E | NOT DONE | Latest 105-test run could not authenticate because Neon timed out during setup; targeted suites are listed in §16.15 |
+| Full Playwright E2E | PASSED (local) | 117/117 tests passed against disposable local PGlite and the local app (§16.21); does not prove Neon Postgres connectivity or production migration |
 | Visual review of every page | DONE | 136 screenshots @1440/768/390 for public + admin + manager + counselor (agency partial), plus **75 more** covering all 25 student/agency pages (§15.1); per-page verdict in §9d |
 | Numeric visual metrics | DONE (for the 25 student/agency pages) | `.audit-shots/v2/metrics.json` — overflow, offscreen elements, clipped containers, unlabeled controls, console errors |
 | Screen reader / Firefox / Safari | PARTIAL | Firefox + WebKit smoke subset: 26/26 each passed after CSP fix (§16.15); keyboard smoke on `/` and all four login/signup pages passed 5/5 (§16.16); full screen-reader and authenticated-page keyboard sweep remains |
 | Lighthouse / Core Web Vitals | NOT DONE | — |
 
-**Honest claim:** every page and every API route was *read*; the 9 P0 defects below were *reproduced live*. It is **not** valid to claim "every possible defect has been found" until the visual/a11y pass and the full E2E suite run clean.
+**Honest claim:** every page and every API route was *read*; the 9 P0 defects below were *reproduced live*. The full 117-test Playwright suite now passes locally, but this does not certify the production Neon database, accessibility, performance, or every possible defect.
 
 ---
 
@@ -1150,7 +1150,7 @@ The agency-hierarchy restore migration had been applied only to the disposable `
 
 **Password reset session revocation:** login now places an HMAC fingerprint of the current password hash in the signed session. `currentUser()` compares it to the database on every authenticated request, so either password-change endpoint invalidates existing sessions without a new column or migration. Typecheck and build cover this change; DB-backed runtime proof is blocked by the same Neon timeout.
 
-The Neon `assets` object-storage suite previously passed **54/54** on 2026-11-18 (§16.13). A direct S3 put/read/delete recheck on 2026-11-19 timed out connecting to the Neon storage endpoint on TCP 443 before the PUT completed; no test object was created. Baseline security headers and a nonce-based CSP protect protected and public authentication pages. The image directive still permits any HTTPS image host, and the in-memory rate limiter still does not coordinate across instances. The roughly **90% audit-coverage estimate** is not an error-free claim or a claim that exactly 10% of defects remain. Planning estimate: about **10% of audit coverage remains**, requiring roughly **45–90 minutes of active work after Neon connectivity returns**; wall-clock time is unknown while the endpoint times out, and broad accessibility/performance assurance may take longer. The audit does not certify the system as error-free while the rollback migration, authenticated full E2E, strict image-host policy, distributed rate limiting, and remaining accessibility, performance, and production integration checks are unverified.
+The Neon `assets` object-storage suite previously passed **54/54** on 2026-11-18 (§16.13). A direct S3 smoke test on 2026-11-20 also completed PUT → byte-exact GET → DELETE → 404. Baseline security headers and a nonce-based CSP protect protected and public authentication pages. The image directive still permits any HTTPS image host, and the in-memory rate limiter still does not coordinate across instances. The roughly **90% audit-coverage estimate** is not an error-free claim or a claim that exactly 10% of defects remain. Planning estimate: about **10% of audit coverage remains**, requiring roughly **45–90 minutes of active work after Neon Postgres connectivity returns**; wall-clock time is unknown while that endpoint times out, and broad accessibility/performance assurance may take longer. The audit does not certify the system as error-free while the production migration, strict image-host policy, distributed rate limiting, and remaining accessibility, performance, and production integration checks are unverified.
 
 ### 16.16 Focused keyboard-accessibility check (2026-11-19)
 
@@ -1178,6 +1178,14 @@ Code review of the now-accessible guest invite flow found that `invite_used` aud
 
 Review of audit callers found that short-course updates could record bank details and meeting links, and advertisement updates could record image URLs. Added recursive redaction at the shared `logAudit` boundary so both `before` and `after` payloads replace fields containing passwords, passphrases, tokens, secrets, authorization/credentials, API keys, bank details, IBAN/SWIFT/routing/account numbers, meeting links, or any URL/URI with `[REDACTED]`. The direct invite-token removal in §16.19 remains in place as defense in depth.
 
-**Verification:** `pnpm typecheck`, production build (52 routes), and the complete public access-control Playwright project passed (**25/25**). The regression covers nested objects and arrays, redacts token/payment/link/image/logo fields, and preserves ordinary descriptive text. The guest-invite test confirms there is no proxy redirect; its page lookup logged `InviteLink.findUnique()` `ETIMEDOUT`, so it does not verify a valid invite. `git diff --check` is rerun for this update. The regression and public route checks made no database writes.
+**Verification:** `pnpm typecheck`, production build (52 routes), and the complete public access-control Playwright project passed (**25/25**). The regression covers nested objects and arrays, redacts token/payment/link/image/logo fields, and preserves ordinary descriptive text. At that point, the guest-invite check reached its database lookup but timed out against Neon; the later valid local invite flow is covered in §16.21.
 
-**Still open:** a read-only Neon schema check, forced to `/studyabroad_audit`, returned `ETIMEDOUT` both inside and outside the sandbox. A read-only Neon S3 `GET` for a unique nonexistent key also timed out connecting to the storage hosts on TCP 443; it made no object change. The migration, authenticated database-backed E2E, and live object-storage workflows therefore remain unverified; prior 54/54 Neon/S3 checks from 2026-11-18 are historical evidence, not a current connectivity check. No application database (`neondb`) was targeted.
+**Still open:** a read-only Neon schema check, forced to `/studyabroad_audit`, returned `ETIMEDOUT` both inside and outside the sandbox. A prior read-only Neon S3 `GET` for a unique nonexistent key also timed out, but subsequent S3 smoke and E2E upload/delete checks succeeded. No application database (`neondb`) was targeted.
+
+### 16.21 Local end-to-end QA continuation (2026-11-20)
+
+The portal was run against disposable local PGlite with the production Next.js server. The full Playwright suite passed **117/117** with one worker and retries disabled for this run. Coverage includes the public/auth pages, student and admin dashboards, access control, program/application flows, document upload and review, shortlist management, visitor leads, guest invite creation and anonymous rendering, reports, CSV, and both PDF downloads. Journey assertions were aligned with the current confirmation controls, searchable pickers, accessible labels, and displayed headings. `playwright.config.ts` now accepts `PLAYWRIGHT_RETRIES` so data-changing serial journeys can be audited without replaying earlier test mutations.
+
+The E2E document uploads exercised the configured Neon object store. After the suite, removed the exact 20 object keys referenced by the disposable local student's test rows and verified each returned 404. TypeScript verification and the optimized production build then passed; the build compiled all 52 routes.
+
+**Still open:** Neon Postgres remains unreachable from this environment (`ETIMEDOUT`), so no schema deployment or migration was attempted. The local test pass does not establish that a live Neon database migration is safe or complete. Accessibility/screen-reader coverage, Lighthouse/Core Web Vitals, strict image-host policy, distributed rate limiting, and production migration verification remain open.

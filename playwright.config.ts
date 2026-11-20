@@ -7,12 +7,14 @@ config({ path: ".env" });
 
 const PORT = Number(process.env.PORT ?? 3100);
 const baseURL = process.env.BASE_URL ?? `http://127.0.0.1:${PORT}`;
+const configuredRetries = Number(process.env.PLAYWRIGHT_RETRIES ?? 1);
+const retries = Number.isInteger(configuredRetries) && configuredRetries >= 0 ? configuredRetries : 1;
 
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 1,
+  retries,
   // The suite mutates shared fixtures in one database, so parallel workers can
   // race each other and exhaust a hosted connection pool. Opt in explicitly
   // when the test environment provides isolated data per worker.
