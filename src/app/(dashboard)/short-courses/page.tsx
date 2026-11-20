@@ -181,7 +181,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
               const status = enrolledMap.get(c.id);
               const hasAccess = status === "enrolled" || status === "completed";
               return (
-                <Card key={c.id}>
+                <Card key={c.id} data-short-course-id={c.id}>
                   <CardContent className="flex h-full flex-col p-5">
                     <div className="mb-3 flex items-start justify-between gap-2">
                       <div className="min-w-0">

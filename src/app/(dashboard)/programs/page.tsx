@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ExternalLink, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { profileCompleteness } from "@/lib/queries";
 import { ProgramsFilter } from "@/components/programs-filter";
-import { ShortlistToggle } from "@/components/shortlist-toggle";
 import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/pagination";
-import { formatDate } from "@/lib/utils";
+import { formatDate, humanize } from "@/lib/utils";
 import { ProgramDetailDialog } from "@/components/program-detail-dialog";
+import { ApplyButton } from "@/components/apply-button";
 import { ProgramForm } from "@/components/program-form";
 import { DeleteButton } from "@/components/delete-button";
 
@@ -31,12 +31,17 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
   const q = rawQ.slice(0, 200);
   const requestedPage = Math.min(MAX_PAGE, Math.max(1, Number.parseInt(rawPage, 10) || 1));
 
+  // Country and city both constrain the same relation, so they must be merged
+  // into one `university` filter instead of overwriting each other.
+  const universityWhere = {
+    ...(country ? { country } : {}),
+    ...(city ? { city } : {}),
+  };
   const where = {
     ...(q
       ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { field: { contains: q, mode: "insensitive" as const } }] }
       : {}),
-    ...(country ? { university: { country } } : {}),
-    ...(city ? { university: { city } } : {}),
+    ...(Object.keys(universityWhere).length ? { university: universityWhere } : {}),
   };
 
   const total = await prisma.program.count({ where });
@@ -191,14 +196,14 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                     <div key={p.id} data-program-row={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
                       <div className="min-w-0 flex-1">
                         {canViewAnalytics ? (
-                          <Link href={`/programs/${p.id}/analytics`} className="font-medium hover:text-brand-600 hover:underline">
+                          <Link href={`/programs/${p.id}/analytics`} className="inline-flex min-h-6 items-center font-medium hover:text-brand-600 hover:underline">
                             {p.name}
                           </Link>
                         ) : (
                           <span className="font-medium">{p.name}</span>
                         )}
                         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                          <Badge tone="slate">{p.level}</Badge>
+                          <Badge tone="slate">{humanize(p.level)}</Badge>
                           <span>{p.field}</span>
                           {nextIntake && <span>Next intake {formatDate(nextIntake)}</span>}
                         </div>
@@ -208,9 +213,10 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
                       </div>
                       <div className="flex items-center gap-1.5">
                         <ProgramDetailDialog program={{ ...p, tuitionFee: Number(p.tuitionFee), applicationFee: p.applicationFee == null ? null : Number(p.applicationFee), commissionRate: Number(p.commissionRate), university: p.university ? { ...p.university, id: p.university.id } : null }} />
+                        {isStudent && <ApplyButton programId={p.id} profileReady={profileReady} programName={p.name} />}
                         {isSuperAdmin && <>
                           <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} initial={{ id: p.id, universityId: p.universityId, name: p.name, level: p.level, field: p.field, location: p.location ?? undefined, tuitionFee: String(p.tuitionFee), applicationFee: p.applicationFee == null ? "" : String(p.applicationFee), intakeDates: p.intakeDates.map((date) => new Date(date).toISOString()), requiredDocuments: p.requiredDocuments, minGpa: p.minGpa, visaRequired: p.visaRequired, commissionRate: String(p.commissionRate), tags: p.tags, offerTurnaroundDays: p.offerTurnaroundDays, collegeRank: p.collegeRank ?? undefined, eligibilityCriteria: p.eligibilityCriteria, courseDurationMonths: p.courseDurationMonths, universityLogoUrl: p.universityLogoUrl ?? undefined }} />
-                          <DeleteButton endpoint={`/api/scholarships/${p.id}`} confirmText={`Delete ${p.name}?`} label="Delete" />
+                          <DeleteButton endpoint={`/api/scholarships/${p.id}`} itemName={p.name} />
                         </>}
                       </div>
                     </div>
@@ -230,7 +236,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
           pageSize={PAGE_SIZE}
           basePath="/programs"
           query={{ q, country, city }}
-          label="Program pages"
+          label="Program pages (continued)"
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,10 @@ export function ProgramsFilter({
   const router = useRouter();
   const params = useSearchParams();
   const [q, setQ] = useState(params.get("q") ?? "");
+  // "Clear filters", the back button and shared links all change the query
+  // without remounting this form, so the input must follow the URL.
+  const urlQuery = params.get("q") ?? "";
+  useEffect(() => setQ(urlQuery), [urlQuery]);
 
   function apply(next: URLSearchParams) {
     router.push(`/programs?${next.toString()}`);
@@ -41,11 +45,11 @@ export function ProgramsFilter({
           e.preventDefault();
           setParam("q", q.trim());
         }}
-        className="grid gap-3 sm:grid-cols-8"
+        className="grid gap-3 sm:grid-cols-12"
         role="search"
         aria-label="Filter programs"
       >
-        <div className="relative sm:col-span-4">
+        <div className="relative sm:col-span-5">
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             name="q"
@@ -58,19 +62,19 @@ export function ProgramsFilter({
             aria-label="Search programs"
           />
         </div>
-        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-2" aria-label="Filter by country">
+        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-3" aria-label="Filter by country">
           <option value="">All countries</option>
           {countries.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </Select>
-        <Select value={params.get("city") ?? ""} onChange={(e) => setParam("city", e.target.value)} className="sm:col-span-1" aria-label="Filter by city">
+        <Select value={params.get("city") ?? ""} onChange={(e) => setParam("city", e.target.value)} className="sm:col-span-2" aria-label="Filter by city">
           <option value="">All cities</option>
           {cities.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </Select>
-        <Button type="submit" className="h-10 sm:col-span-1">
+        <Button type="submit" className="h-10 sm:col-span-2">
           Search
         </Button>
       </form>
@@ -78,7 +82,7 @@ export function ProgramsFilter({
         <button
           type="button"
           onClick={() => apply(new URLSearchParams())}
-          className="inline-flex min-h-6 items-center text-sm font-medium text-brand-600 hover:underline"
+          className="inline-flex min-h-9 items-center text-sm font-medium text-brand-600 hover:underline"
         >
           Clear filters
         </button>

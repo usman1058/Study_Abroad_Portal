@@ -1,6 +1,6 @@
 # Study Abroad Portal — Consolidated Audit Record
 
-Last updated: 2026-11-18 (Neon runtime verification and visitor-lead follow-up; see §16.9–§16.13)
+Last updated: 2026-11-20 (shared audit-payload redaction; see §16.20)
 Auditor: automated code + runtime audit (static read of all pages/routes, live exploit verification, partial visual QA)
 
 This file is the single source of truth for the audit. It records **facts**, **evidence**, **severity**, **what was corrected**, and **what is still unverified**. Do not restate findings from memory without checking here.
@@ -16,10 +16,10 @@ This file is the single source of truth for the audit. It records **facts**, **e
 | Libs / schema / proxy / config / tests | DONE | permissions, auth, session, api, stages, validation, schema.prisma, proxy.ts, next.config.ts, playwright config, seed |
 | Build + typecheck | DONE (pass) | Final `pnpm build` compiled all 52 routes; `pnpm typecheck` and `git diff --check` passed after the final source/audit edits |
 | Runtime role/exploit verification | DONE | temporary accounts, NextAuth cookie login, cleanup verified |
-| Full Playwright E2E | NOT DONE | 31 passed / 5 failed / 73 never ran (stale seeded hashes) |
+| Full Playwright E2E | NOT DONE | Latest 105-test run could not authenticate because Neon timed out during setup; targeted suites are listed in §16.15 |
 | Visual review of every page | DONE | 136 screenshots @1440/768/390 for public + admin + manager + counselor (agency partial), plus **75 more** covering all 25 student/agency pages (§15.1); per-page verdict in §9d |
 | Numeric visual metrics | DONE (for the 25 student/agency pages) | `.audit-shots/v2/metrics.json` — overflow, offscreen elements, clipped containers, unlabeled controls, console errors |
-| Screen reader / Firefox / Safari | NOT DONE | — |
+| Screen reader / Firefox / Safari | PARTIAL | Firefox + WebKit smoke subset: 26/26 each passed after CSP fix (§16.15); keyboard smoke on `/` and all four login/signup pages passed 5/5 (§16.16); full screen-reader and authenticated-page keyboard sweep remains |
 | Lighthouse / Core Web Vitals | NOT DONE | — |
 
 **Honest claim:** every page and every API route was *read*; the 9 P0 defects below were *reproduced live*. It is **not** valid to claim "every possible defect has been found" until the visual/a11y pass and the full E2E suite run clean.
@@ -101,7 +101,7 @@ Role enum: SUPER_ADMIN, MANAGER, COUNSELOR, AGENCY, STUDENT.
   - `MANAGER` branch exists in `/visitor-form` but the page redirects non-SUPER_ADMIN.
   - `/reports` redirects COUNSELOR (SECTIONS also excludes).
 - `/programs` absent from `proxy.ts` matcher -> students reach `/programs/[id]/analytics`.
-- `/sub-agencies`: specified in PROJECT_BRIEF/MASTER_BUILD_SPEC/DESIGN_DATA and asserted by 3 test files, but **no page, no route, no schema field**.
+- Historical `/sub-agencies` requirement mismatch: resolved by product direction; no separate feature, route, schema relation, or positive-flow test remains (§16.15).
 - `/my-documents` is in the proxy matcher but **no page exists**.
 - No password reset route anywhere.
 - No session revocation on password change, role change, or deactivation; no "sign out all devices".
@@ -198,7 +198,7 @@ Legend: P0 = leak/broken core flow, P1 = major, P2 = moderate, P3 = polish.
 ## 7. Data model / schema issues
 
 - `ShortCourseEnrollment` cannot express paid access; `meetingLink` lives on `ShortCourse` and is serialized to everyone.
-- No `parentAgencyId` / `AgencyHierarchy` field -> sub-agency feature unimplementable without migration.
+- No agency-parent hierarchy: intentional after the product owner declined a separate sub-agency concept (§16.15).
 - `Document.applicationId` optional and never set by the wizard -> document/application linkage unused.
 - `User.status` enforced only at login, never per request.
 - `User.preferredCurrency` read by dashboard layout but never written by the currency switcher.
@@ -215,7 +215,7 @@ Legend: P0 = leak/broken core flow, P1 = major, P2 = moderate, P3 = polish.
 - Seed drift: `prisma/seed.ts` hashes `ADMIN_PASSWORD` for all seeded roles, but live hashes no longer match -> E2E setup 401 for student/agency/counselor/manager. Only `admin@studyabroad.test` works.
 - **Migration drift (found 2026-11-12 while standing up a local test DB):** `prisma migrate deploy` on an empty database produces a schema that is *missing* `ShortCourse.paymentType` (seed then fails with P2022 `ColumnNotFound`). The committed migrations are stale relative to `schema.prisma`, so the project cannot be reproduced from migrations; the working schema requires `prisma db push`. Fix: generate a migration from the current schema and reconcile `prisma/migrations` before the next deployment.
 - `tests/helpers.ts` reuses one `TEST_PASSWORD` for all roles.
-- Tests reference `/sub-agencies` (missing), expect H1 "Create your account" on `/student/signup` (actual "Student Signup"), expect "My Applications" (actual slogan) -> 5 failures.
+- At the time of the initial run, tests referenced `/sub-agencies` (now removed from positive-flow tests/specs), expected stale signup/application headings, and produced 5 failures; this is historical baseline evidence, not current test status.
 - E2E result: 31 passed, 5 failed, 73 did not run.
 - No unit/component tests; no axe/Lighthouse; no CI config for preview builds.
 
@@ -398,8 +398,8 @@ Recorded so they are not repeated as findings:
 ### S1 — Core flows / role model
 7. Student document journey: student-accessible documents view, fix `docsOk` gate, fix `/documents` dead link, link wizard uploads to `applicationId`. → **DONE (§14 #13, verified §15.2)**
 8. Add Apply CTA to `/scholarships/[id]`; unify program detail URLs. → **code updated (§16.10); runtime review open.**
-9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3), approval-state messaging DONE (§16.4)**; session revocation on reset still open.
-10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`. → **`/my-documents` dead matcher removed (§16.13); `/sub-agencies` remains open pending scope/schema decision.**
+9. Password reset + approval-state messaging + session revocation UX. → **reset DONE (§16.3), approval-state messaging DONE (§16.4); password-change session revocation is implemented without a schema change (§16.15), with authenticated runtime verification still pending.**
+10. Implement or remove `/sub-agencies` (schema + page + roles + tests); add or remove `/my-documents`. → **Separate sub-agency scope declined and removed by product direction (§16.15); `/my-documents` dead matcher removed (§16.13).**
 11. Reconcile nav/guards (`/users` AGENCY, `/transaction` COUNSELOR, `/visitor-form` MANAGER). → **visitor manager route/API now implemented (§16.13); broader per-role runtime matrix remains open.** *(`/programs` proxy matcher entry: DONE, §14 #7.)*
 12. Fix reports transaction scope; add date range. → **code updated (§16.11); runtime review open.**
 
@@ -444,9 +444,9 @@ runtime checks for sections G–K; the local Docker engine was unavailable.
 - PDF output fidelity (program, shortlist, receipt).
 - Email/WhatsApp share behavior in production.
 - Load behaviour of `currentUser()`'s per-request DB query (§14 #1) — functional proof only, no load test.
-- Password reset does not revoke already-issued JWTs (bounded by the 12 h lifetime); needs a `sessionVersion`/`passwordChangedAt` column once migrations are trustworthy (§8).
+- ~~Password reset does not revoke already-issued JWTs.~~ A credential fingerprint check was added in §16.15; authenticated runtime verification remains pending.
 - Reset mail delivery is only exercised through the server-log fallback; Resend delivery is untested without an API key.
-- Whether `/sub-agencies` is intended for this milestone or out of scope.
+- ~~Whether `/sub-agencies` is intended for this milestone or out of scope.~~ **Resolved: remove it (§16.15).**
 - Whether agency `/users` access is intentional (nav intentionally omitted?).
 
 ---
@@ -513,7 +513,7 @@ Applied after the audit. Runtime proof is in §15 (local Postgres); Neon itself 
 
 **Fix verification:** `pnpm typecheck` passes and `pnpm build` compiles the full route tree (three consecutive green builds across the edit batches). Runtime verification against a local Postgres is recorded in §15.
 
-**Not yet fixed (still open):** mobile reflow, form labels, pagination, currency unification, password reset, `/sub-agencies`, Apply CTA, full a11y pass — see §11 S1–S3.
+**Open at this 2026-11-12 checkpoint (status later updated in §§16.3–16.15):** mobile reflow, form labels, pagination, currency unification, password reset, the then-requested `/sub-agencies` feature, Apply CTA, and full accessibility pass. The separate sub-agency feature was later declined by the product owner (§16.15).
 
 **Residual risk of these fixes:** the highest-risk change is #1 (`currentUser` now hits the DB): every authenticated request performs one extra `user.findUnique`, and a DB outage now redirects instead of serving stale sessions. That is the intended trade-off, but it has not been load-tested (see §15 for functional proof).
 
@@ -1128,14 +1128,56 @@ Residual (recorded, not fixed): the pipeline still shows a counselor's applicati
 
 **Runtime defect found and fixed:** the desktop table and mobile lead cards had duplicate status-control IDs because both responsive layouts exist in the DOM. Each copy now has a unique, correctly associated label. The 12-check workflow run verified no duplicate IDs at 390/768/1440 and the desktop status update end-to-end.
 
-**Still open from the earlier audit:** `/sub-agencies` has no schema/page and its intended scope is unresolved; password reset does not revoke already-issued JWTs (12-hour expiry); CSP/security headers and production image-host policy are not configured; in-memory rate limits do not coordinate across instances; full seeded Playwright E2E, keyboard/screen-reader, Firefox/WebKit, Lighthouse/Core Web Vitals, and production share/email/PDF fidelity remain unverified. Sections G–K have rendering and targeted behavior evidence, not complete business-flow coverage. Neon DNS/connection requests were intermittent, but the 23-check G suite, 78-check H–K render/role suite, 12-check report/lead workflow, and 54-check Neon/S3 regression all passed.
+**Open at the time of the 2026-11-18 pass (updated in §16.15):** the then-requested `/sub-agencies` feature was later declined; password reset did not revoke already-issued JWTs (session fingerprinting was added); CSP and production image-host policy were not configured (headers and nonce CSP were subsequently added); in-memory rate limits do not coordinate across instances; full seeded Playwright E2E, keyboard/screen-reader, Lighthouse/Core Web Vitals, and production share/email/PDF fidelity remain unverified. Sections G–K have rendering and targeted behavior evidence, not complete business-flow coverage. Neon DNS/connection requests were intermittent, but the 23-check G suite, 78-check H–K render/role suite, 12-check report/lead workflow, and 54-check Neon/S3 regression all passed.
 
 ### 16.14 Full Playwright regression attempt (2026-11-18)
 
 Ran `pnpm test:e2e` against a dedicated `studyabroad_audit` Neon database on a separate local port. Result: **67 passed, 23 failed, 18 skipped/not run, and 1 flaky setup case**. No run was made against the application database. The failures cluster into three groups:
 
 - **Stale assertions/selectors:** signup tests expect an old heading and do not account for the confirmation-password field; catalog tests still expect `/scholarships` to be a page even though it redirects to `/programs`; student shell selectors match both desktop and mobile sidebars; admin assertions match duplicated responsive content without scoping to the table/card; some home/visitor headings no longer match the current UI.
-- **Missing product scope:** `/sub-agencies` remains absent (no page/schema), despite being required by the brief and referenced in legacy E2E tests. The proxy matcher now includes `/sub-agencies/:path*` so anonymous access is guarded; authenticated agency hierarchy and commission-visibility flows are still not implemented.
+- **Outdated product-scope expectation:** this run treated `/sub-agencies` as missing because the earlier brief requested it. The owner later rejected a separate feature; its route, schema relation, and positive-flow tests were removed in §16.15. This historical failure is closed by scope decision, not an outstanding defect.
 - **Unresolved E2E behavior/fixture issues:** seeded application, transaction, advertisement removal, and the long program CRUD journey had failures; student auth setup had one transient 401; remaining journey tests were skipped after the program CRUD failure. These were not treated as passed based on the focused route-rendering checks.
 
 This run does **not** establish a clean full regression. Existing targeted Section G–K and Neon/S3 checks remain passing, but the full E2E failures above must be resolved or deliberately retired against the current product scope before calling the system error-free.
+
+### 16.15 Scope correction — no separate sub-agency feature (2026-11-19)
+
+The product owner clarified that the Manager role already owns the partner operation and its agency accounts; a second sub-agency concept is not wanted. The separate route, API, navigation entry, agency-parent relationship, commission-visibility toggle, and associated flow tests have been removed. The existing role-based Users and Partner Commissions areas remain the way managers operate the partner business. Project brief, master build spec, and design data now reflect this decision.
+
+The agency-hierarchy restore migration had been applied only to the disposable `studyabroad_audit` database during the earlier audit pass. The follow-up migration that removes `parentAgencyId` and `AgencyPermission` is present, but it has **not** been deployed: Prisma migration attempts failed to connect, and read-only inspections failed with `ETIMEDOUT` and DNS `EAI_AGAIN`. A final read-only schema check on 2026-11-19 also returned `ETIMEDOUT`, including when retried outside the sandbox. No migration or schema write was run against either database during this continuation; the application database (`neondb`) was never targeted.
+
+**Verification after scope cleanup and CSP correction:** `pnpm exec prisma generate`, `pnpm typecheck`, and the production build passed; the build route list no longer contains `/sub-agencies`. `tests/access-control.spec.ts --project=public` passed **23/23** on Chromium. The selected Firefox/WebKit suite passed **52/52** (26 per engine): security/CSP headers, legacy-session rejection, credential fingerprint behavior, anonymous redirects for all protected paths, and auth-page back links. It found and verified a CSP fix: production `upgrade-insecure-requests` is now emitted only for HTTPS requests (including TLS-terminated requests identified by `x-forwarded-proto`), so local HTTP QA no longer upgrades `/_next` assets to failing HTTPS. The full Playwright run contained 105 tests but could not authenticate: Auth.js `prisma.user.findUnique()` timed out during setup. Authenticated project suites remain unverified.
+
+**Password reset session revocation:** login now places an HMAC fingerprint of the current password hash in the signed session. `currentUser()` compares it to the database on every authenticated request, so either password-change endpoint invalidates existing sessions without a new column or migration. Typecheck and build cover this change; DB-backed runtime proof is blocked by the same Neon timeout.
+
+The Neon `assets` object-storage suite previously passed **54/54** on 2026-11-18 (§16.13). A direct S3 put/read/delete recheck on 2026-11-19 timed out connecting to the Neon storage endpoint on TCP 443 before the PUT completed; no test object was created. Baseline security headers and a nonce-based CSP protect protected and public authentication pages. The image directive still permits any HTTPS image host, and the in-memory rate limiter still does not coordinate across instances. The roughly **90% audit-coverage estimate** is not an error-free claim or a claim that exactly 10% of defects remain. Planning estimate: about **10% of audit coverage remains**, requiring roughly **45–90 minutes of active work after Neon connectivity returns**; wall-clock time is unknown while the endpoint times out, and broad accessibility/performance assurance may take longer. The audit does not certify the system as error-free while the rollback migration, authenticated full E2E, strict image-host policy, distributed rate limiting, and remaining accessibility, performance, and production integration checks are unverified.
+
+### 16.16 Focused keyboard-accessibility check (2026-11-19)
+
+Keyboard testing of the public landing page and student login found that the auth-shell “← Back” link did not show a visible focus indicator. Added a focus-visible ring with dark-mode offset styling. A focused Playwright check now tabs through the landing role card, activates it with Enter, checks visible focus and tab order across login controls, and toggles password visibility with Space.
+
+**Verification:** `pnpm typecheck`, production build (52 routes), and focused Chromium Playwright checks passed (**5/5**). Coverage includes `/`, `/student/login`, `/partner/login`, `/student/signup`, and `/partner/signup`; full keyboard traversal and screen-reader checks across dashboard pages remain open.
+
+### 16.17 Password-recovery route access (2026-11-19)
+
+The proxy matcher included `/forgot-password` and `/reset-password`, but the unauthenticated public-route branch did not. Anonymous visitors were redirected to `/` before either recovery page rendered. Added both exact routes to that public branch; authenticated users still follow the existing redirect-to-home behavior.
+
+**Verification:** the regression test first reproduced the redirect. After the fix, the production build passed and focused Playwright checks passed across Chromium, Firefox, and WebKit (**9/9** combined): each engine confirms the forgot-password form, the no-token recovery message, the token reset form, and keyboard access to recovery form controls. WebKit's default keyboard preference skips links; the check confirms the back link remains natively focusable (`tabIndex=0`) and tests the form's focus order under that default. No database writes were made.
+
+### 16.18 Guest invite route access (2026-11-20)
+
+`/invite/[token]` is a bearer-token guest page with its own active, expiry, revocation, and permission checks. It was included in the proxy matcher but omitted from the public-route exceptions, so guests were redirected before token validation. The proxy now passes `/invite/<token>` through for both signed-out and signed-in visitors; the page remains responsible for token validation.
+
+**Verification:** production build and typecheck passed. The anonymous route check confirms the request is no longer redirected and reaches `InviteLink.findUnique`; the page then returns a database `ETIMEDOUT` because Neon is unavailable. A valid invite could not be rendered in this pass. The fake token matched no row, so no audit or application rows were written.
+
+### 16.19 Invite token audit-log privacy (2026-11-20)
+
+Code review of the now-accessible guest invite flow found that `invite_used` audit events included the raw bearer token in the JSON `after` field. Removed the token from that payload; the event still records the invite row ID, student ID, and shared sections. This prevents audit-log readers from reusing an active guest link.
+
+### 16.20 Shared audit-payload redaction (2026-11-20)
+
+Review of audit callers found that short-course updates could record bank details and meeting links, and advertisement updates could record image URLs. Added recursive redaction at the shared `logAudit` boundary so both `before` and `after` payloads replace fields containing passwords, passphrases, tokens, secrets, authorization/credentials, API keys, bank details, IBAN/SWIFT/routing/account numbers, meeting links, or any URL/URI with `[REDACTED]`. The direct invite-token removal in §16.19 remains in place as defense in depth.
+
+**Verification:** `pnpm typecheck`, production build (52 routes), and the complete public access-control Playwright project passed (**25/25**). The regression covers nested objects and arrays, redacts token/payment/link/image/logo fields, and preserves ordinary descriptive text. The guest-invite test confirms there is no proxy redirect; its page lookup logged `InviteLink.findUnique()` `ETIMEDOUT`, so it does not verify a valid invite. `git diff --check` is rerun for this update. The regression and public route checks made no database writes.
+
+**Still open:** a read-only Neon schema check, forced to `/studyabroad_audit`, returned `ETIMEDOUT` both inside and outside the sandbox. A read-only Neon S3 `GET` for a unique nonexistent key also timed out connecting to the storage hosts on TCP 443; it made no object change. The migration, authenticated database-backed E2E, and live object-storage workflows therefore remain unverified; prior 54/54 Neon/S3 checks from 2026-11-18 are historical evidence, not a current connectivity check. No application database (`neondb`) was targeted.

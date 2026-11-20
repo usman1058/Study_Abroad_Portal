@@ -22,10 +22,9 @@ master catalog (universities/programs, short courses) and commission rates.
 | Role | Visibility | Created by | Notes |
 |---|---|---|---|
 | `super_admin` | Fully hidden — no other role can see this role exists in any UI or dropdown | Seeded in the database directly, never via UI | Only role that can write to `programs`, `universities`, `short_courses`, commission rate fields |
-| `manager` | Highest role a Partner ever sees | `super_admin` | Runs operations; can work student cases directly or delegate |
+| `manager` | Highest role a Partner ever sees | `super_admin` | Owns partner operations; manages agency and counselor accounts, works student cases directly, or delegates |
 | `counselor` | Partner staff | `manager` | Day-to-day casework, scoped to assigned students only |
-| `agency` | Partner (B2B) | `manager` | Full CRUD on their own students; can recruit sub-agencies |
-| `sub_agency` | Same table as `agency`, via self-reference (`parentAgencyId`) | `agency` or `manager` | Sees only their own commission cut, never the parent's — controlled by a per-relationship permission flag |
+| `agency` | Partner (B2B) | `manager` | Full CRUD on its own students |
 | `student` | Self-registers | Self (quick signup) | Sees only their own data |
 
 ---
@@ -40,7 +39,7 @@ master catalog (universities/programs, short courses) and commission rates.
    │
    └─ Partner → login only, no self-signup
                 (accounts always created top-down: super_admin → manager →
-                 counselor/agency → sub_agency)
+                 counselor/agency)
 ```
 
 **Architecture decision (confirmed): ONE app, ONE codebase, role-based rendering** — not two
@@ -53,14 +52,14 @@ being a single bundle.
 ## 3. Sidebar / Navigation — Final Structure
 
 ### Partner-side sections (role-gated, exact set varies by role)
-Home · Users · Scholarships · Short Courses · Search · Application · Sub Agencies · Partner
+Home · Users · Scholarships · Short Courses · Search · Application · Partner
 Commissions · Transaction · Documents · Reports · Settings · WhatsApp quick-launch · Visitor form
 
 ### Student-side sections (entirely different, never overlapping)
 My Applications · Scholarships (browse) · Short Courses (browse/enroll) · **My Shortlist** (new —
 see §5) · My Documents · Messages · Payments · Profile
 
-A student's build of the UI never contains Users, Search, Sub Agencies, Partner Commissions,
+A student's build of the UI never contains Users, Search, Partner Commissions,
 Transaction, or catalog-editing controls — these are not hidden, they are not rendered for that
 role at all (see §7).
 
@@ -98,15 +97,9 @@ role at all (see §7).
   enrolled | rejected | withdrawn`
 - Documents must be marked `verified` by staff before an application can progress
 
-### Sub Agencies
-- Filtered view of the `agencies` self-referencing table
-- Commission visibility per relationship controlled by `canViewCommission` flag, settable by
-  whoever owns the relationship
-
 ### Partner Commissions
 - `super_admin` sets base commission % per program
-- Agency's cut and any portion passed to a sub-agency tracked as ledger entries (not just live
-  percentages), so history survives rate changes
+- Managers oversee partner commission reporting; agencies can view the portal's published rates.
 
 ### Transaction
 - Manually-entered financial ledger (not auto-pulled from a gateway in v1)
@@ -239,7 +232,7 @@ enum Role {
   SUPER_ADMIN
   MANAGER
   COUNSELOR
-  AGENCY   // sub_agency distinguished via parentAgencyId, not a separate enum value
+  AGENCY
   STUDENT
 }
 
@@ -278,10 +271,6 @@ model User {
   createdBy       User?    @relation("CreatedUsers", fields: [createdById], references: [id])
   createdUsers    User[]   @relation("CreatedUsers")
 
-  parentAgencyId  String?
-  parentAgency    User?    @relation("AgencyHierarchy", fields: [parentAgencyId], references: [id])
-  subAgencies     User[]   @relation("AgencyHierarchy")
-
   // Student-specific fields
   passportNumber      String?
   birthday             DateTime?
@@ -302,21 +291,8 @@ model User {
   shortCourseEnrollments ShortCourseEnrollment[]
   shortlists               Shortlist[]
 
-  agencyPermissionsGiven    AgencyPermission[] @relation("PermissionGrantor")
-  agencyPermissionsReceived AgencyPermission[] @relation("PermissionReceiver")
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model AgencyPermission {
-  id                String  @id @default(cuid())
-  grantorId         String
-  grantor           User    @relation("PermissionGrantor", fields: [grantorId], references: [id])
-  receiverId        String
-  receiver          User    @relation("PermissionReceiver", fields: [receiverId], references: [id])
-  canViewCommission Boolean @default(false)
-  canViewFullChain  Boolean @default(false)
 }
 
 model University {
@@ -483,7 +459,6 @@ app/
 │   ├── short-courses/page.tsx       # shared, write UI conditional on role
 │   ├── search/page.tsx              # partner roles only
 │   ├── application/page.tsx         # shared, scoped by role
-│   ├── sub-agencies/page.tsx        # partner roles only
 │   ├── partner-commissions/page.tsx # partner roles only
 │   ├── transaction/page.tsx         # partner roles only
 │   ├── my-shortlist/page.tsx        # student only
@@ -511,7 +486,7 @@ app/
 7. Student profile completion + document upload/verification
 8. Shortlist feature + PDF generation (list + single-course templates)
 9. Application pipeline (with visa-toggle behavior)
-10. Sub Agencies + Partner Commissions + AgencyPermission flags
+10. Partner Commissions
 11. Transaction ledger
 12. Small UX features from §6 (compare, reminders, WhatsApp share, etc.)
 13. Home dashboard + notifications + audit log (aggregates everything above)

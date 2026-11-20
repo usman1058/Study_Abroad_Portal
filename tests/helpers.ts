@@ -7,13 +7,9 @@ export const TEST_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin1234";
 export const STUDENT = { email: "student@studyabroad.test", password: TEST_PASSWORD };
 export const ADMIN = { email: "admin@studyabroad.test", password: TEST_PASSWORD };
 
-/** Locate the form control (input/select/textarea) that follows a plain <label> sibling. */
+/** Locate a form control by its accessible label, including wrapping labels. */
 export function controlFor(page: Page, labelText: string) {
-  return page
-    .locator("label")
-    .filter({ hasText: labelText })
-    .first()
-    .locator("xpath=following-sibling::*[self::input or self::select or self::textarea][1]");
+  return page.getByLabel(labelText, { exact: true }).first();
 }
 
 /**

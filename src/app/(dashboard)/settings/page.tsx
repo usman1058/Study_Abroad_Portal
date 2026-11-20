@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { ChangePasswordForm } from "@/components/change-password-form";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { CurrencySwitcher } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { humanize } from "@/lib/utils";
 
 export const metadata = { title: "Settings" };
 
@@ -27,12 +27,6 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div>
-            <p className="mb-1.5 text-sm font-medium">Language</p>
-            <div className="max-w-xs">
-              <LanguageSwitcher />
-            </div>
-          </div>
-          <div>
             <p className="mb-1.5 text-sm font-medium">Preferred currency</p>
             <CurrencySwitcher defaultCurrency={me?.preferredCurrency ?? "MYR"} />
           </div>
@@ -54,7 +48,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-ink-muted">Email</span><span>{me?.email}</span></div>
-          <div className="flex justify-between"><span className="text-ink-muted">Status</span><span>{me?.status}</span></div>
+          <div className="flex justify-between"><span className="text-ink-muted">Status</span><span>{me?.status ? humanize(me.status) : "Unknown"}</span></div>
           {me?.companyName && <div className="flex justify-between"><span className="text-ink-muted">Company</span><span>{me.companyName}</span></div>}
           {me?.licenseNumber && <div className="flex justify-between"><span className="text-ink-muted">License</span><span>{me.licenseNumber}</span></div>}
         </CardContent>

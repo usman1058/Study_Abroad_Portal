@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { CURRENCIES, CURRENCY_RATES_TO_MYR, convertAmount } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
@@ -46,21 +46,36 @@ export function FeeDisplay({ amount, baseCurrency = "MYR" }: { amount: number; b
 
 export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?: string }) {
   const { currency, apply } = useCurrency(defaultCurrency);
+  const [error, setError] = useState<string | null>(null);
+  const id = useId();
+
+  async function changeCurrency(next: string) {
+    apply(next);
+    setError(null);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ preferredCurrency: next }),
+      });
+      if (!response.ok) setError("Currency was changed for this browser but could not be saved to your account.");
+    } catch {
+      setError("Currency was changed for this browser but could not be saved to your account.");
+    }
+  }
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-ink-muted">Currency</span>
+    <div className="flex flex-wrap items-center gap-2">
+      <label htmlFor={id} className="text-xs text-ink-muted">Currency</label>
       <Select
+        id={id}
         value={currency}
-        onChange={(e) => apply(e.target.value)}
+        onChange={(e) => changeCurrency(e.target.value)}
         className="h-8 w-28 text-xs"
-        aria-label="Display currency"
       >
-        {CURRENCIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
+        {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
       </Select>
+      {error && <span role="alert" className="text-xs text-red-700">{error}</span>}
     </div>
   );
 }

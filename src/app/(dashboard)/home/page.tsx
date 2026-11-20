@@ -21,7 +21,7 @@ import { studentScopeWhere } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_LABELS } from "@/lib/constants";
-import { formatCurrency, formatDate, toNum } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import type { ApplicationStage } from "@/generated/prisma/client";
 import { DashboardAdRail } from "@/components/dashboard-ad-rail";
 
@@ -35,11 +35,15 @@ export default async function HomePage() {
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const trendMonths = Array.from({ length: 6 }, (_, index) => {
+    const start = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return { start, end: new Date(now.getFullYear(), now.getMonth() - (4 - index), 1), label: start.toLocaleString("en", { month: "short" }) };
+  });
   const studentScope = studentScopeWhere(user);
   const canManageUsers = user.role === "SUPER_ADMIN" || user.role === "MANAGER";
   const canSeeReports = user.role !== "COUNSELOR";
 
-  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, unreadNotifs, totalStudents, activePrograms, courseEnrollments, revenueTransactions, advertisements, stageStats, trendRows] = await Promise.all([
+  const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, unreadNotifs, totalStudents, activePrograms, courseEnrollments, revenueByCurrencyRows, advertisements, stageStats] = await Promise.all([
     prisma.user.count({ where: { ...studentScope, createdAt: { gte: weekAgo } } }),
     prisma.application.count({ where: { stage: { notIn: TERMINAL }, student: studentScope } }),
     prisma.document.count({ where: { status: "PENDING", owner: { role: "STUDENT", ...studentScope } } }),
@@ -52,29 +56,21 @@ export default async function HomePage() {
     prisma.user.count({ where: studentScope }),
     prisma.program.count(),
     prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
-    prisma.transaction.findMany({ where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, select: { amount: true, currency: true }, take: 1000 }),
+    prisma.transaction.groupBy({ by: ["currency"], where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, _sum: { amount: true } }),
     prisma.dashboardAdvertisement.findMany({
       where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
       select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     }),
     prisma.application.groupBy({ by: ["stage"], where: { student: studentScope }, _count: { _all: true } }),
-    prisma.application.findMany({ where: { student: studentScope }, select: { createdAt: true }, orderBy: { createdAt: "asc" }, take: 1000 }),
   ]);
 
-  const revenueByCurrency = revenueTransactions.reduce<Record<string, number>>((totals, transaction) => {
-    totals[transaction.currency] = (totals[transaction.currency] ?? 0) + toNum(transaction.amount);
-    return totals;
-  }, {});
-  const revenueSummary = Object.entries(revenueByCurrency).map(([currency, amount]) => formatCurrency(amount, currency)).join(" · ") || "—";
+  const trendCounts = await Promise.all(trendMonths.map((month) => prisma.application.count({ where: { student: studentScope, createdAt: { gte: month.start, lt: month.end } } })));
+  const revenueSummary = revenueByCurrencyRows.map((row) => formatCurrency(Number(row._sum.amount ?? 0), row.currency)).join(" · ") || "—";
   const stageCount = new Map(stageStats.map((item) => [item.stage, item._count._all]));
   const pipeline = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "OFFER", "VISA", "ENROLLED"] as ApplicationStage[];
   const pipelineMax = Math.max(1, ...pipeline.map((stage) => stageCount.get(stage) ?? 0));
-  const trend = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    const next = new Date(now.getFullYear(), now.getMonth() - (4 - index), 1);
-    return { label: date.toLocaleString("en", { month: "short" }), value: trendRows.filter((row) => row.createdAt >= date && row.createdAt < next).length };
-  });
+  const trend = trendMonths.map((month, index) => ({ label: month.label, value: trendCounts[index] }));
 
   const quickActions = [
     { href: "/application", label: "Review applications", detail: "Pipeline and decisions", icon: ClipboardList },

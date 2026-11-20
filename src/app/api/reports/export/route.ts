@@ -15,8 +15,13 @@ export async function GET(req: NextRequest) {
         ? {}
         : { student: studentScopeWhere(user) };
 
+    const rawPeriod = new URL(req.url).searchParams.get("period") ?? "30";
+    const period = ["30", "90", "365", "all"].includes(rawPeriod) ? rawPeriod : "30";
+    const startDate = ["30", "90", "365"].includes(period) ? new Date(Date.now() - Number(period) * 24 * 60 * 60 * 1000) : undefined;
+    const scopedWhere = startDate ? { AND: [where, { createdAt: { gte: startDate } }] } : where;
+
     const applications = await prisma.application.findMany({
-      where,
+      where: scopedWhere,
       include: {
         student: { select: { firstName: true, lastName: true, email: true, phone: true, country: true, createdAt: true } },
         program: { select: { name: true, level: true, university: { select: { name: true } } } },

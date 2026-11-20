@@ -36,7 +36,8 @@ export default async function InvitePage({ params }: PageProps) {
     action: "invite_used",
     entityType: "InviteLink",
     entityId: link.id,
-    after: { token, studentId: link.studentId, sections },
+    // The invite token is a bearer credential; never persist it in the audit log.
+    after: { studentId: link.studentId, sections },
   });
 
   const student = link.student;

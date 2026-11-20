@@ -20,7 +20,13 @@ async function uiLogin(page: Page, path: string, email: string, password: string
   await page.goto(path);
   await page.getByRole("textbox", { name: "Email" }).fill(email);
   await page.getByRole("textbox", { name: "Password" }).fill(password);
+  const callback = page.waitForResponse(
+    (response) => response.url().includes("/api/auth/callback/credentials"),
+    { timeout: 30_000 },
+  ).catch(() => null);
   await page.getByRole("button", { name: "Sign in" }).click();
+  const callbackResponse = await callback;
+  if (!callbackResponse || callbackResponse.status() >= 500) return false;
   try {
     await page.waitForURL(landing, { timeout: 20_000 });
     return true;
@@ -53,6 +59,7 @@ async function ensureSession(
     setup.setTimeout(90_000);
     loggedIn = await uiLogin(page, path, email, password, landing);
     if (loggedIn) await page.context().storageState({ path: file });
+    else throw new Error(`Sign-in for ${email} did not reach its expected destination; inspect the credentials callback response and server logs.`);
   }
 
   // Sanity-check whichever state we ended up with actually authenticates.

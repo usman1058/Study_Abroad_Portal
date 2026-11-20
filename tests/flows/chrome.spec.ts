@@ -55,7 +55,7 @@ test.describe("App shell: every persistent control works", () => {
   test("sidebar marks the active section", async ({ page }) => {
     await page.goto("/users");
     const usersLink = page.getByRole("complementary", { name: "Main navigation" }).getByRole("link", { name: "Users" });
-    await expect(usersLink).toHaveClass(/bg-brand-50/);
+    await expect(usersLink).toHaveClass(/bg-brand-600/);
   });
 
   test("home KPI cards are real links to their sections", async ({ page }) => {

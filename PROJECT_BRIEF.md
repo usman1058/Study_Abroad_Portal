@@ -24,15 +24,10 @@ should translate directly.
 | Role | Visibility | Created by | Notes |
 |---|---|---|---|
 | `super_admin` | Hidden — no other role can see this role exists, in UI or in any dropdown/list | Seeded directly in the database, never via UI | Only role that can write to `programs`, `universities`, `short_courses`, and commission rate fields |
-| `manager` | Visible, highest role a Partner ever sees | `super_admin` | Manages everything within their agency scope; can work student cases directly or delegate |
+| `manager` | Visible, highest role a Partner ever sees | `super_admin` | Owns partner operations; manages agency and counselor accounts, works student cases directly, or delegates |
 | `counselor` | Partner staff | `manager` | Day-to-day casework; scoped to assigned students only |
-| `agency` | Partner (B2B) | `manager` | Full CRUD on their own students; can recruit sub-agencies |
-| `sub_agency` | Partner (B2B), same table as `agency` via self-reference | `agency` (or `manager`) | Sees only their own commission cut, never the parent's |
+| `agency` | Partner (B2B) | `manager` | Full CRUD on its own students |
 | `student` | Self-registers | Self (quick signup) | Sees only their own data, only student-relevant sections |
-
-**Agency and Sub-Agency are the same underlying entity/table**, linked via `parentAgencyId`
-(nullable self-reference). "Sub Agencies" as a UI section is simply `agencies WHERE parentAgencyId
-IS NOT NULL`, filtered to the current agency's own children.
 
 ---
 
@@ -48,7 +43,7 @@ IS NOT NULL`, filtered to the current agency's own children.
      │
      └─ Partner → /login
                     NO self-signup — all partner accounts created top-down
-                    (manager creates counselor/agency; agency creates sub_agency;
+                    (manager creates counselor/agency;
                     super_admin creates manager)
 ```
 
@@ -60,7 +55,7 @@ After login, **one app, role-based rendering** — see §5 for how this is enfor
 ## 3. Full Feature List by Module
 
 ### Users (Partner-side, role-gated)
-- CRUD for Manager, Counselor, Agency, Sub-Agency, Student (each role can only manage roles
+- CRUD for Manager, Counselor, Agency, Student (each role can only manage roles
   below it in the hierarchy — a Manager can create Counselor/Agency but not another Manager or
   Super Admin)
 - Fields on creation: userTitle, gender, phone, country, status (active/inactive), verified (bool)
@@ -103,15 +98,9 @@ After login, **one app, role-based rendering** — see §5 for how this is enfor
   application can progress past the stage that requires it
 - Visa sub-stage only rendered/required when the program's `visaRequired` toggle is on
 
-### Sub Agencies
-- Filtered view of `agencies` table (see §1)
-- Commission visibility per sub-agency relationship controlled by a permission flag
-  (`canViewCommission`), settable by whoever owns the relationship (manager or delegated agency)
-
 ### Partner Commissions
 - `super_admin` sets base commission % per program
-- Agency's cut and whatever they pass down to a sub-agency tracked as separate ledger entries,
-  not just percentages, so history is preserved even if rates change later
+- Managers oversee partner commission reporting; agencies can view the portal's published rates.
 
 ### Transaction
 - Manually-entered financial ledger (not auto-pulled from a payment gateway in v1)
@@ -142,8 +131,7 @@ After login, **one app, role-based rendering** — see §5 for how this is enfor
 
 ### Cross-cutting: Audit Log
 - Every create/update/delete logged with actorId, action, entityType, entityId, before/after diff,
-  timestamp — critical given how much of this system depends on permission flags and commission
-  visibility toggles
+  timestamp — critical for role-scoped access and financial changes
 
 ---
 
@@ -155,9 +143,6 @@ enum Role {
   MANAGER
   COUNSELOR
   AGENCY
-  SUB_AGENCY // enforced via parentAgencyId being non-null on an AGENCY-role user, OR
-             // modeled as its own role value pointing back to an Agency — pick one,
-             // recommendation: keep AGENCY as the role, use parentAgencyId to distinguish
   STUDENT
 }
 
@@ -195,11 +180,6 @@ model User {
   createdBy       User?    @relation("CreatedUsers", fields: [createdById], references: [id])
   createdUsers    User[]   @relation("CreatedUsers")
 
-  // Agency hierarchy (self-referencing)
-  parentAgencyId  String?
-  parentAgency    User?    @relation("AgencyHierarchy", fields: [parentAgencyId], references: [id])
-  subAgencies     User[]   @relation("AgencyHierarchy")
-
   // Student-specific fields
   passportNumber      String?
   birthday             DateTime?
@@ -219,22 +199,8 @@ model User {
   transactions         Transaction[]
   shortCourseEnrollments ShortCourseEnrollment[]
 
-  agencyPermissionsGiven    AgencyPermission[] @relation("PermissionGrantor")
-  agencyPermissionsReceived AgencyPermission[] @relation("PermissionReceiver")
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-// Per-relationship visibility flags (e.g. can a sub-agency see its own commission)
-model AgencyPermission {
-  id            String  @id @default(cuid())
-  grantorId     String
-  grantor       User    @relation("PermissionGrantor", fields: [grantorId], references: [id])
-  receiverId    String
-  receiver      User    @relation("PermissionReceiver", fields: [receiverId], references: [id])
-  canViewCommission Boolean @default(false)
-  canViewFullChain  Boolean @default(false)
 }
 
 model University {
@@ -353,7 +319,7 @@ model AuditLog {
 
 *(This is a working sketch, not a final migration — the build agent should refine field types,
 add indexes on frequently-queried FKs like `studentId`/`applicationId`/`role`, and reconsider the
-`SUB_AGENCY` enum-vs-parentAgencyId question in §4's comment before finalizing.)*
+before finalizing.)*
 
 ---
 
@@ -387,7 +353,6 @@ app/
 │   ├── short-courses/page.tsx   # same
 │   ├── search/page.tsx
 │   ├── application/page.tsx
-│   ├── sub-agencies/page.tsx
 │   ├── partner-commissions/page.tsx
 │   └── transaction/page.tsx
 ├── api/
@@ -439,7 +404,7 @@ API is what must refuse it regardless of what the frontend intended to show them
 6. Scholarships + Short Courses catalog (super_admin write, everyone read)
 7. Student profile completion flow + document upload/verification
 8. Application pipeline (with visa-toggle behavior)
-9. Sub Agencies view + Partner Commissions + AgencyPermission flags
+9. Partner Commissions
 10. Transaction ledger
 11. Home dashboard + notifications + audit log (aggregates everything built above)
 

@@ -89,6 +89,20 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (error) return error;
     if (user.role !== "SUPER_ADMIN") return fail("Only the portal owner can manage the catalog", 403);
 
+    const program = await prisma.program.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!program) return fail("Program not found", 404);
+
+    const applicationCount = await prisma.application.count({ where: { programId: id } });
+    if (applicationCount > 0) {
+      return fail(
+        `This program has ${applicationCount} application${applicationCount === 1 ? "" : "s"} and cannot be deleted.`,
+        409,
+      );
+    }
+
     await prisma.program.delete({ where: { id } });
     await logAudit({ actorId: user.id, action: "delete", entityType: "Program", entityId: id });
     return ok({ id });

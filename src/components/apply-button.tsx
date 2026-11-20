@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 export function ApplyButton({
   programId,
   profileReady,
+  programName,
   className = "",
 }: {
   programId: string;
   profileReady: boolean;
+  /** Names the action when several apply buttons share a page. */
+  programName?: string;
   className?: string;
 }) {
   const router = useRouter();
@@ -55,13 +58,27 @@ export function ApplyButton({
 
   return (
     <span className={"inline-flex items-center gap-1.5 " + className}>
-      <Button size="sm" onClick={apply} disabled={busy} title="Apply to this course now">
+      <Button
+        size="sm"
+        onClick={apply}
+        disabled={busy}
+        title="Apply to this course now"
+        aria-label={programName ? `Apply to ${programName}` : undefined}
+      >
         {busy ? "Applying…" : "Apply"}
       </Button>
-      {msg && (
-        <Link href="/my-applications?tab=all" className={msg.tone === "ok" ? "text-xs font-medium text-green-600 hover:underline" : "text-xs text-red-600"}>
+      {msg && msg.tone === "ok" && (
+        <span role="status" className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          Applied —{" "}
+          <Link href="/my-applications" className="underline underline-offset-2 hover:no-underline">
+            view application
+          </Link>
+        </span>
+      )}
+      {msg && msg.tone === "err" && (
+        <span role="alert" className="text-xs font-medium text-red-700 dark:text-red-300">
           {msg.text}
-        </Link>
+        </span>
       )}
     </span>
   );

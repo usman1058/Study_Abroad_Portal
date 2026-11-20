@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { redactAuditPayload } from "@/lib/audit-redaction";
 
 type AuditInput = {
   actorId: string;
@@ -19,8 +20,8 @@ export async function logAudit(input: AuditInput): Promise<void> {
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
-        before: input.before !== undefined ? (input.before as object) : undefined,
-        after: input.after !== undefined ? (input.after as object) : undefined,
+        before: input.before !== undefined ? (redactAuditPayload(input.before) as object) : undefined,
+        after: input.after !== undefined ? (redactAuditPayload(input.after) as object) : undefined,
       },
     });
   } catch (err) {

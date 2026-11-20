@@ -49,19 +49,19 @@ export function ChangePasswordForm() {
 
   return (
     <form onSubmit={submit} className="max-w-md space-y-4">
-      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      {ok && <div className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Password updated.</div>}
+      {error && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {ok && <div role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Password updated. Other active sessions may remain signed in for up to 12 hours.</div>}
       <div>
-        <Label>Current password</Label>
-        <Input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
+        <Label htmlFor="current-password">Current password</Label>
+        <Input id="current-password" autoComplete="current-password" type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
       </div>
       <div>
-        <Label>New password</Label>
-        <Input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
+        <Label htmlFor="new-password">New password</Label>
+        <Input id="new-password" autoComplete="new-password" type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
       </div>
       <div>
-        <Label>Confirm new password</Label>
-        <Input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+        <Label htmlFor="confirm-new-password">Confirm new password</Label>
+        <Input id="confirm-new-password" autoComplete="new-password" type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
       <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Change password"}</Button>
     </form>

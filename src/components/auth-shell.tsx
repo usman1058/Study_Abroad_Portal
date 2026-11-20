@@ -16,7 +16,7 @@ export function AuthShell({
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-canvas p-6 dark:bg-navy-950">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-navy-900/5 to-transparent dark:from-navy-800/20" />
       <div className="relative w-full max-w-md">
-        <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-ink-muted transition hover:text-navy-900 dark:text-navy-300 dark:hover:text-white">
+        <Link href="/" className="mb-6 inline-flex items-center gap-2 rounded-sm text-sm font-medium text-ink-muted transition hover:text-navy-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:text-navy-300 dark:hover:text-white dark:focus-visible:ring-offset-navy-950">
           ← Back
         </Link>
         <div className="rounded-xl border border-line bg-white p-8 shadow-[0px_20px_25px_-5px_rgba(15,32,66,0.08),0px_10px_10px_-5px_rgba(15,32,66,0.03)] dark:border-navy-700 dark:bg-navy-900">

@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { AuthShell } from "@/components/auth-shell";
 import { SignupForm } from "@/components/signup-form";
 
 export const metadata = { title: "Student Signup" };
 
-export default function StudentSignupPage() {
+export default async function StudentSignupPage() {
+  await connection();
   return (
     <AuthShell
       title="Student Signup"

@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
 import { ApplyButton } from "@/components/apply-button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, humanize } from "@/lib/utils";
 
 export type BulkProgram = {
   id: string;
@@ -87,7 +87,7 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
     <div className="space-y-4">
       {selected.size > 0 && (
         <div className="sticky top-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-brand-800 dark:bg-navy-900/95">
-          <p className="text-sm font-medium">
+          <p role="status" className="text-sm font-medium">
             {selected.size} course{selected.size > 1 ? "s" : ""} selected
             <span className="ml-2 text-xs text-ink-muted">up to 50 courses per PDF</span>
           </p>
@@ -101,7 +101,11 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
           </div>
         </div>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm font-medium text-red-700 dark:text-red-300">
+          {error}
+        </p>
+      )}
 
       {groups.map(({ universityId, universityName, city, country, programs, totalPrograms }) => (
         <Card key={universityId}>
@@ -125,19 +129,23 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
             <div className="divide-y divide-line dark:divide-navy-700">
               {programs.map((p) => (
                 <div key={p.id} data-program-row={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3 hover:bg-canvas dark:hover:bg-navy-800/40">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={selected.has(p.id)}
-                    onChange={() => toggle(p.id)}
-                    aria-label={`Select ${p.name}`}
-                  />
+                  {/* The 16 px box sits inside a 36 px hit area so the select
+                      target meets WCAG 2.2 (§2.5.8) without a giant control. */}
+                  <label className="-my-1 inline-flex min-h-9 min-w-9 cursor-pointer items-center justify-center rounded-lg hover:bg-canvas-subtle dark:hover:bg-navy-800">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={selected.has(p.id)}
+                      onChange={() => toggle(p.id)}
+                      aria-label={`Select ${p.name}`}
+                    />
+                  </label>
                   <div className="min-w-0 flex-1">
                     <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:text-brand-600 hover:underline">
                       {p.name}
                     </Link>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                      <Badge tone="slate">{p.level}</Badge>
+                      <Badge tone="slate">{humanize(p.level)}</Badge>
                       <span>{p.field}</span>
                       {p.nextIntake && <span>Next intake {formatDate(p.nextIntake)}</span>}
                     </div>
@@ -146,7 +154,7 @@ export function BulkExportList({ groups, profileReady }: { groups: BulkGroup[]; 
                     <FeeDisplay amount={p.tuitionFee} />
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <ApplyButton programId={p.id} profileReady={profileReady} />
+                    <ApplyButton programId={p.id} profileReady={profileReady} programName={p.name} />
                     <Link
                       href={`/scholarships/${p.slug ?? p.id}`}
                       aria-label={`View ${p.name}`}

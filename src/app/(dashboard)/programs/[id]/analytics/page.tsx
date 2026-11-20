@@ -1,8 +1,9 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { humanize } from "@/lib/utils";
 
 export default async function ProgramAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser(); if (!user) redirect("/");
@@ -17,7 +18,7 @@ export default async function ProgramAnalyticsPage({ params }: { params: Promise
       programViews: { select: { viewedAt: true } },
     },
   });
-  if (!program) return <Card><CardContent className="p-8 text-center">Program not found.</CardContent></Card>;
+  if (!program) notFound();
   const stages = program.applications.reduce<Record<string, number>>((a, x) => { a[x.stage] = (a[x.stage] ?? 0) + 1; return a; }, {});
   const perView = program.programViews.length ? (program.applications.length / program.programViews.length).toFixed(1) : "0";
   return <div className="space-y-6"><div><p className="text-sm text-brand-600">{program.university.name}</p><h1 className="text-2xl font-bold">{program.name} analytics</h1><p className="text-sm text-ink-muted">Usage, application, and student breakdown for this program.</p></div><div className="grid gap-4 sm:grid-cols-3"><Metric label="Applications" value={program.applications.length}/><Metric label="Program views" value={program.programViews.length}/><Metric label="Applications per view" value={`${perView}×`}/></div><Card><CardHeader><CardTitle>Application stages</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-3">{Object.entries(stages).map(([stage, count]) => <div key={stage} className="rounded-lg border border-line px-4 py-3 dark:border-navy-700"><Badge tone="brand">{stage.replace(/_/g, " ")}</Badge><p className="mt-2 text-2xl font-bold">{count}</p></div>)}</CardContent></Card><Card><CardHeader><CardTitle>Students using this program</CardTitle></CardHeader><CardContent><ul className="divide-y divide-line dark:divide-navy-700">{program.applications.map((a) => <li key={`${a.student.id}-${a.createdAt.toISOString()}`} className="flex justify-between py-3 text-sm"><span>{a.student.firstName} {a.student.lastName}</span><Badge tone="slate">{a.stage.replace(/_/g, " ")}</Badge></li>)}</ul></CardContent></Card></div>;

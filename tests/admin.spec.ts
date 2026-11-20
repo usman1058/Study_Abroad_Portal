@@ -1,19 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 const ADMIN_PAGES: [string, RegExp][] = [
-  ["/home", /Welcome back/],
+  ["/home", /Good to see you/],
   ["/users", /^Users$/],
   ["/programs", /^Programs$/],
-  ["/scholarships", /^Scholarships$/],
-  ["/short-courses", /^Short Courses$/],
+  ["/short-courses", /^Short courses$/],
   ["/search", /^Search$/],
   ["/application", /^Applications$/],
-  ["/sub-agencies", /^Sub Agencies$/],
   ["/partner-commissions", /^Partner Commissions$/],
   ["/transaction", /^Transactions$/],
   ["/documents", /^Documents$/],
   ["/reports", /^Reports$/],
-  ["/visitor-form", /^Visitor Form$/],
+  ["/visitor-form", /^Visitor leads$/],
   ["/messages", /^Messages$/],
   ["/payments", /^Payments$/],
   ["/profile", /^Profile$/],
@@ -44,7 +42,7 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
 
   test("users list shows seeded users and opens student detail", async ({ page }) => {
     await page.goto("/users");
-    await expect(page.getByText("student@studyabroad.test")).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: "student@studyabroad.test" })).toBeVisible();
 
     const studentRow = page.getByRole("row").filter({ hasText: "student@studyabroad.test" });
     await studentRow.getByRole("link", { name: "Sam Student" }).click();
@@ -55,36 +53,49 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
 
   test("applications list shows seeded application and detail page opens", async ({ page }) => {
     await page.goto("/application");
-    await expect(page.getByText("Bachelor of Computer Science").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Bachelor of Computer Science" }).first()).toBeVisible();
 
-    await page.goto("/application/sample-app-1");
-    await expect(page.getByRole("heading", { level: 1, name: "Bachelor of Computer Science" })).toBeVisible();
+    await page.getByRole("link", { name: "Bachelor of Computer Science" }).first().click();
+    await expect(page).toHaveURL(/\/application\/[^/]+$/);
     await expect(page.getByRole("heading", { name: "Pipeline" })).toBeVisible();
   });
 
-  test("sub-agencies lists seeded sub-agency", async ({ page }) => {
-    await page.goto("/sub-agencies");
-    await expect(page.getByText("NextStep Consultancy").first()).toBeVisible();
+  test("program with applications cannot be deleted", async ({ page }) => {
+    const list = await page.request.get("/api/applications?limit=100");
+    expect(list.status()).toBe(200);
+    const payload = await list.json();
+    const application = payload.data.data.find(
+      (item: { program?: { name?: string } }) => item.program?.name === "Bachelor of Computer Science",
+    );
+    expect(application?.programId).toBeTruthy();
+
+    const deletion = await page.request.delete(`/api/scholarships/${application.programId}`);
+    expect(deletion.status()).toBe(409);
+    const deletionBody = await deletion.json();
+    expect(deletionBody.success).toBe(false);
+    expect(deletionBody.error).toMatch(/applications? and cannot be deleted/i);
+
+    const after = await page.request.get("/api/applications?limit=100");
+    const afterPayload = await after.json();
+    expect(afterPayload.data.data.some((item: { id: string }) => item.id === application.id)).toBe(true);
   });
 
   test("transactions list shows seeded transaction", async ({ page }) => {
     await page.goto("/transaction");
-    await expect(
-      page.getByText("Service fee for the Bachelor of Computer Science application").first(),
-    ).toBeVisible();
+    await expect(page.getByText("Service fee for the Bachelor of Computer Science application").last()).toBeVisible();
   });
 
   test("super admin can edit a partner commission rate", async ({ page }) => {
     await page.goto("/partner-commissions");
-    const row = page.getByRole("row").filter({ hasText: "Bachelor of Computer Science" });
-    await row.getByRole("button", { name: /Edit commission/ }).click();
+    const editRate = page.getByRole("button", { name: /Edit commission/ }).first();
+    await editRate.click();
     const rate = page.getByLabel("Commission rate (%)");
     const original = await rate.inputValue();
     await rate.fill("12.5");
     await page.getByRole("button", { name: "Save rate" }).click();
-    await expect(row.getByText("12.5%")).toBeVisible();
+    await expect(page.getByText("12.5%", { exact: true }).last()).toBeVisible();
 
-    await row.getByRole("button", { name: /Edit commission/ }).click();
+    await page.getByRole("button", { name: /Edit commission/ }).first().click();
     await page.getByLabel("Commission rate (%)").fill(original);
     await page.getByRole("button", { name: "Save rate" }).click();
   });
@@ -112,8 +123,8 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     await page.getByRole("button", { name: "Create announcement" }).click();
     const deleteButton = page.getByRole("button", { name: `Delete ${title}` });
     await expect(deleteButton).toBeVisible();
-    page.once("dialog", (dialog) => dialog.accept());
     await deleteButton.click();
+    await page.getByRole("button", { name: "Delete announcement" }).click();
     await expect(deleteButton).toHaveCount(0);
   });
 

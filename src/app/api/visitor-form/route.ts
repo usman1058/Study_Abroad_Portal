@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role !== "SUPER_ADMIN") return fail("Only the admin can manage visitor leads", 403);
+    if (user.role !== "SUPER_ADMIN" && user.role !== "MANAGER") return fail("Only administrators and managers can manage visitor leads", 403);
 
     const body = await req.json();
     const parsed = leadSchema.safeParse(body);
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role !== "SUPER_ADMIN") return fail("Forbidden", 403);
+    if (user.role !== "SUPER_ADMIN" && user.role !== "MANAGER") return fail("Forbidden", 403);
 
     const { cursor, limit } = parsePaginationParams(req, 50, 100);
 

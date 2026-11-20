@@ -1,16 +1,25 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { Download, ExternalLink, MessageCircle } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getProgramBySlug, serializeProgram } from "@/lib/queries";
+import { getProgramBySlug, profileCompleteness } from "@/lib/queries";
 import { ShortlistToggle } from "@/components/shortlist-toggle";
 import { CurrencySwitcher, FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum } from "@/lib/utils";
+import { formatDate, humanize, toNum } from "@/lib/utils";
+import { ApplyButton } from "@/components/apply-button";
 
-export const metadata = { title: "Course Details" };
+export const metadata = { title: "Program details" };
+
+async function requestOrigin(): Promise<string> {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${protocol}://${host}`;
+}
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -20,13 +29,14 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   if (!user) redirect("/");
 
   const program = await getProgramBySlug(id);
-  if (!program) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center text-ink-muted">Program not found.</CardContent>
-      </Card>
-    );
-  }
+  // An unknown id is a real 404 rather than a 200 card, so the status matches
+  // the answer and crawlers/links do not treat a dead program as a page.
+  if (!program) notFound();
+
+  const profileReady = user.role === "STUDENT" ? await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { phone: true, country: true, gender: true, birthday: true, passportNumber: true, countryOfResidence: true, nationality: true, cityOfResidence: true, address: true, motherName: true, fatherName: true },
+  }).then((profile) => Boolean(profile && profileCompleteness(profile as unknown as Parameters<typeof profileCompleteness>[0]) >= 80)) : false;
 
   // Last-viewed tracking, §6
   let shortlisted = false;
@@ -51,8 +61,8 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   const why = (program.whyHighlights as { icon?: string; title?: string; description?: string }[]) ?? [];
 
   const details: { label: string; value: React.ReactNode }[] = [];
-  if (program.applicationFee != null) details.push({ label: "Application Fee", value: formatCurrency(program.applicationFee) });
-  details.push({ label: "Tuition Fee", value: formatCurrency(program.tuitionFee) });
+  if (program.applicationFee != null) details.push({ label: "Application Fee", value: <FeeDisplay amount={toNum(program.applicationFee)} /> });
+  details.push({ label: "Tuition Fee", value: <FeeDisplay amount={toNum(program.tuitionFee)} /> });
   if (program.offerTurnaroundDays != null) details.push({ label: "Offer Turnaround Time", value: `${program.offerTurnaroundDays} days` });
   if (program.courseDurationMonths != null) details.push({ label: "Course Duration", value: `${program.courseDurationMonths} months` });
   if (program.intakeDates.length > 0) details.push({ label: "Open Intakes", value: program.intakeDates.map((d) => formatDate(d, { dateStyle: "medium" })).join(", ") });
@@ -70,29 +80,31 @@ export default async function ProgramDetailPage({ params }: PageProps) {
     take: 3,
   });
 
-  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/scholarships/${program.slug ?? program.id}`;
+  const shareUrl = `${await requestOrigin()}/scholarships/${program.slug ?? program.id}`;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              {program.universityLogoUrl && (
+            <div className="flex min-w-0 items-start gap-4">
+              {program.universityLogoUrl ? (
                 <img
                   src={program.universityLogoUrl}
                   alt={`${program.university?.name} logo`}
                   className="h-14 w-14 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
                 />
-              )}
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
+              ) : <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xl font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
                 {program.university?.name?.[0] ?? "?"}
-              </span>
-              <div>
+              </span>}
+              <div className="min-w-0">
                 <p className="text-sm text-ink-muted">{program.university?.name ?? "Unknown university"}</p>
-                <h1 className="text-2xl font-bold">{program.name}</h1>
+                {/* The program is the subject of the page, so its name is the heading. */}
+                <h1 className="break-words text-2xl font-bold">{program.name}</h1>
                 <p className="text-sm text-ink-muted">
-                  {program.location ?? program.university?.country ?? ""}
+                  {[humanize(program.level), program.field, program.location ?? program.university?.country]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
                 {program.university?.website && (
                   <a
@@ -106,16 +118,19 @@ export default async function ProgramDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               {user.role === "STUDENT" && (
                 <>
                   <ShortlistToggle programId={program.id} initial={shortlisted} />
+                  <ApplyButton programId={program.id} profileReady={profileReady} programName={program.name} />
                   <CurrencySwitcher />
                 </>
               )}
+              <Link href="/programs" className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 py-2 text-sm font-medium hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800">Back to programs</Link>
               <a
                 href={`/api/programs/${program.id}/pdf`}
                 target="_blank"
+                rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
               >
                 <Download className="h-4 w-4" /> Download Details PDF
@@ -224,7 +239,6 @@ export default async function ProgramDetailPage({ params }: PageProps) {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {similar.map((s) => {
-                const card = serializeProgram(s);
                 return (
                   <Link key={s.id} href={`/scholarships/${s.slug ?? s.id}`} className="rounded-xl border border-line p-4 transition hover:border-brand-400 dark:border-navy-700">
                     <p className="text-sm font-semibold">{s.university.name}</p>

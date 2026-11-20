@@ -4,6 +4,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { credentialVersion } from "@/lib/session-version";
 
 /** Distinguishes "password is fine but the account is not usable yet" from bad credentials. */
 class PendingApproval extends CredentialsSignin {
@@ -52,6 +53,7 @@ export const authConfig = {
           role: user.role,
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
+          credentialVersion: credentialVersion(user.passwordHash),
         };
       },
     }),
@@ -61,6 +63,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.credentialVersion = user.credentialVersion;
       }
       return token;
     },
@@ -68,6 +71,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as never;
+        session.user.credentialVersion = token.credentialVersion as string;
       }
       return session;
     },

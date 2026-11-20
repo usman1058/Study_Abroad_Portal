@@ -16,7 +16,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-  const [studentId, setStudentId] = useState(students[0]?.id ?? "");
+  const [studentId, setStudentId] = useState("");
   const [days, setDays] = useState(7);
   const [access, setAccess] = useState<SectionAccess>({ applications: "view" });
 
@@ -89,15 +89,15 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
       <p className="text-sm text-ink-muted">
         Grants view-only access without creating an account. Expires automatically and can be revoked instantly.
       </p>
-      {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label>Student (data scope)</Label>
-          <SearchableSelect options={students} value={studentId} onChange={setStudentId} placeholder="Search students…" />
+          <Label htmlFor="invite-student">Student (data scope)</Label>
+          <SearchableSelect id="invite-student" ariaLabel="Student" required options={students} value={studentId} onChange={setStudentId} placeholder="Search students…" allLabel="Choose a student" />
         </div>
         <div>
-          <Label>Expires in (days)</Label>
-          <Input type="number" min={1} max={90} value={days} onChange={(e) => { const n = Number(e.target.value); setDays(Number.isFinite(n) ? Math.min(90, Math.max(1, n)) : 7); }} />
+          <Label htmlFor="invite-days">Expires in (days)</Label>
+          <Input id="invite-days" type="number" min={1} max={90} value={days} onChange={(e) => { const n = Number(e.target.value); setDays(Number.isFinite(n) ? Math.min(90, Math.max(1, n)) : 7); }} />
         </div>
       </div>
       <div>
@@ -118,7 +118,7 @@ export function InviteLinkForm({ students }: { students: { id: string; label: st
         </div>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={busy}>{busy ? "Generating…" : "Generate link"}</Button>
+        <Button type="submit" disabled={busy || !studentId}>{busy ? "Generating…" : "Generate link"}</Button>
         <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
       {result && (

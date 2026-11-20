@@ -9,11 +9,13 @@ export function ShortlistToggle({ programId, initial = false }: { programId: str
   const router = useRouter();
   const [on, setOn] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => setOn(initial), [initial]);
 
   async function toggle() {
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch("/api/shortlist", {
         method: on ? "DELETE" : "POST",
@@ -22,22 +24,23 @@ export function ShortlistToggle({ programId, initial = false }: { programId: str
       });
       const json = await res.json();
       if (!res.ok) {
-        alert(json.error ?? "Failed to update shortlist");
+        setError(json.error ?? "Failed to update shortlist");
         return;
       }
       setOn(!on);
       router.refresh();
     } catch {
-      alert("Network error. Please try again.");
+      setError("Network error. Please try again.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <button
+    <span className="inline-flex flex-col items-start gap-1"><button
       onClick={toggle}
       disabled={busy}
+      aria-pressed={on}
       className={cn(
         "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition",
         on
@@ -47,6 +50,6 @@ export function ShortlistToggle({ programId, initial = false }: { programId: str
     >
       <Star className={cn("h-3.5 w-3.5", on && "fill-current")} />
       {on ? "Shortlisted" : "Add to shortlist"}
-    </button>
+    </button>{error && <span role="alert" className="text-xs text-red-700">{error}</span>}</span>
   );
 }

@@ -14,15 +14,19 @@ const slugOf = (uni: string, name: string) =>
 
 /** Create a program via the /scholarships form, exercising the new-university toggle. */
 async function saveProgramForm(page: Page, expectedName: string) {
-  await page.getByRole("button", { name: "Save program" }).click();
-  await expect(page.getByRole("button", { name: "+ Add program" })).toBeVisible({ timeout: 20_000 });
-  try {
-    await expect(page.getByText(expectedName).first()).toBeVisible({ timeout: 10_000 });
-  } catch {
-    // router.refresh() can lag behind the API — settle with a hard reload
-    await page.reload();
-    await expect(page.getByText(expectedName).first()).toBeVisible({ timeout: 10_000 });
-  }
+  const form = page.locator("form").filter({ has: page.getByRole("button", { name: "Save program" }) });
+  const saveResponse = page.waitForResponse((response) => response.url().includes("/api/scholarships") && ["POST", "PUT"].includes(response.request().method()));
+  await form.getByRole("button", { name: "Save program" }).click();
+  const response = await saveResponse;
+  const body = await response.json().catch(() => ({}));
+  expect(response.status(), JSON.stringify(body)).toBe(response.request().method() === "POST" ? 201 : 200);
+  // The toolbar's Add button remains visible while the form is open; wait for
+  // the submitted form to close so the following navigation cannot abort it.
+  await expect(page.locator("form").filter({ has: page.getByRole("button", { name: "Save program" }) })).toBeHidden({ timeout: 20_000 });
+  // The catalogue sorts alphabetically and the dedicated audit DB accumulates
+  // fixture rows across runs; filter by the new title instead of assuming page 1.
+  await page.goto(`/programs?q=${encodeURIComponent(expectedName)}`);
+  await expect(page.getByText(expectedName, { exact: true })).toBeVisible();
 }
 
 /** Enter "new university" mode regardless of which mode the fresh form opened in. */
@@ -41,7 +45,7 @@ async function ensureNewUniversityMode(page: Page, exerciseToggle: boolean) {
 }
 
 async function createProgram(page: Page, university: string, name: string, exerciseToggle = false) {
-  await page.getByRole("button", { name: "+ Add program" }).click();
+  await page.getByRole("button", { name: "Add a new program" }).click();
   await expect(page.getByRole("heading", { name: "Add a new program" })).toBeVisible();
 
   await ensureNewUniversityMode(page, exerciseToggle);
@@ -62,18 +66,20 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await createProgram(page, UNI, P_WIZARD, true); // first one exercises the toggle both ways
     await createProgram(page, UNI, P_APPLY);
     await createProgram(page, UNI, P_DELETE);
-    const editRow = rowForAction(page, P_DELETE, { name: "Edit", exact: true });
-    await editRow.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: `Edit ${P_DELETE}`, exact: true }).click();
     await expect(page.getByRole("heading", { name: "Edit program" })).toBeVisible();
-    const nameInput = controlFor(page, "Program name");
+    const editForm = page.locator("form").filter({ has: page.getByRole("heading", { name: "Edit program" }) });
+    const nameInput = editForm.locator("label").filter({ hasText: "Program name" }).locator("xpath=following-sibling::input[1]");
     await expect(nameInput).toHaveValue(P_DELETE); // form hydrates initial values
     await nameInput.fill(`${P_DELETE} v2`);
+    const updateResponse = page.waitForResponse((response) => response.url().includes("/api/scholarships/") && response.request().method() === "PUT");
     await saveProgramForm(page, `${P_DELETE} v2`);
+    const updateResult = await updateResponse;
+    expect(updateResult.status(), await updateResult.text()).toBe(200);
 
     // Delete with confirm dialog
-    const deleteRow = rowForAction(page, `${P_DELETE} v2`, { name: "Delete", exact: true });
-    acceptNextConfirm(page);
-    await deleteRow.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("button", { name: `Delete ${P_DELETE} v2`, exact: true }).click();
+    await page.getByRole("button", { name: `Confirm deleting ${P_DELETE} v2`, exact: true }).click();
     try {
       await expect(page.getByText(`${P_DELETE} v2`)).toHaveCount(0, { timeout: 15_000 });
     } catch {
@@ -88,20 +94,23 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const page = await ctx.newPage();
 
     await page.goto("/apply");
-    await expect(page.getByRole("heading", { level: 1, name: "Apply Application" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Start an application" })).toBeVisible();
 
     // Step 0 — Continue is gated on required fields
-    const firstName = controlFor(page, "First name *");
+    const firstName = page.getByLabel("First name *");
     await expect(firstName).toHaveValue("Sam"); // pre-filled from profile
     const saveContinue = page.getByRole("button", { name: "Save & continue" });
 
-    const genderSelect = controlFor(page, "Gender *");
+    const genderSelect = page.getByLabel("Gender *");
     if (!(await genderSelect.inputValue())) {
       await expect(saveContinue).toBeDisabled(); // gating works
       await genderSelect.selectOption("male");
     }
-    if (!(await controlFor(page, "Passport number *").inputValue())) {
-      await controlFor(page, "Passport number *").fill(`E2E${ts.toUpperCase()}`);
+    if (!(await page.getByLabel("Passport number *").inputValue())) {
+      await page.getByLabel("Passport number *").fill(`E2E${ts.toUpperCase()}`);
+    }
+    if (!(await page.getByLabel("Date of birth *").inputValue())) {
+      await page.getByLabel("Date of birth *").fill("2000-01-01");
     }
     await expect(saveContinue).toBeEnabled();
     await saveContinue.click();
@@ -114,8 +123,8 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await removeButtons.last().click();
     await expect(removeButtons).toHaveCount(1); // removal works
 
-    await controlFor(page, "Level").selectOption("Bachelor");
-    await controlFor(page, "Institution *").fill("E2E Polytechnic");
+    await page.getByLabel("Level").selectOption("Bachelor");
+    await page.getByLabel("Institution *").fill("E2E Polytechnic");
     await page.getByRole("button", { name: "Save & continue" }).click();
 
     // Step 2 — upload two documents through the real file input
@@ -125,7 +134,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.getByRole("button", { name: "Upload document" }).click();
     await expect(fileInput).toHaveValue("", { timeout: 15_000 }); // cleared after success
 
-    await controlFor(page, "Document type").selectOption({ label: "Transcript" });
+    await page.getByLabel("Document type").selectOption({ label: "Transcript" });
     await fileInput.setInputFiles({ name: "transcript.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 e2e") });
     await page.getByRole("button", { name: "Upload document" }).click();
     await expect(fileInput).toHaveValue("", { timeout: 15_000 });
@@ -135,7 +144,11 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
 
     // Step 3 — choose program & submit
     await expect(page.getByText("Choose university & program *")).toBeVisible();
-    await controlFor(page, "Choose university & program *").selectOption({ label: `${UNI} — ${P_WIZARD}` });
+    await page.getByRole("button", { name: "Search and select a program…" }).click();
+    await page.getByRole("textbox", { name: "Search programs" }).fill(P_WIZARD);
+    const programOption = page.locator(`[data-picker-option]`).filter({ hasText: P_WIZARD }).first();
+    await expect(programOption).toBeVisible({ timeout: 15_000 });
+    await programOption.click();
     await page.getByRole("button", { name: "Submit application" }).click();
 
     await page.waitForURL(/\/my-applications\?submitted=1$/, { timeout: 20_000 });
@@ -146,28 +159,50 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await expect(page.getByText(P_WIZARD).first()).toBeVisible();
   });
 
-  test("student one-click Apply button from catalog + bulk export toolbar", async ({ browser }) => {
+  test("student completes profile, applies from catalog, and uses bulk export toolbar", async ({ browser }) => {
     test.setTimeout(150_000);
     const ctx = await browser.newContext({ storageState: ".auth/student.json" });
     const page = await ctx.newPage();
-    await page.goto("/programs");
 
-    // Idempotent across retries: skip if this run already applied
-    const findCard = () => rowForAction(page, P_APPLY, { name: /^Apply$|^Applied/ });
-    let card = findCard();
-    if ((await card.getByRole("link", { name: /^Applied/ }).count()) === 0) {
-      await card.getByRole("button", { name: /^Apply$/ }).click();
-    } else {
-      void card;
+    // This shared seeded student starts below the 80% one-click-apply gate.
+    // Complete the required audit fixture through the same profile API before
+    // checking that the catalog exposes the action.
+    const profileResponse = await ctx.request.put("/api/profile", {
+      data: {
+        phone: "+60123456789",
+        country: "Malaysia",
+        gender: "male",
+        passportNumber: `E2E${ts.toUpperCase()}`,
+        birthday: "2000-01-01",
+        countryOfResidence: "Malaysia",
+        nationality: "Malaysian",
+        cityOfResidence: "Kuala Lumpur",
+        address: "Audit test address",
+      },
+    });
+    expect(profileResponse.status()).toBe(200);
+
+    await page.goto(`/programs?q=${encodeURIComponent(P_APPLY)}`);
+
+    // Idempotent across retries: skip if this run already applied.
+    const findCard = () => page.locator("[data-program-row]").filter({ hasText: P_APPLY });
+    const card = findCard();
+    const existingApplications = await ctx.request.get("/api/applications?limit=100");
+    expect(existingApplications.status()).toBe(200);
+    const applicationPayload = await existingApplications.json();
+    const alreadyApplied = (applicationPayload.data?.data ?? []).some(
+      (application: { program?: { name?: string } }) => application.program?.name === P_APPLY,
+    );
+    if (!alreadyApplied) {
+      await card.getByRole("button", { name: `Apply to ${P_APPLY}`, exact: true }).click();
+      await expect(card.getByRole("link", { name: "view application", exact: true })).toBeVisible({ timeout: 15_000 });
     }
-    card = findCard();
-    await expect(card.getByRole("link", { name: /^Applied/ })).toBeVisible({ timeout: 15_000 });
 
     await page.goto("/my-applications");
     await expect(page.getByText(P_APPLY).first()).toBeVisible();
 
     // Bulk export list — select, download (first react-pdf render is slow), clear
-    await page.goto("/programs");
+    await page.goto(`/programs?q=${encodeURIComponent(P_WIZARD)}`);
     await page.getByLabel(`Select ${P_WIZARD}`).check();
     await expect(page.getByText(/1 course selected/)).toBeVisible();
 
@@ -176,7 +211,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const dl = await dlPromise;
     expect((await dl.path()) !== null).toBeTruthy();
 
-    await page.getByRole("button", { name: "Clear" }).click();
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
     await expect(page.getByText(/course selected/)).toHaveCount(0);
     await ctx.close();
   });
@@ -185,26 +220,41 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const ctx = await browser.newContext({ storageState: ".auth/student.json" });
     const page = await ctx.newPage();
     await page.goto(`/scholarships/${slugOf(UNI, P_WIZARD)}`);
+    await expect(page.getByRole("heading", { level: 1, name: P_WIZARD })).toBeVisible();
+    await expect(page.getByText(P_WIZARD, { exact: true })).toBeVisible();
 
-    const toggle = page.getByRole("button", { name: "Add to shortlist" });
-    await toggle.click();
-    await expect(page.getByRole("button", { name: "Shortlisted" })).toBeVisible();
+    const addButton = () => page.getByRole("button", { name: "Add to shortlist" });
+    const shortlistedButton = () => page.getByRole("button", { name: "Shortlisted" });
+    const setShortlisted = async (wanted: boolean) => {
+      if (wanted && await shortlistedButton().count()) return;
+      if (!wanted && await addButton().count()) return;
+      const method = wanted ? "POST" : "DELETE";
+      const [response] = await Promise.all([
+        page.waitForResponse((r) => r.url().endsWith("/api/shortlist") && r.request().method() === method),
+        (wanted ? addButton() : shortlistedButton()).click(),
+      ]);
+      expect(wanted ? [200, 201] : [200]).toContain(response.status());
+      await expect(wanted ? shortlistedButton() : addButton()).toBeVisible();
+    };
+
+    // Reset a prior interrupted run to a known state before testing both
+    // transitions. The suite uses one shared seeded student in the audit DB.
+    await setShortlisted(false);
+    await setShortlisted(true);
 
     // state survives a reload (server-hydrated initial)
     await page.reload();
-    await expect(page.getByRole("button", { name: "Shortlisted" })).toBeVisible();
+    await expect(shortlistedButton()).toBeVisible();
 
     // and toggling off removes it again
-    await page.getByRole("button", { name: "Shortlisted" }).click();
-    await expect(page.getByRole("button", { name: "Add to shortlist" })).toBeVisible();
+    await setShortlisted(false);
 
     await page.goto("/my-shortlist");
     await expect(page.getByText(P_WIZARD)).toHaveCount(0);
 
     // re-add for the PDF-download test later in this file
     await page.goto(`/scholarships/${slugOf(UNI, P_WIZARD)}`);
-    await page.getByRole("button", { name: "Add to shortlist" }).click();
-    await expect(page.getByRole("button", { name: "Shortlisted" })).toBeVisible();
+    await setShortlisted(true);
 
     // currency switcher live-converts the client-side FeeDisplay prices
     await page.goto(`/scholarships/${slugOf(UNI, P_APPLY)}`);
@@ -224,15 +274,20 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const ctx = await browser.newContext({ storageState: ".auth/student.json" });
     const page = await ctx.newPage();
     await page.goto("/my-shortlist");
+    await page.waitForLoadState("networkidle");
 
     // pick any two available chips (contents vary across runs)
-    const chips = page.locator("button.rounded-full");
+    const chips = page
+      .getByRole("group", { name: "Choose up to three courses to compare" })
+      .getByRole("button");
     await expect(chips.first()).toBeVisible();
     const chipCount = await chips.count();
     expect(chipCount).toBeGreaterThanOrEqual(2);
 
     await chips.nth(0).click();
+    await expect(chips.nth(0)).toHaveAttribute("aria-pressed", "true");
     await chips.nth(1).click();
+    await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true");
     const compareBtn = page.getByRole("button", { name: new RegExp(`Compare selected \\(${Math.min(chipCount, 2)}\\/3\\)`) });
     await expect(compareBtn).toBeEnabled();
     await compareBtn.click();
@@ -240,7 +295,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const modal = page.locator("div.fixed.inset-0");
     await expect(modal.getByRole("heading", { name: "Compare courses" })).toBeVisible();
     await expect(modal.locator("table th").first()).toBeVisible(); // comparison table renders
-    await modal.getByRole("button", { name: "✕" }).click();
+    await modal.getByRole("button", { name: "Close comparison" }).click();
     await expect(modal).toHaveCount(0);
     await ctx.close();
   });
@@ -284,20 +339,24 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const page = await ctx.newPage();
 
     await page.goto("/profile");
+    await expect(page).toHaveURL(/\/profile\/?$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Profile" })).toBeVisible();
     await controlFor(page, "City of residence").fill("Kuala Lumpur");
     const [saveResp] = await Promise.all([
-      page.waitForResponse((r) => Boolean(r.url().includes("/api/profile") && r.request().method() === "PUT")),
+      page.waitForResponse((r) => Boolean(r.url().includes("/api/profile") && r.request().method() === "PUT"), { timeout: 30_000 }),
       page.getByRole("button", { name: "Save profile" }).click(),
     ]);
     expect(saveResp.status(), "PUT /api/profile should succeed").toBe(200);
     await expect(page.getByText("Profile saved.")).toBeVisible();
 
     await page.goto("/settings");
+    await expect(page).toHaveURL(/\/settings\/?$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible();
     await controlFor(page, "Current password").fill("WrongPassword123");
     await controlFor(page, "New password").fill("AnotherPass123");
     await controlFor(page, "Confirm new password").fill("AnotherPass123");
     await page.getByRole("button", { name: "Change password" }).click();
-    await expect(page.locator(".bg-red-50").first()).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "Current password is incorrect" })).toBeVisible();
     await ctx.close();
   });
 
@@ -307,35 +366,49 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.goto("/short-courses");
 
     const title = "Foundation English for Academic Study";
-    let courseCard = rowForAction(page, title, { name: /Enroll \/ express interest|Interested|Enrolled/ });
-    const enrollBtn = courseCard.getByRole("button", { name: "Enroll / express interest" });
+    const courseCard = page.locator("[data-short-course-id]").filter({ hasText: title });
+    await expect(courseCard).toBeVisible();
+    const enrollmentAction = () => courseCard.getByRole("button", { name: /^(Enrol and pay|Enrol free|Request a place)$/ });
+    const withdrawAction = () => courseCard.getByRole("button", { name: /^(Withdraw|Cancel request)$/ });
 
-    if ((await enrollBtn.count()) > 0) {
-      const [enrollResp] = await Promise.all([
-        page.waitForResponse((r) => Boolean(r.url().includes("/enroll")), { timeout: 15_000 }),
-        enrollBtn.click(),
-      ]);
-      expect(enrollResp.status(), "POST /enroll should succeed").toBe(201);
-      courseCard = rowForAction(page, title, { name: /Interested|Enrolled/ });
-      await expect(courseCard.getByRole("button", { name: /Interested|Enrolled/ })).toBeVisible({ timeout: 15_000 });
+    // Restore a known starting state if a previous interrupted run left an
+    // enrollment behind in the shared audit database.
+    if (await withdrawAction().count()) {
+      const cleanupResponse = page.waitForResponse((r) => r.url().includes("/enroll") && r.request().method() === "DELETE");
+      await withdrawAction().click();
+      await courseCard.getByRole("button", { name: "Yes, withdraw" }).click();
+      expect((await cleanupResponse).status()).toBe(200);
+      await expect(enrollmentAction()).toBeVisible();
     }
 
-    const detailsBtn = courseCard.getByRole("button", { name: /Details [▲▼]/ });
-    await detailsBtn.click();
-    await expect(courseCard.getByText("After enrolling you will get:")).toBeVisible();
-    await detailsBtn.click();
-    await expect(courseCard.getByText("After enrolling you will get:")).toHaveCount(0);
+    const [enrollResponse] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/enroll") && r.request().method() === "POST"),
+      enrollmentAction().click(),
+    ]);
+    expect(enrollResponse.status(), "POST /enroll should succeed").toBe(201);
+    await expect(withdrawAction()).toBeVisible({ timeout: 15_000 });
 
-    acceptNextConfirm(page); // window.confirm("Withdraw from this course?")
-    await courseCard.getByRole("button", { name: /Interested|Enrolled/ }).click();
-    await expect(
-      rowForAction(page, title, { name: "Enroll / express interest" }).getByRole("button", { name: "Enroll / express interest" }),
-    ).toBeVisible({ timeout: 15_000 });
+    const detailsBtn = courseCard.getByRole("button", { name: "Details" });
+    await detailsBtn.click();
+    await expect(courseCard.getByText(/Your course details|What you get when you enrol/)).toBeVisible();
+    await detailsBtn.click();
+    await expect(courseCard.getByText(/Your course details|What you get when you enrol/)).toHaveCount(0);
+
+    await withdrawAction().click();
+    await expect(courseCard.getByRole("button", { name: "Yes, withdraw" })).toBeVisible();
+    const [withdrawResponse] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes("/enroll") && r.request().method() === "DELETE"),
+      courseCard.getByRole("button", { name: "Yes, withdraw" }).click(),
+    ]);
+    expect(withdrawResponse.status()).toBe(200);
+    await expect(enrollmentAction()).toBeVisible({ timeout: 15_000 });
     await ctx.close();
   });
 
   test("admin verifies and rejects uploaded documents", async ({ page }) => {
     await page.goto("/documents");
+
+    const pendingRows = page.locator("li").filter({ has: page.getByText("Pending", { exact: true }) });
 
     // Helper to read current pending count from the subtitle
     const getPending = async () => Number(
@@ -344,24 +417,29 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
 
     const pendingBefore = await getPending();
     expect(pendingBefore).toBeGreaterThanOrEqual(2);
+    await expect(pendingRows).toHaveCount(pendingBefore);
 
     // Verify first document
     const [verifyResp] = await Promise.all([
       page.waitForResponse((r) => Boolean(r.url().match(/\/api\/documents\/[^/]+$/)) && r.request().method() === "PUT"),
-      page.getByRole("button", { name: "Verify", exact: true }).first().click(),
+      pendingRows.first().getByRole("button", { name: "Verify", exact: true }).click(),
     ]);
     expect(verifyResp.status()).toBe(200);
     await expect.poll(async () => (await getPending()) === pendingBefore - 1, { timeout: 15_000 });
+    await expect.poll(async () => pendingRows.count()).toBe(pendingBefore - 1);
+    await page.waitForLoadState("networkidle");
 
-    // Reject second document
-    acceptNextConfirm(page);
+    // Rejection requires a reason that is shown to the student.
+    await pendingRows.first().getByRole("button", { name: "Reject", exact: true }).click();
+    await page.getByLabel("Reason shown to the student").fill("Audit verification test rejection");
     const [rejectResp] = await Promise.all([
       page.waitForResponse((r) => Boolean(r.url().match(/\/api\/documents\/[^/]+$/)) && r.request().method() === "PUT"),
-      page.getByRole("button", { name: "Reject", exact: true }).first().click(),
+      page.getByRole("button", { name: "Confirm rejection" }).click(),
     ]);
     expect(rejectResp.status()).toBe(200);
     await expect.poll(async () => (await getPending()) === pendingBefore - 2, { timeout: 15_000 });
-    await expect(page.getByText("Rejected by staff").first()).toBeVisible();
+    await expect.poll(async () => pendingRows.count()).toBe(pendingBefore - 2);
+    await expect(page.getByText(/Audit verification test rejection/).first()).toBeVisible();
   });
 
   test("pipeline hides document-gated stages until required documents are verified", async ({ page }) => {
@@ -385,7 +463,10 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.getByRole("button", { name: "Create account" }).click();
 
     await expect(page.getByRole("button", { name: "+ Create user" })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(email)).toBeVisible(); // appears in the users table
+    // Filter to the newly-created account so the assertion does not depend on
+    // which page of the accumulated audit database the timestamp sort returns.
+    await page.goto(`/users?q=${encodeURIComponent(email)}`);
+    await expect(page.getByRole("cell", { name: email, exact: true })).toBeVisible();
 
     // duplicate email surfaces API error inside the form
     await page.getByRole("button", { name: "+ Create user" }).click();
@@ -416,7 +497,13 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     const item = page.locator("li").filter({ hasText: label }).first();
 
     if ((await item.count()) > 0) {
-      await item.getByRole("button").click(); // the ✕ remove button
+      await item.getByRole("button", { name: `Remove ${label} from shortlist` }).click();
+      await expect(item.getByText("Remove?")).toBeVisible();
+      const [removeResponse] = await Promise.all([
+        page.waitForResponse((response) => response.url().endsWith("/api/shortlist") && response.request().method() === "DELETE"),
+        item.getByRole("button", { name: "Yes", exact: true }).click(),
+      ]);
+      expect(removeResponse.status()).toBe(200);
       try {
         await expect(item).toHaveCount(0, { timeout: 20_000 });
       } catch {
@@ -426,16 +513,30 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
       }
     }
 
-    const addSelect = page.locator("select").first();
-    await selectByPartialLabel(addSelect, "Monash University Malaysia — Bachelor");
-    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("button", { name: "Search programs to add…" }).click();
+    await page.getByRole("textbox", { name: "Search programs" }).fill("Bachelor of Computer Science");
+    const monashProgram = page.locator("[data-picker-option]")
+      .filter({ hasText: "Monash University Malaysia" })
+      .filter({ hasText: "Bachelor of Computer Science" })
+      .first();
+    await expect(monashProgram).toBeVisible({ timeout: 15_000 });
+    await monashProgram.click();
+    const [addResponse] = await Promise.all([
+      page.waitForResponse((response) => response.url().endsWith("/api/shortlist") && response.request().method() === "POST"),
+      page.getByRole("button", { name: "Add", exact: true }).click(),
+    ]);
+    expect(addResponse.status()).toBe(201);
     await expect(item).toBeVisible({ timeout: 15_000 });
 
     // MessageForm — send lands as a chat bubble
     const body = `E2E message ${ts}`;
-    await page.getByPlaceholder("Send a message…").fill(body);
-    await page.getByRole("button", { name: "Send" }).click();
-    await expect(page.getByText(body).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByPlaceholder("Write a message…").fill(body);
+    const [messageResponse] = await Promise.all([
+      page.waitForResponse((response) => response.url().endsWith("/api/messages") && response.request().method() === "POST"),
+      page.getByRole("button", { name: "Send" }).click(),
+    ]);
+    expect(messageResponse.status()).toBe(201);
+    await expect(page.getByRole("status").filter({ hasText: "Message sent." })).toBeVisible({ timeout: 15_000 });
   });
 
   test("admin transactions: client validation, create, delete", async ({ page }) => {
@@ -455,7 +556,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await controlFor(page, "Notes (what is this payment for?)").fill(notes);
     await page.getByRole("button", { name: "Save transaction" }).click();
     await expect(page.getByRole("button", { name: "+ Add transaction" })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(notes)).toBeVisible();
+    await expect(page.getByRole("cell", { name: notes, exact: true })).toBeVisible();
     // (transactions intentionally have no delete action in the UI)
   });
 

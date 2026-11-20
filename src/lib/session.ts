@@ -1,6 +1,7 @@
 import type { Role } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { credentialVersion } from "@/lib/session-version";
 
 export type SessionUser = {
   id: string;
@@ -20,9 +21,10 @@ export async function currentUser(): Promise<SessionUser | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, role: true, email: true, firstName: true, lastName: true, status: true },
+    select: { id: true, role: true, email: true, firstName: true, lastName: true, status: true, passwordHash: true },
   });
   if (!user || user.status !== "active") return null;
+  if (!session.user.credentialVersion || session.user.credentialVersion !== credentialVersion(user.passwordHash)) return null;
 
   return {
     id: user.id,

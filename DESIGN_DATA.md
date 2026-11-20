@@ -12,7 +12,7 @@ A Next.js application for managing study abroad applications. Two user types: **
 |------|------|-------------|
 | `SUPER_ADMIN` | 5 | Full access, manages everyone |
 | `MANAGER` | 4 | Manages agencies, counselors, students |
-| `AGENCY` | 3 | Manages own students and sub-agencies |
+| `AGENCY` | 3 | Manages its own students |
 | `COUNSELOR` | 2 | Manages assigned students |
 | `STUDENT` | 1 | End user — applies to programs |
 
@@ -55,7 +55,6 @@ A Next.js application for managing study abroad applications. Two user types: **
 | `/short-courses` | `src/app/(dashboard)/short-courses/page.tsx` | All | Short courses list |
 | `/short-courses/[id]` | `src/app/(dashboard)/short-courses/[id]/page.tsx` | All | Short course detail |
 | `/search` | `src/app/(dashboard)/search/page.tsx` | Partner | Global search |
-| `/sub-agencies` | `src/app/(dashboard)/sub-agencies/page.tsx` | Super Admin, Manager, Agency | Sub-agency management |
 | `/partner-commissions` | `src/app/(dashboard)/partner-commissions/page.tsx` | Super Admin, Manager, Agency | Commission tracking |
 | `/transaction` | `src/app/(dashboard)/transaction/page.tsx` | Super Admin, Manager, Agency | Transaction records |
 | `/documents` | `src/app/(dashboard)/documents/page.tsx` | Partner | Document management |
@@ -575,19 +574,6 @@ A Next.js application for managing study abroad applications. Two user types: **
 
 ---
 
-### `/sub-agencies` — Sub-Agency Management
-**File:** `src/app/(dashboard)/sub-agencies/page.tsx`
-
-**Sections:**
-1. **Header** with title "Sub Agencies"
-2. **Agency cards/list**
-   - Agency name, contact info
-   - Student count
-   - Actions (view, edit, delete)
-3. **"Add sub-agency" button** (Super Admin/Manager)
-
----
-
 ### `/partner-commissions` — Partner Commissions
 **File:** `src/app/(dashboard)/partner-commissions/page.tsx`
 
@@ -861,7 +847,6 @@ A Next.js application for managing study abroad applications. Two user types: **
 | `LanguageSwitcher` | `src/components/language-switcher.tsx` | i18n language toggle |
 | `DashboardAdRail` | `src/components/dashboard-ad-rail.tsx` | Advertisement display |
 | `SidebarUserCreate` | `src/components/sidebar-user-create.tsx` | Quick user creation in sidebar |
-| `AgencyPermissionToggle` | `src/components/agency-permission-toggle.tsx` | Toggle agency permissions |
 
 ---
 
@@ -919,7 +904,7 @@ A Next.js application for managing study abroad applications. Two user types: **
 
 - **Super Admin:** Full access to everything
 - **Manager:** Manages agencies, counselors, students (not Super Admins)
-- **Agency:** Manages own students and sub-agencies
+- **Agency:** Manages its own students
 - **Counselor:** Manages assigned students only
 - **Student:** Self-service only (own applications, profile, documents)
 
@@ -940,7 +925,6 @@ Sidebar sections are filtered by role — partner-only sections are completely a
 | Short Courses | BookOpen | `/short-courses` | All |
 | Search | Search | `/search` | Partner |
 | Application | ClipboardList | `/application` | Partner |
-| Sub Agencies | Network | `/sub-agencies` | Super Admin, Manager, Agency |
 | Partner Commissions | Percent | `/partner-commissions` | Super Admin, Manager, Agency |
 | Transaction | Wallet | `/transaction` | Super Admin, Manager, Agency |
 | Documents | ShieldCheck | `/documents` | Partner |
