@@ -1,268 +1,55 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { DraftSubmitButton } from "@/components/draft-submit-button";
+import { DeleteButton } from "@/components/delete-button";
+import { CopyRecordId } from "@/components/copy-record-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
-import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
-import { CopyRecordId } from "@/components/copy-record-id";
-import { DeleteButton } from "@/components/delete-button";
+import { formatDate, humanize } from "@/lib/utils";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
-import { ArrowRight, BarChart3, ClipboardList, FileCheck2, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
-import { DashboardAdRail } from "@/components/dashboard-ad-rail";
 
 export const metadata = { title: "My Applications" };
 
-const STAGE_TONE: Record<ApplicationStage, "red" | "green" | "brand" | "amber" | "slate"> = {
-  DRAFT: "slate",
-  SUBMITTED: "amber",
-  UNDER_REVIEW: "brand",
-  OFFER: "green",
-  DEPOSIT_PAID: "green",
-  VISA: "brand",
-  ENROLLED: "green",
-  REJECTED: "red",
-  WITHDRAWN: "slate",
-};
+const TABS = [
+  { key: "all", label: "All", matches: (_stage: ApplicationStage, _docsOk: boolean) => true },
+  { key: "drafts", label: "Drafts", matches: (stage: ApplicationStage, _docsOk: boolean) => stage === "DRAFT" },
+  { key: "waiting", label: "Waiting for approval", matches: (stage: ApplicationStage, _docsOk: boolean) => stage === "SUBMITTED" || stage === "UNDER_REVIEW" },
+  { key: "missing-docs", label: "Missing documents", matches: (_stage: ApplicationStage, docsOk: boolean) => !docsOk },
+  { key: "offer", label: "Offers", matches: (stage: ApplicationStage, _docsOk: boolean) => stage === "OFFER" || stage === "DEPOSIT_PAID" },
+  { key: "visa-enrolled", label: "Visa & enrolled", matches: (stage: ApplicationStage, _docsOk: boolean) => stage === "VISA" || stage === "ENROLLED" },
+  { key: "rejected", label: "Closed", matches: (stage: ApplicationStage, _docsOk: boolean) => stage === "REJECTED" || stage === "WITHDRAWN" },
+] as const;
 
-type TabKey = "all" | "drafts" | "waiting" | "missing-docs" | "offer" | "visa-enrolled" | "rejected";
-
-const TABS: { key: TabKey; label: string; match: (a: { stage: ApplicationStage; docsOk: boolean }) => boolean }[] = [
-  { key: "all", label: "All", match: () => true },
-  { key: "drafts", label: "Drafts", match: (a) => a.stage === "DRAFT" },
-  { key: "waiting", label: "Waiting for Approval", match: (a) => a.stage === "SUBMITTED" || a.stage === "UNDER_REVIEW" },
-  { key: "missing-docs", label: "Missing Documents", match: (a) => a.docsOk === false },
-  { key: "offer", label: "Offer Letter Received", match: (a) => a.stage === "OFFER" || a.stage === "DEPOSIT_PAID" },
-  { key: "visa-enrolled", label: "Visa & Enrolled", match: (a) => a.stage === "VISA" || a.stage === "ENROLLED" },
-  { key: "rejected", label: "Rejected", match: (a) => a.stage === "REJECTED" || a.stage === "WITHDRAWN" },
-];
-
-type SearchParams = Promise<{ tab?: string; submitted?: string; q?: string }>;
+type SearchParams = Promise<{ q?: string; tab?: string; submitted?: string }>;
 
 export default async function MyApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
   if (user.role !== "STUDENT") redirect("/home");
-
-  const { tab = "all", submitted, q: rawQuery = "" } = await searchParams;
-  const q = rawQuery.trim().slice(0, 100);
-  const now = new Date();
-
-  const [applications, courseEnrollments, availableCourses, advertisements, totalDocs, pendingDocs] = await Promise.all([
-    prisma.application.findMany({
-      where: { studentId: user.id },
-      orderBy: { createdAt: "desc" },
-      include: { program: { include: { university: true } }, documents: true },
-    }),
-    prisma.shortCourseEnrollment.findMany({
-      where: { studentId: user.id, status: { notIn: ["withdrawn", "rejected"] } },
-      orderBy: { enrolledAt: "desc" },
-      take: 4,
-      include: { shortCourse: { select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true } } },
-    }),
-    prisma.shortCourse.findMany({
-      where: { status: "active" },
-      orderBy: { createdAt: "desc" },
-      take: 4,
-      select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true },
-    }),
-    prisma.dashboardAdvertisement.findMany({
-      where: { active: true, AND: [{ OR: [{ targetRoles: { isEmpty: true } }, { targetRoles: { has: "STUDENT" } }] }, { OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
-      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, targetRoles: true, sortOrder: true, startsAt: true, endsAt: true },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
-    }),
-    // Count the student's documents directly: uploads made before an
-    // application exists are unlinked and would otherwise be invisible here.
-    prisma.document.count({ where: { ownerId: user.id } }),
-    prisma.document.count({ where: { ownerId: user.id, status: { not: "VERIFIED" } } }),
-  ]);
-
-  type Row = (typeof applications)[number] & { docsOk: boolean };
-  const rows: Row[] = applications.map((a) => ({
-    ...a,
-    docsOk: a.documents.length > 0 && a.documents.every((d) => d.status === ("VERIFIED" as DocumentStatus)),
-  }));
-
-  const activeTab = (TABS.find((t) => t.key === tab)?.key ?? "all") as TabKey;
-  const visible = rows.filter((r) => TABS.find((t) => t.key === activeTab)!.match({ stage: r.stage, docsOk: r.docsOk }) && (!q || `${r.id} ${r.program.name} ${r.program.university.name} ${r.stage}`.toLowerCase().includes(q.toLowerCase())));
-
-  const total = rows.length;
-  const offered = rows.filter((a) => ["OFFER", "DEPOSIT_PAID"].includes(a.stage)).length;
-  const inProgress = rows.filter((a) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(a.stage)).length;
-
-  const stageCounts = new Map<ApplicationStage, number>();
-  for (const s of APPLICATION_STAGE_ORDER) stageCounts.set(s, 0);
-  for (const a of rows) stageCounts.set(a.stage, (stageCounts.get(a.stage) ?? 0) + 1);
-  const maxCount = Math.max(1, ...stageCounts.values());
-  const totalFees = rows.reduce((s, a) => s + toNum(a.program.tuitionFee), 0);
-  const draftCount = rows.filter((r) => r.stage === "DRAFT").length;
-  const monthlyActivity = Array.from({ length: 6 }, (_, index) => {
-    const start = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() - (4 - index), 1);
-    return { label: start.toLocaleString("en", { month: "short" }), value: rows.filter((application) => application.createdAt >= start && application.createdAt < end).length };
+  const params = await searchParams;
+  const q = (params.q ?? "").trim().slice(0, 100);
+  const tab = TABS.find((item) => item.key === params.tab)?.key ?? "all";
+  const applications = await prisma.application.findMany({
+    where: { studentId: user.id },
+    orderBy: { updatedAt: "desc" },
+    include: { program: { include: { university: true } }, documents: true },
   });
+  const rows = applications.map((application) => ({
+    ...application,
+    docsOk: application.documents.length > 0 && application.documents.every((document) => document.status === ("VERIFIED" as DocumentStatus)),
+  }));
+  const visible = rows.filter((application) => TABS.find((item) => item.key === tab)!.matches(application.stage, application.docsOk) && (!q || `${application.id} ${application.program.name} ${application.program.university.name} ${application.stage}`.toLowerCase().includes(q.toLowerCase())));
+  const tabUrl = (key: string) => `/my-applications?${new URLSearchParams({ tab: key, ...(q ? { q } : {}) })}`;
 
-  return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg shadow-navy-900/20 sm:px-7 sm:py-8">
-        <div aria-hidden="true" className="absolute right-0 top-0 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">My applications</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Your study journey in one place — track applications, find your next course, and keep every required step moving forward.</p></div>
-          <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
-        </div>
-      </section>
-
-      <section aria-label="Student dashboard updates" className="grid gap-5 xl:grid-cols-2">
-        <DashboardAdRail ads={advertisements} variant="image" />
-        <Card className="overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Keep your journey moving</CardTitle><p className="mt-1 text-sm text-ink-muted">Three quick checks to stay on track.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-5 w-5" /></span></CardHeader><CardContent className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">{[{ href: "/documents", title: "Check documents", detail: totalDocs === 0 ? "Upload your first document" : pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are verified", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: ClipboardList }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-ink-muted">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card>
-      </section>
-
-      {submitted && (
-        <div role="status" className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-200">
-          Application submitted. Your consultant will review it and verify your documents — track its progress in the tabs below.
-        </div>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StudentMetric label="Total applications" value={total} hint="Your complete portfolio" icon={ClipboardList} tone="brand" />
-        <StudentMetric label="Offers received" value={offered} hint="Great news worth reviewing" icon={GraduationCap} tone="green" />
-        <StudentMetric label="In progress" value={inProgress} hint="Currently being processed" icon={ArrowRight} tone="indigo" />
-        <StudentMetric label="Documents pending" value={pendingDocs} hint="Complete these to avoid delays" icon={FileCheck2} tone="amber" />
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>My course list</CardTitle><p className="mt-1 text-sm text-ink-muted">Your current learning, or active courses ready to join.</p></div><Link href="/short-courses" className="shrink-0 inline-flex min-h-6 items-center text-sm font-semibold text-brand-600 hover:underline">Browse courses</Link></CardHeader>
-        <CardContent>{courseEnrollments.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{courseEnrollments.map((enrollment) => <Link key={enrollment.id} href={`/short-courses/${enrollment.shortCourse.id}`} className="group min-w-0 rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{enrollment.shortCourse.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{enrollment.shortCourse.provider}</p></div><Badge tone={enrollment.status === "completed" ? "green" : enrollment.status === "enrolled" ? "brand" : "amber"}>{humanize(enrollment.status)}</Badge></div><p className="mt-3 text-xs text-ink-muted">{enrollment.shortCourse.duration} · {humanize(enrollment.shortCourse.deliveryMode)}</p></Link>)}</div> : availableCourses.length > 0 ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{availableCourses.map((course) => <Link key={course.id} href={`/short-courses/${course.id}`} className="group min-w-0 rounded-xl border border-line p-4 transition hover:border-brand-300 hover:bg-brand-50/40 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-sm font-semibold group-hover:text-brand-700 dark:group-hover:text-brand-200">{course.title}</p><p className="mt-1 truncate text-xs text-ink-muted">{course.provider}</p></div><Badge tone="brand">Available</Badge></div><p className="mt-3 text-xs text-ink-muted">{course.duration} · {humanize(course.deliveryMode)}</p></Link>)}</div> : <div className="rounded-xl border border-dashed border-line-strong px-4 py-7 text-center text-sm text-ink-muted dark:border-navy-700">No active short courses are available yet.</div>}</CardContent>
-      </Card>
-
-      <section aria-label="Application analytics" className="grid gap-5 xl:grid-cols-2">
-        <Card className="h-full overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><p className="mt-1 text-sm text-ink-muted">Applications started over the last six months.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-5 w-5" /></span></CardHeader><CardContent><MonthlyActivityChart points={monthlyActivity} /></CardContent></Card>
-        <Card className="h-full overflow-hidden"><CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-ink-muted">A clear breakdown of where your portfolio stands.</p></div><span className="rounded-xl bg-brand-50 p-2.5 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><BarChart3 className="h-5 w-5" /></span></CardHeader><CardContent><StageDistributionChart counts={stageCounts} max={maxCount} /><p className="mt-5 text-xs text-ink-muted">Combined tuition of active applications: {formatCurrency(totalFees)}</p></CardContent></Card>
-      </section>
-
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-ink-muted">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
-        <form action="/my-applications" method="get" role="search" className="flex gap-2 rounded-xl border border-line bg-white p-3 dark:border-navy-700 dark:bg-navy-900"><input type="hidden" name="tab" value={activeTab} /><label htmlFor="my-application-search" className="sr-only">Search your applications by ID, program, university, or stage</label><input id="my-application-search" type="search" name="q" defaultValue={q} placeholder="Search application ID, program, university…" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-transparent px-3 text-sm" /><button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button></form>
-        <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-2 dark:border-navy-700 dark:bg-navy-900">
-          {TABS.map((t) => {
-            const count = rows.filter((r) => t.match({ stage: r.stage, docsOk: r.docsOk })).length;
-            return (
-              <Link
-                key={t.key}
-                href={`/my-applications?${new URLSearchParams({ tab: t.key, ...(q ? { q } : {}) })}`}
-                aria-current={activeTab === t.key ? "page" : undefined}
-                className={
-                  "rounded-full border px-3.5 py-1.5 text-sm font-medium transition " +
-                  (activeTab === t.key
-                    ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
-                    : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
-                }
-              >
-                {t.label} <span className="ml-1 text-xs opacity-70">({count})</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {visible.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-ink-muted">
-              No applications in this view.
-              {(activeTab === "all" || activeTab === "drafts") && (
-                <> Use <Link href="/apply" className="inline-flex min-h-6 items-center font-medium text-brand-600 hover:underline">Start an application</Link> to begin one.</>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {visible.map((a) => (
-              <Card key={a.id} id={`application-${a.id}`} data-application-card={a.id} className="scroll-mt-24 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
-<CardContent className="p-5">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        {a.program.universityLogoUrl && (
-                          <img
-                            src={a.program.universityLogoUrl}
-                            alt={`${a.program.university.name} logo`}
-                            className="h-8 w-8 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800 mr-2"
-                          />
-                        )}
-                        <Link href={`/scholarships/${a.program.slug ?? a.program.id}`} className="inline-flex min-h-6 items-center font-semibold hover:text-brand-600 hover:underline">{a.program.name}</Link>
-                        <p className="text-xs text-ink-muted">{a.program.university.name}</p>
-                        <CopyRecordId id={a.id} prefix="Application ID" />
-                      </div>
-                    <Badge tone={STAGE_TONE[a.stage]}>{humanize(a.stage)}</Badge>
-                  </div>
-                  {!a.docsOk && a.stage !== "WITHDRAWN" && (
-                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300">
-                      <span>⚠ Missing or unverified documents.</span>
-                      <Link href="/documents" className="inline-flex min-h-6 items-center font-medium underline">Upload documents</Link>
-                    </div>
-                  )}
-                  {a.stage === "DRAFT" && (
-                    <p className="mb-2 text-xs text-ink-muted">Draft — edit or submit it when ready.</p>
-                  )}
-                  <dl className="space-y-1 text-sm">
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Tuition</dt>
-                      <dd>{formatCurrency(toNum(a.program.tuitionFee))}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Submitted</dt>
-                      <dd>{a.submittedAt ? formatDate(a.submittedAt) : "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-ink-muted">Documents</dt>
-                      <dd>{a.documents.filter((d) => d.status === "VERIFIED").length}/{a.documents.length} verified</dd>
-                    </div>
-                  </dl>
-                  {a.stage === "DRAFT" && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <Link
-                        href={`/apply?draft=${a.id}`}
-                        className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-medium hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800"
-                      >
-                        Edit draft
-                      </Link>
-                      <DraftSubmitButton applicationId={a.id} />
-                      <DeleteButton endpoint={`/api/applications/${a.id}`} itemName={a.program.name} confirmText="Delete this draft application and its attached files?" label="Delete draft" />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {draftCount > 0 && activeTab !== "drafts" && (
-          <p className="text-xs text-ink-muted">
-            You have {draftCount} draft{draftCount > 1 ? "s" : ""} waiting in the Drafts tab.
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string; value: number; hint: string; icon: typeof ClipboardList; tone: "brand" | "green" | "indigo" | "amber" }) {
-  const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", green: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200", indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200" };
-  return <Card className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
-}
-
-function MonthlyActivityChart({ points }: { points: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...points.map((point) => point.value));
-  return <div role="img" aria-label="Monthly application activity chart"><div className="grid h-[19.25rem] grid-cols-6 items-end gap-3 border-b border-line pb-7 dark:border-navy-700">{points.map((point) => {
-    const barHeight = point.value ? Math.max(8, Math.round((point.value / max) * 100)) : 2;
-    return <div key={point.label} className="flex h-full flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-ink-muted dark:text-slate-300">{point.value}</span><div className="h-56 w-full overflow-hidden rounded-t-lg bg-canvas-subtle dark:bg-navy-800"><svg aria-hidden="true" className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none"><rect x="0" y={100 - barHeight} width="100" height={barHeight} className="fill-brand-700 dark:fill-indigo-500" /></svg></div><span className="text-xs font-medium text-ink-muted">{point.label}</span></div>;
-  })}</div><div className="mt-4 flex items-center justify-between text-xs text-ink-muted"><span>Monthly application starts</span><span>{max} monthly peak</span></div></div>;
-}
-
-function StageDistributionChart({ counts, max }: { counts: Map<ApplicationStage, number>; max: number }) {
-  return <div role="img" aria-label="Application stages distribution chart" className="space-y-3">{APPLICATION_STAGE_ORDER.map((stage) => {
-    const count = counts.get(stage) ?? 0;
-    const label = APPLICATION_STAGES.find((item) => item.value === stage)?.label ?? stage.replace(/_/g, " ");
-    const barWidth = count ? Math.max(7, Math.round((count / max) * 100)) : 0;
-    return <div key={stage}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-ink-muted dark:text-slate-300">{label}</span><span className="font-bold text-slate-700 dark:text-slate-200">{count}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-canvas-subtle dark:bg-navy-800"><svg aria-hidden="true" className="h-full w-full" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width={barWidth} height="10" className="fill-indigo-500 dark:fill-brand-500" /></svg></div></div>; })}</div>;
+  return <div className="space-y-6">
+    <header className="rounded-2xl bg-gradient-to-r from-navy-900 to-brand-700 p-6 text-white shadow-sm sm:p-8"><p className="text-sm font-medium text-blue-100">Application workspace</p><h1 className="mt-1 text-2xl font-bold sm:text-3xl">My applications</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">Review every application, filter by progress, and continue drafts that are still in progress.</p><Link href="/apply" className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">Start an application</Link></header>
+    <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">Total applications</p><p className="mt-1 text-2xl font-bold">{rows.length}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">In progress</p><p className="mt-1 text-2xl font-bold">{rows.filter((application) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(application.stage)).length}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">Offers</p><p className="mt-1 text-2xl font-bold">{rows.filter((application) => ["OFFER", "DEPOSIT_PAID", "ENROLLED"].includes(application.stage)).length}</p></CardContent></Card></div>
+    {params.submitted && <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">Application submitted. You can track its progress below.</p>}
+    <nav aria-label="Filter applications by stage" className="flex flex-wrap gap-2">{TABS.map((item) => <Link key={item.key} href={tabUrl(item.key)} aria-current={tab === item.key ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium ${tab === item.key ? "border-brand-500 bg-brand-50 text-brand-700" : "border-line-strong text-ink-muted hover:bg-canvas"}`}>{item.label}<span className="ml-1 opacity-70">({rows.filter((application) => item.matches(application.stage, application.docsOk)).length})</span></Link>)}</nav>
+    <form action="/my-applications" method="get" role="search" className="flex gap-2 rounded-xl border border-line bg-white p-3 dark:border-navy-700 dark:bg-navy-900"><input type="hidden" name="tab" value={tab} /><label htmlFor="application-search" className="sr-only">Search by application ID, program, university, or stage</label><input id="application-search" name="q" type="search" defaultValue={q} placeholder="Search ID, program, university, or stage…" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-transparent px-3 text-sm" /><button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button></form>
+    {visible.length === 0 ? <Card><CardContent className="py-12 text-center text-sm text-ink-muted">No applications match this view. <Link href="/apply" className="font-semibold text-brand-700 underline">Start an application</Link></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2">{visible.map((application) => <Card key={application.id} id={`application-${application.id}`} className="scroll-mt-24 transition hover:border-brand-300 hover:shadow-md"><CardHeader className="flex flex-row items-start justify-between gap-3"><div className="min-w-0"><CardTitle className="text-base">{application.program.name}</CardTitle><p className="mt-1 text-sm text-ink-muted">{application.program.university.name}</p><div className="mt-2"><CopyRecordId id={application.id} prefix="App" /></div></div><Badge tone={application.stage === "REJECTED" || application.stage === "WITHDRAWN" ? "red" : ["OFFER", "DEPOSIT_PAID", "ENROLLED"].includes(application.stage) ? "green" : application.stage === "DRAFT" ? "slate" : "brand"}>{humanize(application.stage)}</Badge></CardHeader><CardContent><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-xs text-ink-muted">Field</dt><dd>{application.program.field}</dd></div><div><dt className="text-xs text-ink-muted">Level</dt><dd>{application.program.level}</dd></div><div><dt className="text-xs text-ink-muted">Last updated</dt><dd>{formatDate(application.updatedAt)}</dd></div><div><dt className="text-xs text-ink-muted">Documents</dt><dd>{application.documents.filter((document) => document.status === "VERIFIED").length}/{application.documents.length} verified</dd></div></dl>{!application.docsOk && application.stage !== "WITHDRAWN" && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">Some documents are missing or still need verification.</p>}{application.stage === "DRAFT" && <div className="mt-4 flex flex-wrap gap-2"><Link href={`/apply?draft=${application.id}`} className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-sm font-medium">Edit draft</Link><DraftSubmitButton applicationId={application.id} /><DeleteButton endpoint={`/api/applications/${application.id}`} itemName={application.program.name} confirmText="Delete this draft application?" label="Delete draft" /></div>}</CardContent></Card>)}</div>}
+    <p className="text-sm text-ink-muted">Showing {visible.length} of {rows.length} applications.</p>
+  </div>;
 }
