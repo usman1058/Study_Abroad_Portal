@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, ArrowUpRight, BriefcaseBusiness, GraduationCap, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BriefcaseBusiness, GraduationCap, ShieldCheck } from "lucide-react";
 import { currentUser } from "@/lib/session";
 
 const pathways = [
@@ -34,6 +34,12 @@ export default async function LandingPage() {
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-44 -left-32 h-[32rem] w-[32rem] rounded-full bg-indigo-100/60 blur-3xl" />
 
       <div className="relative w-full max-w-5xl">
+        <div className="mb-7">
+          <Link href="https://checkmyuni.com" className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-ink-muted transition hover:bg-white hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            Back to CheckMyUni home
+          </Link>
+        </div>
         <header className="portal-enter mx-auto max-w-3xl text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-600/20"><GraduationCap aria-hidden="true" className="h-7 w-7" /></span>
           <p className="mt-5 text-xs font-extrabold uppercase tracking-[.18em] text-brand-700">StudyAbroad portal</p>
