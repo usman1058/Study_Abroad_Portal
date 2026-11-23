@@ -48,7 +48,7 @@ export default defineConfig({
     },
     {
       name: "admin",
-      testMatch: /(admin|chrome|journey)\.spec\.ts/,
+      testMatch: /(admin|chrome|journey|short-course-studio)\.spec\.ts/,
       dependencies: ["setup"],
       use: {
         ...devices["Desktop Chrome"],

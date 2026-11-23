@@ -204,7 +204,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     // Bulk export list — select, download (first react-pdf render is slow), clear
     await page.goto(`/programs?q=${encodeURIComponent(P_WIZARD)}`);
     await page.getByLabel(`Select ${P_WIZARD}`).check();
-    await expect(page.getByText(/1 course selected/)).toBeVisible();
+    await expect(page.getByText(/1 program selected/)).toBeVisible();
 
     const dlPromise = page.waitForEvent("download", { timeout: 110_000 });
     await page.getByRole("button", { name: "Download PDF" }).click();
@@ -212,7 +212,7 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     expect((await dl.path()) !== null).toBeTruthy();
 
     await page.getByRole("button", { name: "Clear", exact: true }).click();
-    await expect(page.getByText(/course selected/)).toHaveCount(0);
+    await expect(page.getByText(/program selected/)).toHaveCount(0);
     await ctx.close();
   });
 
@@ -576,7 +576,9 @@ test.describe("Full interactive journey (no ghost buttons)", () => {
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(controlFor(page, "Name")).toHaveCount(0);
 
-    const leadRow = rowForAction(page, name, { name: "Delete", exact: true });
+    // Keep a stable row locator while the inline delete action changes from
+    // "Delete" to its confirmation controls.
+    const leadRow = page.getByRole("row").filter({ hasText: name });
     await leadRow.getByRole("button", { name: "Delete", exact: true }).click();
     const [deleteResponse] = await Promise.all([
       page.waitForResponse((response) => response.url().includes("/api/visitor-form/") && response.request().method() === "DELETE"),

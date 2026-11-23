@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { studentScopeWhere } from "@/lib/permissions";
@@ -9,11 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StageFilter } from "@/components/stage-filter";
 import { formatDate, humanize } from "@/lib/utils";
-import type { ApplicationStage } from "@/generated/prisma/client";
+import type { ApplicationStage, Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Applications" };
 
-type SearchParams = Promise<{ stage?: string; page?: string; sort?: string }>;
+type SearchParams = Promise<{ stage?: string; page?: string; sort?: string; q?: string }>;
 
 const PAGE_SIZE = 25;
 
@@ -42,21 +43,38 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
 
-  const { stage = "", page = "", sort = "" } = await searchParams;
+  const { stage = "", page = "", sort = "", q: rawQuery = "" } = await searchParams;
+  const q = rawQuery.trim().slice(0, 120);
   const validStage = APPLICATION_STAGES.some((s) => s.value === stage) ? (stage as ApplicationStage) : null;
   const sortKey = (Object.keys(SORTS) as (keyof typeof SORTS)[]).find((key) => key === sort) ?? "updated_desc";
 
-  const scope = user.role === "SUPER_ADMIN" || user.role === "MANAGER" ? {} : { student: studentScopeWhere(user) };
-  const where = { ...scope, ...(validStage ? { stage: validStage } : {}) };
+  const scope: Prisma.ApplicationWhereInput = user.role === "SUPER_ADMIN" || user.role === "MANAGER" ? {} : { student: studentScopeWhere(user) };
+  const searchWhere: Prisma.ApplicationWhereInput = q
+    ? {
+        OR: [
+          { id: { contains: q, mode: "insensitive" } },
+          { studentId: { contains: q, mode: "insensitive" } },
+          { student: { is: { OR: [
+            { id: { contains: q, mode: "insensitive" } },
+            { firstName: { contains: q, mode: "insensitive" } },
+            { lastName: { contains: q, mode: "insensitive" } },
+            { email: { contains: q, mode: "insensitive" } },
+          ] } } },
+          { program: { is: { name: { contains: q, mode: "insensitive" } } } },
+        ],
+      }
+    : {};
+  const filteredScope: Prisma.ApplicationWhereInput = { ...scope, ...searchWhere };
+  const where = { ...filteredScope, ...(validStage ? { stage: validStage } : {}) };
   const parsedPage = Number(page);
   const requestedPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const [total, stageGroups, applicationStudents] = await Promise.all([
     prisma.application.count({ where }),
-    prisma.application.groupBy({ by: ["stage"], where: scope, _count: { _all: true } }),
+    prisma.application.groupBy({ by: ["stage"], where: filteredScope, _count: { _all: true } }),
     prisma.user.findMany({
       where: studentScopeWhere(user),
-      select: { id: true, firstName: true, lastName: true, email: true },
+      select: { id: true, firstName: true, lastName: true, email: true, _count: { select: { applications: true } } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
   ]);
@@ -73,6 +91,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   // range, so send the reader to the last real page instead.
   if (total > 0 && requestedPage > pageCount) {
     const params = new URLSearchParams();
+    if (q) params.set("q", q);
     if (validStage) params.set("stage", validStage);
     if (sortKey !== "updated_desc") params.set("sort", sortKey);
     if (pageCount > 1) params.set("page", String(pageCount));
@@ -94,6 +113,8 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   const lastRow = Math.min(currentPage * PAGE_SIZE, total);
   const query = (extra: Record<string, string | number | undefined>) => {
     const params = new URLSearchParams();
+    if (q && !Object.prototype.hasOwnProperty.call(extra, "q")) params.set("q", q);
+    if (typeof extra.q === "string" && extra.q) params.set("q", extra.q);
     if (validStage) params.set("stage", validStage);
     if (sortKey !== "updated_desc") params.set("sort", sortKey);
     for (const [key, value] of Object.entries(extra)) {
@@ -115,21 +136,30 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         </div>
         <a
           href="#new-application"
-          className="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
-          New application
+          <Plus aria-hidden className="h-4 w-4" /> Add application
         </a>
       </div>
+
+      <form action="/application" method="get" role="search" className="flex flex-wrap gap-2 rounded-xl border border-line p-3">
+        {validStage && <input type="hidden" name="stage" value={validStage} />}
+        {sortKey !== "updated_desc" && <input type="hidden" name="sort" value={sortKey} />}
+        <label htmlFor="application-search" className="sr-only">Search by application ID, student ID, name, email or program</label>
+        <input id="application-search" name="q" defaultValue={q} placeholder="Search application ID, student ID, name or program" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm" />
+        <button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button>
+        {q && <Link href={query({ q: undefined, page: undefined })} className="inline-flex min-h-10 items-center px-3 text-sm text-brand-600 hover:underline">Clear</Link>}
+      </form>
 
       <ApplicationCreateForm
         students={applicationStudents.map((student) => ({
           id: student.id,
-          label: student.firstName + " " + student.lastName + " (" + student.email + ")",
+          label: `${student.firstName} ${student.lastName} · ID ${student.id} · ${student.email}`,
         }))}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <StageFilter current={validStage ?? ""} sort={sortKey} counts={counts} total={allCount} />
+        <StageFilter current={validStage ?? ""} sort={sortKey} query={q} counts={counts} total={allCount} />
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-ink-muted">Sort</span>
           {(Object.keys(SORTS) as (keyof typeof SORTS)[]).map((key) => (
@@ -182,6 +212,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <p className="text-xs text-ink-muted">
                       {a.program.university.name} · updated {formatDate(a.updatedAt)}
                     </p>
+                    <p className="break-all text-[11px] text-ink-muted">Application ID {a.id} · Student ID {a.student.id}</p>
                     <Link href={`/users/${a.student.id}`} className="inline-flex min-h-8 items-center text-sm hover:underline">
                       {a.student.firstName} {a.student.lastName}
                     </Link>
@@ -209,11 +240,13 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                           <Link href={`/users/${a.student.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                             {a.student.firstName} {a.student.lastName}
                           </Link>
+                          <p className="break-all text-[11px] text-ink-muted">Student ID {a.student.id}</p>
                         </td>
                         <td className="p-4">
                           <Link href={`/application/${a.id}`} className="inline-flex min-h-6 items-center hover:underline">
                             {a.program.name}
                           </Link>
+                          <p className="break-all text-[11px] text-ink-muted">Application ID {a.id}</p>
                         </td>
                         <td className="p-4 text-ink-muted">{a.program.university.name}</td>
                         <td className="p-4">
@@ -232,6 +265,28 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
           )}
         </CardContent>
       </Card>
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold">Students</h2>
+            <p className="text-sm text-ink-muted">Student accounts in your scope, listed separately from their applications.</p>
+          </div>
+          <Link href="/users" className="inline-flex min-h-8 items-center text-sm font-medium text-brand-600 hover:underline">Open student directory</Link>
+        </div>
+        {applicationStudents.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No students in your scope.</CardContent></Card>
+        ) : (
+          <Card><CardContent className="p-0"><ul className="divide-y divide-line dark:divide-navy-700">
+            {applicationStudents.slice(0, 12).map((student) => (
+              <li key={student.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
+                <div className="min-w-0"><Link href={`/users/${student.id}`} className="inline-flex min-h-6 items-center text-sm font-medium hover:underline">{student.firstName} {student.lastName}</Link><p className="break-all text-[11px] text-ink-muted">Student ID {student.id} · {student.email}</p></div>
+                <span className="text-xs text-ink-muted">{student._count.applications} application{student._count.applications === 1 ? "" : "s"}</span>
+              </li>
+            ))}
+          </ul>{applicationStudents.length > 12 && <p className="border-t border-line px-3 py-2 text-xs text-ink-muted">Showing 12 of {applicationStudents.length}. Use the student directory to find another student by ID.</p>}</CardContent></Card>
+        )}
+      </section>
 
       {total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">

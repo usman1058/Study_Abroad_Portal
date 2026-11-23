@@ -8,6 +8,7 @@ import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
 import { requiredName, emailField, passwordField, optionalText } from "@/lib/validation";
+import { sendCredentialsEmail, sendOnboardingEmail } from "@/lib/mail";
 
 const createSchema = z.object({
   role: z.enum(["MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]),
@@ -60,10 +61,11 @@ export async function POST(req: NextRequest) {
     }
     if (data.assignedCounselorId) {
       if (data.role !== "STUDENT") return fail("Only students can have an assigned counselor", 422);
-      const counselor = await prisma.user.findUnique({ where: { id: data.assignedCounselorId }, select: { id: true, role: true } });
+      const counselor = await prisma.user.findUnique({ where: { id: data.assignedCounselorId }, select: { id: true, role: true, createdById: true } });
       if (!counselor || counselor.role !== "COUNSELOR") return fail("Invalid counselor", 422);
       if (actor.role === "COUNSELOR" && counselor.id !== actor.id) return fail("Counselors may only assign students to themselves", 403);
-      if (actor.role === "AGENCY") return fail("Agencies cannot assign an unrelated counselor", 403);
+      // An agency may only assign a student to one of its own application officers.
+      if (actor.role === "AGENCY" && counselor.createdById !== actor.id) return fail("Agencies may only assign their own application officers", 403);
     }
 
     const passwordHash = await bcrypt.hash(data.password, 12);
@@ -87,15 +89,14 @@ export async function POST(req: NextRequest) {
       select: { id: true, email: true, role: true },
     });
 
-    if (created.role === "STUDENT") {
-      const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
-      await Promise.all(admins.map((admin) => createNotification({
-        userId: admin.id,
+    if (created.role === "STUDENT" && assignedCounselorId) {
+      await createNotification({
+        userId: assignedCounselorId,
         type: "student",
-        title: "New student arrived",
-        body: data.firstName + " " + data.lastName + " was added and is assigned to the admin admissions desk.",
+        title: "New student assigned",
+        body: `${data.firstName} ${data.lastName} was added to your student caseload.`,
         data: { studentId: created.id },
-      })));
+      });
     }
     await logAudit({
       actorId: actor.id,
@@ -104,6 +105,15 @@ export async function POST(req: NextRequest) {
       entityId: created.id,
       after: { role: created.role, email: created.email },
     });
+
+    // The account is active immediately, so send the welcome and the sign-in
+    // details straight away. Mail failures are logged and never block creation.
+    const name = `${data.firstName} ${data.lastName}`.trim();
+    const roleLabel = created.role === "STUDENT" ? "student" : created.role === "AGENCY" ? "partner agency" : "team";
+    await Promise.all([
+      sendOnboardingEmail(created.email, { name, roleLabel }),
+      sendCredentialsEmail(created.email, { name, email: created.email, password: data.password, student: created.role === "STUDENT" }),
+    ]);
 
     return ok({ id: created.id }, { status: 201 });
   } catch (e) {
@@ -125,7 +135,7 @@ export async function GET(req: NextRequest) {
         : user.role === "MANAGER"
           ? { role: { not: "SUPER_ADMIN" as const } }
           : user.role === "AGENCY"
-            ? studentScopeWhere(user)
+            ? { role: { in: ["STUDENT", "COUNSELOR"] as Role[] }, createdById: user.id }
             : studentScopeWhere(user);
 
     const baseQuery = {

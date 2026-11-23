@@ -6,6 +6,7 @@ import { ok, fail, serverError } from "@/lib/api";
 import { signupRateLimit } from "@/lib/rate-limit";
 import { createNotification } from "@/lib/audit";
 import { requiredName, emailField, phoneField, passwordField } from "@/lib/validation";
+import { sendSignupConfirmationEmail } from "@/lib/mail";
 
 const signupSchema = z.object({
   firstName: requiredName(80),
@@ -60,6 +61,13 @@ export async function POST(req: NextRequest) {
         data: { studentId: user.id },
       });
     }
+
+    await sendSignupConfirmationEmail(normalizedEmail, {
+      name: `${firstName} ${lastName}`.trim(),
+      roleLabel: "student",
+      pending: false,
+    });
+
     return ok({ id: user.id, email: user.email }, { status: 201 });
   } catch (e) {
     return serverError(e);

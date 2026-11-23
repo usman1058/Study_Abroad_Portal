@@ -5,6 +5,7 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudent } from "@/lib/permissions";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { idField } from "@/lib/validation";
+import { getStudentSupportContacts } from "@/lib/student-support-contacts";
 
 const createSchema = z.object({
   recipientId: idField(),
@@ -26,13 +27,9 @@ export async function POST(req: NextRequest) {
 
     // Student -> staff message
     if (user.role === "STUDENT") {
-      if (recipient.role === "STUDENT") return fail("Students can only message agency staff", 403);
-      const student = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { assignedCounselorId: true, createdById: true },
-      });
-      if (!student || ![student.assignedCounselorId, student.createdById].includes(recipientId)) {
-        return fail("You can only message your assigned agency contact", 403);
+      const contacts = await getStudentSupportContacts(user.id);
+      if (!contacts.some((contact) => contact.id === recipientId)) {
+        return fail("You can only message your assigned consultant or Admin", 403);
       }
     } else if (user.role !== "SUPER_ADMIN") {
       // Staff can message students in their scope; staff collaboration remains allowed.
@@ -60,8 +57,20 @@ export async function GET(req: NextRequest) {
 
     const { cursor, limit } = parsePaginationParams(req, 50, 100);
 
+    const studentContactIds = user.role === "STUDENT"
+      ? (await getStudentSupportContacts(user.id)).map((contact) => contact.id)
+      : [];
+    const where = user.role === "STUDENT"
+      ? {
+          OR: [
+            { senderId: user.id, recipientId: { in: studentContactIds } },
+            { recipientId: user.id, senderId: { in: studentContactIds } },
+          ],
+        }
+      : { OR: [{ senderId: user.id }, { recipientId: user.id }] };
+
     const baseQuery = {
-      where: { OR: [{ senderId: user.id }, { recipientId: user.id }] },
+      where,
       orderBy: { createdAt: "desc" as const },
       include: {
         sender: { select: { id: true, firstName: true, lastName: true, role: true } },

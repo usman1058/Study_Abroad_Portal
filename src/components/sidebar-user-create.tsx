@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
-import { ROLE_LABELS } from "@/lib/constants";
+import { roleOptionLabel } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +75,7 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
 
   const roleOptions = allowedRoles.map((r) => ({
     value: r,
-    label: ROLE_LABELS[r],
+    label: roleOptionLabel(r),
     icon: ROLE_ICONS[r],
   }));
 
@@ -144,7 +144,7 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
                   <Select value={form.role} onChange={(e) => set("role", e.target.value)}>
                     {allowedRoles.map((r) => (
                       <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
+                        {roleOptionLabel(r)}
                       </option>
                     ))}
                   </Select>
@@ -200,10 +200,6 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
                       <option value="other">Other</option>
                     </Select>
                   </div>
-                  <div>
-                    <Label>Country</Label>
-                    <Input maxLength={80} value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="Malaysia" />
-                  </div>
                   {form.role === "AGENCY" && (
                     <div className="sm:col-span-2">
                       <Label>Company name</Label>
@@ -240,9 +236,4 @@ export function SidebarUserCreate({ allowedRoles, counselors }: SidebarUserCreat
       )}
     </div>
   );
-}
-
-function submit(e: React.FormEvent) {
-  e.preventDefault();
-  // This is handled by the inline submit in the component
 }

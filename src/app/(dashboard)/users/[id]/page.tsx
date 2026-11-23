@@ -48,6 +48,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         <p className="text-sm text-ink-muted">
           {student.email} · {student.country ?? "—"} · {student.role.replace(/_/g, " ")} · profile {profileCompleteness(student)}% complete
         </p>
+        <p className="break-all text-xs text-ink-muted">Student ID {student.id}</p>
         <div className="mt-3 flex flex-wrap gap-2">{user.role === "SUPER_ADMIN" && student.role !== "SUPER_ADMIN" && <UserRoleEditor userId={student.id} role={student.role} allowedRoles={allowedRoles} />}{student.phone && <a href={`https://wa.me/${student.phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center rounded-lg border border-emerald-300 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50">WhatsApp</a>}{(user.role === "SUPER_ADMIN" || user.role === "MANAGER") && student.role === "STUDENT" && <a href={`/users/${student.id}/analytics`} className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700">More Details</a>}</div>
       </div>
 
@@ -65,6 +66,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
                       <div className="min-w-0">
                         <p className="break-words text-sm font-medium">{a.program.name}</p>
                         <p className="break-words text-xs text-ink-muted">{a.program.university.name}</p>
+                        <p className="break-all text-[11px] text-ink-muted">Application ID {a.id}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge tone={a.stage === "REJECTED" ? "red" : "brand"}>{a.stage.replace(/_/g, " ")}</Badge>

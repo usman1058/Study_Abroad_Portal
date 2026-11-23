@@ -9,6 +9,9 @@ import { PasswordInput } from "@/components/password-input";
 import { PasswordChecklist, isStrongPassword } from "@/components/password-checklist";
 import { Spinner } from "@/components/ui/spinner";
 
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_TOTAL_FILE_BYTES = 4 * 1024 * 1024;
+
 export function PartnerSignupForm() {
   const [form, setForm] = useState({
     companyName: "",
@@ -26,6 +29,8 @@ export function PartnerSignupForm() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const consentRef = useRef<HTMLInputElement>(null);
+  const registrationFileRef = useRef<HTMLInputElement>(null);
+  const supportingFilesRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -38,6 +43,27 @@ export function PartnerSignupForm() {
     if (form.licenseNumber.trim().length < 3) {
       setError("Enter your business registration or agency licence number.");
       document.getElementById("licenseNumber")?.focus();
+      return;
+    }
+    const registrationFile = registrationFileRef.current?.files?.[0];
+    const supportingFiles = Array.from(supportingFilesRef.current?.files ?? []);
+    if (!registrationFile) {
+      setError("Upload your business registration document to submit the partner application.");
+      registrationFileRef.current?.focus();
+      return;
+    }
+    if (supportingFiles.length > 5) {
+      setError("Upload no more than five additional supporting documents.");
+      supportingFilesRef.current?.focus();
+      return;
+    }
+    const files = [registrationFile, ...supportingFiles];
+    if (files.some((file) => file.size > MAX_FILE_BYTES)) {
+      setError("Each document must be 4 MB or smaller.");
+      return;
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_FILE_BYTES) {
+      setError("The combined document size must be 4 MB or smaller.");
       return;
     }
     if (!isStrongPassword(form.password)) {
@@ -58,28 +84,21 @@ export function PartnerSignupForm() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/partner-signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: form.companyName,
-          licenseNumber: form.licenseNumber,
-          firstName: form.firstName,
-          lastName: form.lastName,
-          phone: form.phone,
-          email: form.email,
-          country: form.country,
-          password: form.password,
-        }),
-      });
+      const body = new FormData();
+      for (const [key, value] of Object.entries(form)) {
+        if (key !== "confirmPassword") body.append(key, value);
+      }
+      body.append("businessRegistration", registrationFile);
+      supportingFiles.forEach((file) => body.append("supportingDocuments", file));
+      const res = await fetch("/api/auth/partner-signup", { method: "POST", body });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error ?? "Signup failed. Please try again.");
         return;
       }
       setSubmitted(true);
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,8 +108,8 @@ export function PartnerSignupForm() {
     return (
       <div className="space-y-4">
         <div role="status" className="rounded-lg bg-emerald-50 px-3 py-3 text-sm text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
-          Request submitted. We will review <strong>{form.companyName}</strong> and email you once the account is
-          approved. You cannot sign in until then.
+          Your application for <strong>{form.companyName}</strong> and its documents have been submitted for review.
+          We’ll email you when they’re verified and the account is approved. Portal access is available after approval.
         </div>
         <Link
           href="/partner/login"
@@ -196,6 +215,21 @@ export function PartnerSignupForm() {
           placeholder="Re-enter your password"
         />
       </div>
+      <section aria-labelledby="partner-documents-heading" className="space-y-3 rounded-xl border border-line bg-canvas-subtle/50 p-4 dark:border-navy-700 dark:bg-navy-900/50">
+        <div>
+          <h2 id="partner-documents-heading" className="text-sm font-semibold">Final step · verification documents</h2>
+          <p className="text-xs text-ink-muted">Business registration is required. Add any other supporting documents that help verify your institute.</p>
+        </div>
+        <div>
+          <Label htmlFor="business-registration-file">Business registration document *</Label>
+          <Input ref={registrationFileRef} id="business-registration-file" name="businessRegistration" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required />
+        </div>
+        <div>
+          <Label htmlFor="partner-supporting-files">Other supporting documents</Label>
+          <Input ref={supportingFilesRef} id="partner-supporting-files" name="supportingDocuments" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple />
+          <p className="mt-1 text-xs text-ink-muted">PDF, JPG, PNG, DOC or DOCX · up to 4 MB each and 4 MB combined · maximum 5 additional files.</p>
+        </div>
+      </section>
       <div className="flex items-start gap-2">
         <input
           ref={consentRef}

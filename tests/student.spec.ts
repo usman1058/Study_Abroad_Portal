@@ -33,6 +33,9 @@ test.describe("Student dashboard", () => {
     await expect(nav.getByRole("link", { name: "Home" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Users" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Reports" })).toHaveCount(0);
+    // Payments was removed from the student portal; the page is still reachable
+    // by URL but the tab must not appear.
+    await expect(nav.getByRole("link", { name: "Payments" })).toHaveCount(0);
   });
 
   test("seeded application is listed with stats", async ({ page }) => {

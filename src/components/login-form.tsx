@@ -44,7 +44,7 @@ export function LoginForm({
       const res = await signIn("credentials", { email, password, redirect: false });
       if (res?.error) {
         if (res.code === "pending") {
-          setInfo("Your agency request is awaiting approval. We will email you as soon as it is reviewed.");
+          setInfo("Your partner application and uploaded documents are awaiting review. We’ll email you when they are verified and your account is approved. Portal access is available after approval.");
           return;
         }
         if (res.code === "inactive") {

@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { requiredName, optionalText, money, dateStringArray, httpUrl, emptyToNull } from "@/lib/validation";
 import { z as zod } from "zod";
 import { ShortCourseCategory } from "@/generated/prisma/client";
+import { deleteObject } from "@/lib/storage";
 
 const courseSchema = zod.object({
   title: requiredName(200),
@@ -22,6 +23,7 @@ const courseSchema = zod.object({
   linkedProgramId: emptyToNull(zod.string().trim().min(1).max(64)).optional().nullable(),
   paymentType: zod.enum(["FREE", "PAID", "OTHER"]).default("FREE"),
   bankDetails: optionalText(2000),
+  status: zod.enum(["draft", "active"]),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -37,6 +39,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
       include: { linkedProgram: { include: { university: true } } },
     });
     if (!course) return fail("Course not found", 404);
+    if (course.status !== "active" && user.role !== "SUPER_ADMIN") {
+      if (user.role !== "STUDENT") return fail("Course not found", 404);
+      const existingEnrollment = await prisma.shortCourseEnrollment.findUnique({
+        where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
+        select: { id: true },
+      });
+      if (!existingEnrollment) return fail("Course not found", 404);
+    }
 
     // An enrollment roster is personal data. Only the portal owner receives a
     // minimal roster; a student receives only their own enrollment status.
@@ -64,12 +74,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
       if (enrollment?.status !== "enrolled" && enrollment?.status !== "completed") {
         delete safe.meetingLink;
       }
+      if (!enrollment || !["pending_payment", "pending_approval", "rejected", "enrolled", "completed"].includes(enrollment.status)) {
+        delete safe.bankDetails;
+      }
       return ok({ ...safe, enrollment });
     }
 
     // Staff roles manage the catalog, not the classroom.
     const safe: Record<string, unknown> = { ...course };
     delete safe.meetingLink;
+    delete safe.bankDetails;
     return ok(safe);
   } catch (e) {
     return serverError(e);
@@ -88,6 +102,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const data = parsed.data;
+    const current = await prisma.shortCourse.findUnique({ where: { id }, select: { status: true, paymentType: true, fee: true, bankDetails: true } });
+    if (!current) return fail("Course not found", 404);
+    const nextPaymentType = data.paymentType ?? current.paymentType;
+    const nextFee = data.fee ?? Number(current.fee);
+    const nextBankDetails = data.bankDetails !== undefined ? data.bankDetails : current.bankDetails;
+    const nextStatus = data.status ?? current.status;
+    if (nextPaymentType === "PAID" && nextFee <= 0) return fail("A paid course must have a fee greater than zero", 422);
+    if (nextStatus === "active" && nextPaymentType === "PAID" && !nextBankDetails?.trim()) {
+      return fail("Add payment instructions before publishing a paid course", 422);
+    }
     if (data.linkedProgramId) {
       const linked = await prisma.program.findUnique({ where: { id: data.linkedProgramId }, select: { id: true } });
       if (!linked) return fail("Linked program not found", 422);
@@ -110,6 +134,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
         ...(data.linkedProgramId !== undefined ? { linkedProgramId: data.linkedProgramId } : {}),
         ...(data.paymentType !== undefined ? { paymentType: data.paymentType } : {}),
         ...(data.bankDetails !== undefined ? { bankDetails: data.bankDetails } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {}),
       },
       select: { id: true, title: true },
     });
@@ -128,7 +153,12 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (error) return error;
     if (user.role !== "SUPER_ADMIN") return fail("Only the portal owner can manage short courses", 403);
 
+    const [materials, receipts] = await Promise.all([
+      prisma.shortCourseMaterial.findMany({ where: { shortCourseId: id }, select: { objectRef: true } }),
+      prisma.shortCourseEnrollment.findMany({ where: { shortCourseId: id }, select: { receiptUrl: true } }),
+    ]);
     await prisma.shortCourse.delete({ where: { id } });
+    await Promise.all([...materials.map((material) => deleteObject(material.objectRef)), ...receipts.map((entry) => deleteObject(entry.receiptUrl))]);
     await logAudit({ actorId: user.id, action: "delete", entityType: "ShortCourse", entityId: id });
     return ok({ id });
   } catch (e) {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Field, Label } from "@/components/ui/label";
@@ -68,7 +69,7 @@ export function ApplicationCreateForm({ students }: { students: Option[] }) {
     >
       <div>
         <h2 id="new-application-heading" className="text-sm font-semibold text-navy-900 dark:text-slate-200">
-          New application
+          Add application
         </h2>
         <p className="text-xs text-ink-muted">
           Pick a student and a program. A draft is created unless you tick “Submit now”.
@@ -115,7 +116,7 @@ export function ApplicationCreateForm({ students }: { students: Option[] }) {
               />
             </Field>
             <Button type="submit" disabled={busy || !studentId || !programId}>
-              {busy && <Spinner size={14} className="mr-1" />}
+              {busy ? <Spinner size={14} className="mr-1" /> : <Plus aria-hidden className="mr-1 h-4 w-4" />}
               {busy ? "Creating…" : "Add application"}
             </Button>
           </div>

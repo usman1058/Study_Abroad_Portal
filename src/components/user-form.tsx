@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ROLE_LABELS } from "@/lib/constants";
+import { roleOptionLabel } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/client";
 
 export function UserForm({
@@ -78,7 +78,7 @@ export function UserForm({
           <Select id="new-user-role" value={form.role} onChange={(e) => set("role", e.target.value)}>
             {allowedRoles.map((r) => (
               <option key={r} value={r}>
-                {ROLE_LABELS[r]}
+                {roleOptionLabel(r)}
               </option>
             ))}
           </Select>

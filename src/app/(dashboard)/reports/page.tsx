@@ -11,7 +11,7 @@ export const metadata = { title: "Reports" };
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
   const user = await currentUser();
-  if (!user || user.role === "STUDENT" || user.role === "COUNSELOR") redirect("/");
+  if (!user || user.role === "STUDENT" || user.role === "COUNSELOR" || user.role === "AGENCY") redirect("/");
 
   const params = await searchParams;
   const period = ["30", "90", "365", "all"].includes(params.period ?? "") ? params.period! : "30";

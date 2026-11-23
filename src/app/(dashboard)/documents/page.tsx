@@ -10,6 +10,7 @@ import {
 import { VerifyDocument } from "@/components/verify-document";
 import { UploadDocument } from "@/components/upload-document";
 import { ReuploadDocument } from "@/components/reupload-document";
+import { VerifyPartnerDocument } from "@/components/verify-partner-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
@@ -43,7 +44,8 @@ const documentInclude = {
 };
 
 export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ docs?: string }> }) {
-  const { docs: docsFilter = "all" } = await searchParams;
+  const { docs: rawDocsFilter = "all" } = await searchParams;
+  const docsFilter = ["pending", "verified", "rejected"].includes(rawDocsFilter) ? rawDocsFilter : "all";
   const user = await currentUser();
   if (!user) redirect("/");
 
@@ -73,6 +75,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
     const pending = documents.filter((document) => document.status === "PENDING").length;
     const rejected = documents.filter((document) => document.status === "REJECTED").length;
+    const filteredDocuments = documents.filter((document) => docsFilter === "all" || document.status.toLowerCase() === docsFilter);
     const applicationOptions = applications.map((application) => ({
       id: application.id,
       label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
@@ -98,6 +101,29 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           </CardContent>
         </Card>
 
+        <nav aria-label="Filter my documents" className="flex flex-wrap gap-2">
+          {[
+            { value: "all", label: "All documents" },
+            { value: "pending", label: "Pending" },
+            { value: "verified", label: "Verified" },
+            { value: "rejected", label: "Rejected" },
+          ].map((filter) => (
+            <Link
+              key={filter.value}
+              href={filter.value === "all" ? "/documents" : `/documents?docs=${filter.value}`}
+              aria-current={docsFilter === filter.value ? "page" : undefined}
+              className={
+                "inline-flex min-h-8 items-center rounded-full border px-3 text-sm font-medium " +
+                (docsFilter === filter.value
+                  ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
+                  : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800")
+              }
+            >
+              {filter.label}
+            </Link>
+          ))}
+        </nav>
+
         <Card>
           <CardHeader>
             <CardTitle>Your documents</CardTitle>
@@ -105,9 +131,11 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <CardContent>
             {documents.length === 0 ? (
               <p className="py-8 text-center text-sm text-ink-muted">No documents yet. Upload your passport to get started.</p>
+            ) : filteredDocuments.length === 0 ? (
+              <p className="py-8 text-center text-sm text-ink-muted">No documents match this filter.</p>
             ) : (
               <ul className="divide-y divide-line dark:divide-navy-700">
-                {documents.map((document) => {
+                {filteredDocuments.map((document) => {
                   const expiry = daysUntil(document.expiresAt);
                   return (
                   <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -207,7 +235,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <div className="flex flex-wrap gap-2" role="group" aria-label="Document filter">
         <Link
           href="/documents"
-          aria-current={docsFilter !== "pending" ? "page" : undefined}
+          aria-current={docsFilter === "all" ? "page" : undefined}
           className={
             "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
             (docsFilter !== "pending"
@@ -217,21 +245,48 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
         >
           All documents
         </Link>
-        <Link
-          href="/documents?docs=pending"
-          aria-current={docsFilter === "pending" ? "page" : undefined}
-          className={
-            "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
-            (docsFilter === "pending"
-              ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
-              : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
-          }
-        >
-          Pending only
-        </Link>
+        {(["pending", "verified", "rejected"] as const).map((status) => (
+          <Link
+            key={status}
+            href={`/documents?docs=${status}`}
+            aria-current={docsFilter === status ? "page" : undefined}
+            className={
+              "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
+              (docsFilter === status
+                ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
+                : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
+            }
+          >
+            {status === "pending" ? "Pending" : status === "verified" ? "Verified" : "Rejected"}
+          </Link>
+        ))}
       </div>
 
-      <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} onlyPending={docsFilter === "pending"} />
+      {(user.role === "SUPER_ADMIN" || user.role === "MANAGER") && (
+        <PartnerDocumentReview agencies={await prisma.user.findMany({
+          where: { role: "AGENCY", status: "pending", partnerDocuments: { some: {} } },
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyName: true,
+            partnerDocuments: {
+              orderBy: { uploadedAt: "asc" },
+              select: { id: true, type: true, originalName: true, status: true, uploadedAt: true },
+            },
+          },
+        })} onlyStatus={docsFilter} />
+      )}
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">Student documents</h2>
+          <p className="text-sm text-ink-muted">Student files grouped by student and review status.</p>
+        </div>
+        <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} onlyStatus={docsFilter} />
+      </section>
 
       {user.role === "MANAGER" && (
         <section className="space-y-3">
@@ -239,7 +294,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <h2 className="text-lg font-semibold">Counselor activity and documents</h2>
             <p className="text-sm text-ink-muted">Cases assigned to counselors you created.</p>
           </div>
-          <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor onlyPending={docsFilter === "pending"} />
+          <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor onlyStatus={docsFilter} />
         </section>
       )}
     </div>
@@ -250,7 +305,7 @@ function DocumentGroup({
   title,
   students,
   showCounselor = false,
-  onlyPending = false,
+  onlyStatus = "all",
 }: {
   title: string;
   students: Array<{
@@ -269,7 +324,7 @@ function DocumentGroup({
     assignedCounselor?: { firstName: string; lastName: string } | null;
   }>;
   showCounselor?: boolean;
-  onlyPending?: boolean;
+  onlyStatus?: string;
 }) {
   if (students.length === 0) {
     return <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No students with documents.</CardContent></Card>;
@@ -279,7 +334,7 @@ function DocumentGroup({
     .map((student) => ({
       ...student,
       documents: [...student.documents]
-        .filter((document) => !onlyPending || document.status === "PENDING")
+        .filter((document) => onlyStatus === "all" || document.status.toLowerCase() === onlyStatus)
         // Pending first: those are the only rows with an action.
         .sort((a, b) => Number(b.status === "PENDING") - Number(a.status === "PENDING")),
     }))
@@ -330,5 +385,71 @@ function DocumentGroup({
         </Card>
       ))}
     </div>
+  );
+}
+
+function PartnerDocumentReview({
+  agencies,
+  onlyStatus,
+}: {
+  agencies: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    companyName: string | null;
+    partnerDocuments: Array<{
+      id: string;
+      type: string;
+      originalName: string;
+      status: "PENDING" | "VERIFIED" | "REJECTED";
+      uploadedAt: Date;
+    }>;
+  }>;
+  onlyStatus: string;
+}) {
+  const filtered = agencies
+    .map((agency) => ({
+      ...agency,
+      partnerDocuments: agency.partnerDocuments.filter(
+        (document) => onlyStatus === "all" || document.status.toLowerCase() === onlyStatus,
+      ),
+    }))
+    .filter((agency) => agency.partnerDocuments.length > 0);
+
+  return (
+    <section className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold">Partner institution documents</h2>
+        <p className="text-sm text-ink-muted">Verify the business registration and supporting files before approving portal access.</p>
+      </div>
+      {filtered.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No partner documents match this filter.</CardContent></Card>
+      ) : filtered.map((agency) => (
+        <Card key={agency.id}>
+          <CardHeader>
+            <CardTitle>{agency.companyName || fullName(agency)}<span className="ml-2 text-xs font-normal text-ink-muted">{agency.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{agency.partnerDocuments.length} verified</span></CardTitle>
+            <p className="text-xs text-ink-muted">{fullName(agency)} · {agency.email} · ID {agency.id}</p>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-line dark:divide-navy-700">
+              {agency.partnerDocuments.map((document) => (
+                <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{humanize(document.type)}</p>
+                    <p className="truncate text-xs text-ink-muted">{document.originalName} · uploaded {formatDate(document.uploadedAt)}</p>
+                    <a href={`/api/partner-documents/${document.id}`} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Open file</a>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>{humanize(document.status)}</Badge>
+                    {document.status === "PENDING" && <VerifyPartnerDocument documentId={document.id} />}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ))}
+    </section>
   );
 }

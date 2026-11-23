@@ -10,7 +10,7 @@ export default async function PartnerSignupPage() {
   return (
     <AuthShell
       title="Partner Signup"
-      subtitle="Register your agency. An administrator will review and approve your request before you can sign in."
+      subtitle="Register your institute, then upload its business registration and any supporting documents in the final step. You can enter the portal after review and approval."
       footer={
         <>
           Already have an account?{" "}

@@ -41,7 +41,7 @@ export default async function HomePage() {
   });
   const studentScope = studentScopeWhere(user);
   const canManageUsers = user.role === "SUPER_ADMIN" || user.role === "MANAGER";
-  const canSeeReports = user.role !== "COUNSELOR";
+  const canSeeReports = user.role === "SUPER_ADMIN" || user.role === "MANAGER";
 
   const [leadsThisWeek, appsInProgress, pendingDocs, visaApps, recentApps, unreadNotifs, totalStudents, activePrograms, courseEnrollments, revenueByCurrencyRows, advertisements, stageStats] = await Promise.all([
     prisma.user.count({ where: { ...studentScope, createdAt: { gte: weekAgo } } }),

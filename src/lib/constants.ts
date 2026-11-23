@@ -8,6 +8,19 @@ export const ROLE_LABELS: Record<Role, string> = {
   STUDENT: "Student",
 };
 
+/**
+ * Role labels used when choosing a role for a new account. The stored role for
+ * an application officer is still COUNSELOR, but agencies know the job by its
+ * operational name, so the picker spells it out.
+ */
+export const ROLE_OPTION_LABELS: Partial<Record<Role, string>> = {
+  COUNSELOR: "Application Officer / Consultant",
+};
+
+export function roleOptionLabel(role: Role): string {
+  return ROLE_OPTION_LABELS[role] ?? ROLE_LABELS[role];
+}
+
 export const ROLE_RANK: Record<Role, number> = {
   SUPER_ADMIN: 100,
   MANAGER: 60,
@@ -17,6 +30,30 @@ export const ROLE_RANK: Record<Role, number> = {
 };
 
 export const PARTNER_ROLES: Role[] = ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY"];
+
+/**
+ * Study levels offered when creating or filtering programs. `phd` is a
+ * doctoral level and is kept lowercase in the database like every other value;
+ * the label spells it the way universities do.
+ */
+export const PROGRAM_LEVELS = ["undergrad", "postgrad", "phd", "diploma", "foundation", "english", "other"] as const;
+
+export type ProgramLevel = (typeof PROGRAM_LEVELS)[number];
+
+const PROGRAM_LEVEL_LABELS: Record<string, string> = {
+  undergrad: "Undergrad",
+  postgrad: "Postgrad",
+  phd: "PhD",
+  diploma: "Diploma",
+  foundation: "Foundation",
+  english: "English",
+  other: "Other",
+};
+
+export function programLevelLabel(level: string | null | undefined): string {
+  if (!level) return "—";
+  return PROGRAM_LEVEL_LABELS[level.toLowerCase()] ?? level.charAt(0).toUpperCase() + level.slice(1);
+}
 
 export const APPLICATION_STAGES: { value: ApplicationStage; label: string }[] = [
   { value: "DRAFT", label: "Draft" },
@@ -94,9 +131,10 @@ export const CURRENCY_RATES_TO_MYR: Record<string, number> = {
 
 export function convertAmount(amount: number, fromCurrency = "MYR", toCurrency = "MYR"): number {
   if (toCurrency === fromCurrency) return amount;
-  const toBase = CURRENCY_RATES_TO_MYR[fromCurrency] ?? 1;
-  const target = CURRENCY_RATES_TO_MYR[toCurrency] ?? 1;
-  return (amount / toBase) * target;
+  const fromRate = CURRENCY_RATES_TO_MYR[fromCurrency];
+  const toRate = CURRENCY_RATES_TO_MYR[toCurrency];
+  if (!fromRate || !toRate) return amount;
+  return (amount * fromRate) / toRate;
 }
 
 export const INVITE_SECTIONS = [

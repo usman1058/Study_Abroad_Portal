@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
+import { randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { canManageExistingUser, canManageUser, creatableRoles } from "@/lib/permissions";
+import { canManageExistingUser, creatableRoles } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
+import { sendCredentialsEmail, sendOnboardingEmail } from "@/lib/mail";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,6 +14,17 @@ const statusSchema = z.object({
   status: z.enum(["active", "inactive"]).optional(),
   role: z.enum(["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]).optional(),
 });
+
+/** Readable but unguessable temporary password for a freshly approved account. */
+function temporaryPassword(): string {
+  return randomBytes(12).toString("base64url");
+}
+
+function accountRoleLabel(role: string): string {
+  if (role === "STUDENT") return "student";
+  if (role === "AGENCY") return "partner agency";
+  return "team";
+}
 
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
@@ -20,7 +34,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const target = await prisma.user.findUnique({ where: { id } });
     if (!target) return fail("User not found", 404);
-    if (user.role !== "SUPER_ADMIN" && user.role !== "MANAGER") return fail("Forbidden", 403);
+    // Agencies manage their own staff and students; the ownership check below
+    // keeps that limited to accounts they created.
+    if (!["SUPER_ADMIN", "MANAGER", "AGENCY"].includes(user.role)) return fail("Forbidden", 403);
     if (!(await canManageExistingUser(user, target))) return fail("Forbidden", 403);
 
     const body = await req.json();
@@ -37,9 +53,33 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
     if (parsed.data.role === "SUPER_ADMIN" && user.role !== "SUPER_ADMIN") return fail("Only a super admin can promote users", 403);
     if (target.role === "SUPER_ADMIN" && parsed.data.role && parsed.data.role !== "SUPER_ADMIN") return fail("Cannot demote a super admin", 403);
+
+    const activating = target.status !== "active" && parsed.data.status === "active";
+    if (activating && target.role === "AGENCY") {
+      const partnerDocuments = await prisma.partnerDocument.findMany({
+        where: { agencyId: target.id },
+        select: { type: true, status: true },
+      });
+      if (!partnerDocuments.some((document) => document.type === "BUSINESS_REGISTRATION")) {
+        return fail("The partner must upload a business registration document before approval", 422);
+      }
+      if (partnerDocuments.some((document) => document.status !== "VERIFIED")) {
+        return fail("Verify all submitted partner documents before approving portal access", 422);
+      }
+    }
+
+    // Approving a pending account issues a fresh temporary password so the
+    // separate credentials email always has something valid to send.
+    const issuedPassword = activating ? temporaryPassword() : null;
+    const passwordHash = issuedPassword ? await bcrypt.hash(issuedPassword, 12) : undefined;
+
     const updated = await prisma.user.update({
       where: { id },
-      data: { ...(parsed.data.status ? { status: parsed.data.status } : {}), ...(parsed.data.role ? { role: parsed.data.role } : {}) },
+      data: {
+        ...(parsed.data.status ? { status: parsed.data.status } : {}),
+        ...(parsed.data.role ? { role: parsed.data.role } : {}),
+        ...(passwordHash ? { passwordHash } : {}),
+      },
       select: { id: true, email: true, status: true, role: true },
     });
 
@@ -52,13 +92,22 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       after: { status: updated.status, role: updated.role },
     });
 
-    if (target.status !== "active" && parsed.data.status === "active") {
+    if (activating) {
+      const name = `${target.firstName} ${target.lastName}`.trim();
+      const roleLabel = accountRoleLabel(updated.role);
       await createNotification({
         userId: target.id,
         type: "account_approved",
         title: "Account approved",
-        body: "Your agency account has been approved. You can now sign in.",
+        body: `Your ${roleLabel} account has been approved. You can now sign in.`,
       });
+      if (issuedPassword) {
+        // Two separate messages: the welcome/onboarding note, then credentials.
+        await Promise.all([
+          sendOnboardingEmail(target.email, { name, roleLabel }),
+          sendCredentialsEmail(target.email, { name, email: target.email, password: issuedPassword, student: updated.role === "STUDENT" }),
+        ]);
+      }
     }
 
     return ok(updated);

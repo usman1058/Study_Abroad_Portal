@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
         universityName: p.university?.name ?? "—",
         universityCountry: p.university?.country ?? "—",
         name: p.name,
+        level: p.level,
+        field: p.field,
         tuitionFee: toNum(p.tuitionFee),
         tuitionCurrency: "MYR",
         courseLanguage: "English",

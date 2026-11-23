@@ -61,7 +61,7 @@ export default async function ProfilePage() {
               </span>
               <span>{completeness}%</span>
             </div>
-            <div
+            <svg
               role="progressbar"
               aria-labelledby="completeness-label"
               aria-valuemin={0}
@@ -69,9 +69,11 @@ export default async function ProfilePage() {
               aria-valuenow={completeness}
               aria-valuetext={`${completeness}% complete`}
               className="h-2.5 w-full overflow-hidden rounded-full bg-line dark:bg-navy-800"
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
             >
-              <div className="h-full rounded-full bg-brand-600 transition-all" style={{ width: `${completeness}%` }} />
-            </div>
+              <rect x="0" y="0" width={completeness} height="10" className="fill-brand-600" />
+            </svg>
             {missing.length > 0 ? (
               <p className="mt-2 text-xs text-ink-muted">
                 Still missing: {missing.map(({ label }) => label).join(", ")}. Complete these so counselors can

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
+import { programLevelLabel } from "@/lib/constants";
 
 export type CourseFilters = {
   q?: string;
@@ -121,7 +122,7 @@ export function CourseFilter({
                   <Select value={filters.level} onChange={(e) => handleFilterChange("level", e.target.value)} className="sm:col-span-1" aria-label="Filter by level">
                     <option value="">All levels</option>
                     {levels.map((l) => (
-                      <option key={l} value={l}>{l}</option>
+                      <option key={l} value={l}>{programLevelLabel(l)}</option>
                     ))}
                   </Select>
                 </div>
@@ -168,7 +169,7 @@ export function CourseFilter({
               <p className="text-xs text-ink-muted truncate">{p.label.split(" — ")[0]}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                 {p.country && <span className="flex items-center gap-1"><span>📍</span>{p.country}</span>}
-                {p.level && <Badge tone="slate" className="text-xs">{p.level}</Badge>}
+                {p.level && <Badge tone="slate" className="text-xs">{programLevelLabel(p.level)}</Badge>}
                 {p.field && <Badge tone="slate" className="text-xs">{p.field}</Badge>}
                 <FeeDisplay amount={p.fee ?? 0} />
               </div>

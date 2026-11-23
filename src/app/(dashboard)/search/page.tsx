@@ -10,15 +10,13 @@ import { Label } from "@/components/ui/label";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PROGRAM_LEVELS, programLevelLabel } from "@/lib/constants";
 
 export const metadata = { title: "Search" };
 
 const RESULT_LIMIT = 50;
-const LEVELS = ["undergrad", "postgrad", "diploma", "foundation", "english", "other"];
 
 type SearchParams = Promise<{ q?: string; country?: string; level?: string }>;
-
-const capitalize = (value: string) => (value ? value[0].toUpperCase() + value.slice(1) : value);
 
 export default async function SearchPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
@@ -103,8 +101,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           </Label>
           <Select id="search-level" name="level" defaultValue={level}>
             <option value="">All levels</option>
-            {LEVELS.map((l) => (
-              <option key={l} value={l}>{capitalize(l)}</option>
+            {PROGRAM_LEVELS.map((l) => (
+              <option key={l} value={l}>{programLevelLabel(l)}</option>
             ))}
           </Select>
         </div>
@@ -168,7 +166,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                           <p className="text-xs text-ink-muted">{p.name}</p>
                         </td>
                         <td className="p-4">{p.university.country}</td>
-                        <td className="p-4"><Badge tone="slate">{capitalize(p.level)}</Badge></td>
+                        <td className="p-4"><Badge tone="slate">{programLevelLabel(p.level)}</Badge></td>
                         <td className="p-4">{p.field}</td>
                         <td className="p-4"><FeeDisplay amount={card.tuitionFee} /></td>
                         <td className="p-4 text-right">

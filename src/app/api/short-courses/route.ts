@@ -22,6 +22,7 @@ const courseSchema = zod.object({
   linkedProgramId: emptyToNull(zod.string().trim().min(1).max(64)).optional().nullable(),
   paymentType: zod.enum(["FREE", "PAID", "OTHER"]).default("FREE"),
   bankDetails: optionalText(2000),
+  status: zod.enum(["draft", "active"]).default("draft"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const data = parsed.data;
+    if (data.paymentType === "PAID" && data.fee <= 0) return fail("A paid course must have a fee greater than zero", 422);
+    if (data.status === "active" && data.paymentType === "PAID" && !data.bankDetails?.trim()) {
+      return fail("Add payment instructions before publishing a paid course", 422);
+    }
     if (data.linkedProgramId) {
       const linked = await prisma.program.findUnique({ where: { id: data.linkedProgramId }, select: { id: true } });
       if (!linked) return fail("Linked program not found", 422);
@@ -55,6 +60,7 @@ export async function POST(req: NextRequest) {
         linkedProgramId: data.linkedProgramId ?? null,
         paymentType: data.paymentType,
         bankDetails: data.bankDetails ?? null,
+        status: data.status,
       },
       select: { id: true, title: true },
     });

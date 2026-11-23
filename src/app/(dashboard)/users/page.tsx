@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { creatableRoles, studentScopeWhere } from "@/lib/permissions";
-import { ROLE_LABELS } from "@/lib/constants";
+import { ROLE_LABELS, roleOptionLabel } from "@/lib/constants";
 import { UserForm } from "@/components/user-form";
 import { InviteLinkForm } from "@/components/invite-link-form";
 import { DeleteButton } from "@/components/delete-button";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName } from "@/lib/utils";
 import { UserRoleEditor } from "@/components/user-role-editor";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Users" };
 const USER_PAGE_SIZE = 25;
@@ -29,13 +30,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const statusFilter = ["active", "pending", "inactive"].includes(params.status ?? "") ? params.status : "";
   const parsedPage = Number(params.page);
   const requestedPage = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const searchWhere = q ? { OR: [{ firstName: { contains: q, mode: "insensitive" as const } }, { lastName: { contains: q, mode: "insensitive" as const } }, { email: { contains: q, mode: "insensitive" as const } }, { companyName: { contains: q, mode: "insensitive" as const } }] } : {};
+  const searchWhere = q ? { OR: [{ id: { contains: q, mode: "insensitive" as const } }, { firstName: { contains: q, mode: "insensitive" as const } }, { lastName: { contains: q, mode: "insensitive" as const } }, { email: { contains: q, mode: "insensitive" as const } }, { companyName: { contains: q, mode: "insensitive" as const } }] } : {};
   const listWhere = { AND: [visibleUserScope(user), searchWhere, ...(roleFilter ? [{ role: roleFilter as keyof typeof ROLE_LABELS }] : []), ...(statusFilter ? [{ status: statusFilter }] : [])] };
 
   const [counselors, studentsForInvites, inviteLinks, inviteCount, userCount] = await Promise.all([
-    ["SUPER_ADMIN", "MANAGER"].includes(user.role)
-      ? prisma.user.findMany({ where: { role: "COUNSELOR" }, select: { id: true, firstName: true, lastName: true } })
-      : Promise.resolve([]),
+    user.role === "AGENCY"
+      ? prisma.user.findMany({ where: { role: "COUNSELOR", createdById: user.id }, select: { id: true, firstName: true, lastName: true } })
+      : ["SUPER_ADMIN", "MANAGER"].includes(user.role)
+        ? prisma.user.findMany({ where: { role: "COUNSELOR" }, select: { id: true, firstName: true, lastName: true } })
+        : Promise.resolve([]),
     prisma.user.findMany({ where: studentScopeWhere(user), select: { id: true, firstName: true, lastName: true, email: true } }),
     prisma.inviteLink.findMany({
       where: { createdById: user.id },
@@ -48,7 +51,10 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   ]);
   const pageCount = Math.max(1, Math.ceil(userCount / USER_PAGE_SIZE));
   if (userCount > 0 && requestedPage > pageCount) redirect(`/users?${new URLSearchParams({ ...(q ? { q } : {}), ...(roleFilter ? { role: roleFilter } : {}), ...(statusFilter ? { status: statusFilter } : {}), ...(pageCount > 1 ? { page: String(pageCount) } : {}) })}`);
-  const visibleUsers = await prisma.user.findMany({ where: listWhere, orderBy: { createdAt: "desc" }, skip: (requestedPage - 1) * USER_PAGE_SIZE, take: USER_PAGE_SIZE });
+  const visibleUsers = await prisma.user.findMany({ where: listWhere, include: { partnerDocuments: { select: { type: true, status: true } } }, orderBy: { createdAt: "desc" }, skip: (requestedPage - 1) * USER_PAGE_SIZE, take: USER_PAGE_SIZE });
+  // Only students, super admins and managers have a detail page for non-student
+  // accounts (for example an agency's application officer).
+  const canOpenDetail = (role: string) => role === "STUDENT" || user.role === "SUPER_ADMIN" || user.role === "MANAGER";
   const query = (page?: number) => {
     const next = new URLSearchParams();
     if (q) next.set("q", q);
@@ -66,10 +72,10 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       </div>
 
       <form method="get" role="search" className="flex flex-wrap gap-2 rounded-xl border border-line p-3">
-        <label htmlFor="user-search" className="sr-only">Search users by name, email, or company</label>
-        <input id="user-search" name="q" defaultValue={q} placeholder="Search name, email, or company" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm" />
+        <label htmlFor="user-search" className="sr-only">Search users by ID, name, email, or company</label>
+        <input id="user-search" name="q" defaultValue={q} placeholder="Search ID, name, email, or company" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm" />
         <label htmlFor="user-role" className="sr-only">Filter users by role</label>
-        <select id="user-role" name="role" defaultValue={roleFilter} className="min-h-10 rounded-lg border border-line-strong px-2 text-sm"><option value="">All roles</option>{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+        <select id="user-role" name="role" defaultValue={roleFilter} className="min-h-10 rounded-lg border border-line-strong px-2 text-sm"><option value="">All roles</option>{Object.entries(ROLE_LABELS).map(([key, label]) => <option key={key} value={key}>{roleOptionLabel(key as keyof typeof ROLE_LABELS)}</option>)}</select>
         <label htmlFor="user-status" className="sr-only">Filter users by status</label>
         <select id="user-status" name="status" defaultValue={statusFilter} className="min-h-10 rounded-lg border border-line-strong px-2 text-sm"><option value="">All statuses</option><option value="active">Active</option><option value="pending">Pending</option><option value="inactive">Inactive</option></select>
         <button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button>
@@ -90,7 +96,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </CardHeader>
         <CardContent>
           {visibleUsers.length === 0 ? <p className="py-8 text-center text-sm text-ink-muted">No users match these filters.</p> : <>
-          <ul className="divide-y divide-line lg:hidden">{visibleUsers.map((u) => <li key={u.id} className="space-y-2 py-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><Link href={`/users/${u.id}`} className="inline-flex min-h-6 font-medium hover:underline">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</Link><p className="break-all text-xs text-ink-muted">{u.email}</p></div><Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>{ROLE_LABELS[u.role]}</Badge></div><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-ink-muted">{u.phone ?? "No phone"} · {u.status}</span><div className="flex flex-wrap gap-2">{u.status === "pending" && <ApproveButton userId={u.id} email={u.email} />}{u.role !== "SUPER_ADMIN" && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}<DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" /></div></div></li>)}</ul>
+            <ul className="divide-y divide-line lg:hidden">{visibleUsers.map((u) => <li key={u.id} className="space-y-2 py-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0">{canOpenDetail(u.role) ? <Link href={`/users/${u.id}`} className="inline-flex min-h-6 font-medium hover:underline">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</Link> : <span className="inline-flex min-h-6 font-medium">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</span>}<p className="break-all text-xs text-ink-muted">{u.email}</p><p className="break-all text-[11px] text-ink-muted">ID {u.id}</p>{u.role === "AGENCY" && u.status === "pending" && <><p className="text-xs text-ink-muted">{u.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{u.partnerDocuments.length} verification documents verified</p><Link href="/documents?docs=pending" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Review partner documents</Link></>}</div><Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>{roleOptionLabel(u.role)}</Badge></div><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-ink-muted">{u.phone ?? "No phone"} · {u.status}</span><div className="flex flex-wrap gap-2">{u.status === "pending" && <ApproveButton userId={u.id} email={u.email} disabled={u.role === "AGENCY" && !partnerDocumentsReady(u)} />}{u.role !== "SUPER_ADMIN" && !(user.role === "AGENCY" && u.role === "STUDENT") && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}<DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" /></div></div></li>)}</ul>
           <div className="hidden min-w-0 max-w-full overflow-x-auto lg:block" tabIndex={0} role="region" aria-label="User accounts table">
             <table className="w-full text-sm">
               <thead>
@@ -108,26 +114,36 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 {visibleUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
                     <td className="py-2.5 pr-4">
-                      <Link href={`/users/${u.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
-                        {u.userTitle ? `${u.userTitle} ` : ""}
-                        {fullName(u)}
-                      </Link>
+                      {canOpenDetail(u.role) ? (
+                        <Link href={`/users/${u.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
+                          {u.userTitle ? `${u.userTitle} ` : ""}
+                          {fullName(u)}
+                        <span className="ml-2 text-[11px] font-normal text-ink-muted">ID {u.id}</span>
+                        </Link>
+                      ) : (
+                        <span className="inline-flex min-h-6 items-center font-medium">
+                          {u.userTitle ? `${u.userTitle} ` : ""}
+                          {fullName(u)}
+                        <span className="ml-2 text-[11px] font-normal text-ink-muted">ID {u.id}</span>
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-4 text-ink-muted">{u.email}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>
-                        {ROLE_LABELS[u.role]}
+                        {roleOptionLabel(u.role)}
                       </Badge>
                     </td>
                     <td className="py-2.5 pr-4 text-ink-muted">{u.phone ?? "—"}</td>
                     <td className="py-2.5 pr-4">
                       <Badge tone={u.status === "active" ? "green" : u.status === "pending" ? "amber" : "red"}>{u.status}</Badge>
+                      {u.role === "AGENCY" && u.status === "pending" && <><p className="mt-1 text-[11px] text-ink-muted">{u.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{u.partnerDocuments.length} docs verified</p><Link href="/documents?docs=pending" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Review partner documents</Link></>}
                     </td>
                     <td className="py-2.5 pr-4 text-ink-muted">{formatDate(u.createdAt)}</td>
                     <td className="py-2.5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {u.status === "pending" && <ApproveButton userId={u.id} email={u.email} />}
-                        {u.role !== "SUPER_ADMIN" && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}
+                        {u.status === "pending" && <ApproveButton userId={u.id} email={u.email} disabled={u.role === "AGENCY" && !partnerDocumentsReady(u)} />}
+                        {u.role !== "SUPER_ADMIN" && !(user.role === "AGENCY" && u.role === "STUDENT") && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}
                         <DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" />
                       </div>
                     </td>
@@ -186,12 +202,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   );
 }
 
-function visibleUserScope(user: { id: string; role: string }) {
+function visibleUserScope(user: { id: string; role: string }): Prisma.UserWhereInput {
   if (user.role === "SUPER_ADMIN" || user.role === "MANAGER") {
-    return user.role === "SUPER_ADMIN" ? {} : { role: { not: "SUPER_ADMIN" as const } };
+    return user.role === "SUPER_ADMIN" ? {} : { role: { not: "SUPER_ADMIN" } };
   }
   if (user.role === "AGENCY") {
-    return { role: "STUDENT" as const, createdById: user.id };
+    return { role: { in: ["STUDENT", "COUNSELOR"] }, createdById: user.id };
   }
-  return { role: "STUDENT" as const, assignedCounselorId: user.id };
+  return { role: "STUDENT", assignedCounselorId: user.id };
+}
+
+function partnerDocumentsReady(user: { partnerDocuments: { type: string; status: string }[] }): boolean {
+  return user.partnerDocuments.some((document) => document.type === "BUSINESS_REGISTRATION") &&
+    user.partnerDocuments.every((document) => document.status === "VERIFIED");
 }

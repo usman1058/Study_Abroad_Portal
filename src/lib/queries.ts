@@ -97,10 +97,10 @@ export async function listUniversities() {
   return prisma.university.findMany({ orderBy: { name: "asc" } });
 }
 
-export async function listShortCourses(options: { category?: string; take?: number } = {}) {
+export async function listShortCourses(options: { category?: string; take?: number; includeInactive?: boolean } = {}) {
   const take = options.take ?? 60;
   const where = {
-    status: "active",
+    ...(options.includeInactive ? {} : { status: "active" }),
     ...(options.category ? { category: options.category as ShortCourseCategory } : {}),
   };
   const [rows, total] = await Promise.all([

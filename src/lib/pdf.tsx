@@ -7,6 +7,8 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
+import { programLevelLabel } from "@/lib/constants";
+
 export type PdfProgramItem = {
   name: string;
   level: string;
@@ -239,6 +241,8 @@ export type PdfBulkItem = {
   universityName: string;
   universityCountry: string;
   name: string;
+  level: string;
+  field: string;
   tuitionFee: number;
   tuitionCurrency: string;
   courseLanguage: string;
@@ -305,7 +309,7 @@ export async function bulkProgramsPdfBuffer(data: PdfBulk): Promise<Buffer> {
         </View>
         {data.items.map((it, i) => (
           <View key={i} style={bulkStyles.row} wrap={false}>
-            {cell(nameW, `${it.name}\n${it.universityName}, ${it.universityCountry}`)}
+            {cell(nameW, `${it.name}\n${it.universityName}, ${it.universityCountry}\n${programLevelLabel(it.level)} · ${it.field}`)}
             {cell(cols.fee, formatMoney(it.tuitionFee, it.tuitionCurrency))}
             {cell(cols.lang, it.courseLanguage)}
             {cell(cols.dur, it.durationMonths ? `${it.durationMonths} mo` : "—")}

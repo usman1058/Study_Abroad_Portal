@@ -133,6 +133,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         data: {
           receiptUrl,
           status: "pending_approval",
+          approvedAt: null,
+          approvedById: null,
         },
         select: { id: true },
       });

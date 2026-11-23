@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
+import { programLevelLabel } from "@/lib/constants";
 
 export type ProgramOption = {
   id: string;
@@ -164,7 +165,7 @@ export function ProgramPicker({
               <Field label="Level">
                 <Select value={filters.level} onChange={(e) => setFilters((f) => ({ ...f, level: e.target.value }))}>
                   <option value="">All levels</option>
-                  {facets.levels.map((l) => <option key={l} value={l}>{l}</option>)}
+                  {facets.levels.map((l) => <option key={l} value={l}>{programLevelLabel(l)}</option>)}
                 </Select>
               </Field>
               <Field label="Field">
@@ -207,7 +208,7 @@ export function ProgramPicker({
                       <span className="block truncate text-xs text-ink-muted">{displayUni(p)}</span>
                       <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
                         {p.country && <span>{p.city ? p.city + ", " : ""}{p.country}</span>}
-                        {p.level && <Badge tone="slate" className="text-[10px]">{p.level}</Badge>}
+                        {p.level && <Badge tone="slate" className="text-[10px]">{programLevelLabel(p.level)}</Badge>}
                         {p.field && <Badge tone="slate" className="text-[10px]">{p.field}</Badge>}
                       </span>
                     </span>

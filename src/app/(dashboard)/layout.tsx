@@ -19,6 +19,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         where: { role: "COUNSELOR" },
         select: { id: true, firstName: true, lastName: true },
       })
+      : user.role === "AGENCY"
+        ? prisma.user.findMany({
+          where: { role: "COUNSELOR", createdById: user.id },
+          select: { id: true, firstName: true, lastName: true },
+        })
       : Promise.resolve([]),
     prisma.user.findUnique({ where: { id: user.id }, select: { preferredCurrency: true } }),
   ]);

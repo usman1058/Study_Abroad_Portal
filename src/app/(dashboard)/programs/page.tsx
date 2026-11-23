@@ -1,20 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MapPin } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { profileCompleteness } from "@/lib/queries";
 import { ProgramsFilter } from "@/components/programs-filter";
 import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
-import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/pagination";
-import { formatDate, humanize } from "@/lib/utils";
-import { ProgramDetailDialog } from "@/components/program-detail-dialog";
-import { ApplyButton } from "@/components/apply-button";
 import { ProgramForm } from "@/components/program-form";
-import { DeleteButton } from "@/components/delete-button";
 
 export const metadata = { title: "Programs" };
 
@@ -93,6 +85,8 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     : null;
   const profileReady = Boolean(me && profileCompleteness(me as unknown as Parameters<typeof profileCompleteness>[0]) >= 80);
 
+  const universityOptions = universities.map((u) => ({ id: u.id, name: u.name, country: u.country }));
+
   const bulkGroups: BulkGroup[] = grouped.map(({ university, programs: uniPrograms }) => ({
     universityId: university.id,
     universityName: university.name,
@@ -111,6 +105,37 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
           .map((d) => new Date(d))
           .filter((d) => d.getTime() > Date.now())
           .sort((a, b) => a.getTime() - b.getTime())[0]?.toISOString() ?? null,
+      detail: {
+        id: p.id,
+        slug: p.slug,
+        universityId: p.universityId,
+        name: p.name,
+        level: p.level,
+        field: p.field,
+        location: p.location,
+        tuitionFee: Number(p.tuitionFee),
+        applicationFee: p.applicationFee == null ? null : Number(p.applicationFee),
+        intakeDates: p.intakeDates.map((date) => new Date(date).toISOString()),
+        requiredDocuments: p.requiredDocuments,
+        minGpa: p.minGpa,
+        visaRequired: p.visaRequired,
+        commissionRate: Number(p.commissionRate),
+        tags: p.tags,
+        offerTurnaroundDays: p.offerTurnaroundDays,
+        collegeRank: p.collegeRank,
+        eligibilityCriteria: p.eligibilityCriteria,
+        courseDurationMonths: p.courseDurationMonths,
+        universityLogoUrl: p.universityLogoUrl,
+        university: p.university
+          ? {
+              id: p.university.id,
+              name: p.university.name,
+              country: p.university.country,
+              city: p.university.city,
+              logoUrl: p.university.logoUrl,
+            }
+          : null,
+      },
     })),
   }));
 
@@ -120,14 +145,16 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
         <div><h1 className="text-2xl font-bold">Programs</h1>
         <p className="text-sm text-ink-muted">
           Browse every program, grouped by university and city.
-          {isStudent && " Tick courses to build a shareable PDF shortlist, or apply directly."}
+          {isStudent
+            ? " Tick courses to build a shareable PDF shortlist, or apply directly."
+            : " Tick programs to download their details together in one PDF."}
         </p>
         <p className="mt-1 text-sm text-ink-muted" aria-live="polite">
           {total === 0
             ? "No programs match your filters."
             : `${total} program${total === 1 ? "" : "s"}${q || country || city ? " match your filters" : " in the catalog"}`}
         </p></div>
-        {isSuperAdmin && <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} />}
+        {isSuperAdmin && <ProgramForm universities={universityOptions} />}
       </div>
 
       <ProgramsFilter
@@ -151,81 +178,15 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             No programs match your filters.
           </CardContent>
         </Card>
-      ) : isStudent ? (
-        <BulkExportList groups={bulkGroups} profileReady={profileReady} />
       ) : (
-        grouped.map(({ university, programs: uniPrograms }) => (
-          <Card key={university.id}>
-            <CardContent className="p-0">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
-                <div className="flex min-w-0 items-center gap-3">
-                  {university.logoUrl ? (
-                    <img
-                      src={university.logoUrl}
-                      alt={`${university.name} logo`}
-                      className="h-10 w-10 shrink-0 rounded-lg bg-canvas-subtle object-cover dark:bg-navy-800"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200"
-                    >
-                      {university.name[0]}
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <h2 className="truncate font-semibold">{university.name}</h2>
-                    <p className="flex items-center gap-1 text-xs text-ink-muted">
-                      <MapPin aria-hidden className="h-3 w-3" /> {university.city ?? "—"}, {university.country}
-                    </p>
-                  </div>
-                </div>
-                <Badge tone="slate" className="shrink-0">
-                  {uniPrograms.length === university._count.programs
-                    ? `${uniPrograms.length} program${uniPrograms.length === 1 ? "" : "s"}`
-                    : `${uniPrograms.length} of ${university._count.programs}`}
-                </Badge>
-              </div>
-              <div className="divide-y divide-line dark:divide-navy-700">
-                {uniPrograms.map((p) => {
-                  const nextIntake = p.intakeDates
-                    .map((d) => new Date(d))
-                    .filter((d) => d.getTime() > Date.now())
-                    .sort((a, b) => a.getTime() - b.getTime())[0];
-                  return (
-                    <div key={p.id} data-program-row={p.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                      <div className="min-w-0 flex-1">
-                        {canViewAnalytics ? (
-                          <Link href={`/programs/${p.id}/analytics`} className="inline-flex min-h-6 items-center font-medium hover:text-brand-600 hover:underline">
-                            {p.name}
-                          </Link>
-                        ) : (
-                          <span className="font-medium">{p.name}</span>
-                        )}
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                          <Badge tone="slate">{humanize(p.level)}</Badge>
-                          <span>{p.field}</span>
-                          {nextIntake && <span>Next intake {formatDate(nextIntake)}</span>}
-                        </div>
-                      </div>
-                      <div className="text-right text-sm">
-                        <FeeDisplay amount={Number(p.tuitionFee)} />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <ProgramDetailDialog program={{ ...p, tuitionFee: Number(p.tuitionFee), applicationFee: p.applicationFee == null ? null : Number(p.applicationFee), commissionRate: Number(p.commissionRate), university: p.university ? { ...p.university, id: p.university.id } : null }} />
-                        {isStudent && <ApplyButton programId={p.id} profileReady={profileReady} programName={p.name} />}
-                        {isSuperAdmin && <>
-                          <ProgramForm universities={universities.map((u) => ({ id: u.id, name: u.name, country: u.country }))} initial={{ id: p.id, universityId: p.universityId, name: p.name, level: p.level, field: p.field, location: p.location ?? undefined, tuitionFee: String(p.tuitionFee), applicationFee: p.applicationFee == null ? "" : String(p.applicationFee), intakeDates: p.intakeDates.map((date) => new Date(date).toISOString()), requiredDocuments: p.requiredDocuments, minGpa: p.minGpa, visaRequired: p.visaRequired, commissionRate: String(p.commissionRate), tags: p.tags, offerTurnaroundDays: p.offerTurnaroundDays, collegeRank: p.collegeRank ?? undefined, eligibilityCriteria: p.eligibilityCriteria, courseDurationMonths: p.courseDurationMonths, universityLogoUrl: p.universityLogoUrl ?? undefined }} />
-                          <DeleteButton endpoint={`/api/scholarships/${p.id}`} itemName={p.name} />
-                        </>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        ))
+        <BulkExportList
+          groups={bulkGroups}
+          viewer={isStudent ? "student" : "staff"}
+          profileReady={profileReady}
+          canManage={isSuperAdmin}
+          canViewAnalytics={canViewAnalytics}
+          universities={universityOptions}
+        />
       )}
 
       {total > PAGE_SIZE && (

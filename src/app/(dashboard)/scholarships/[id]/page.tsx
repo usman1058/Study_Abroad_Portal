@@ -9,7 +9,8 @@ import { ShortlistToggle } from "@/components/shortlist-toggle";
 import { CurrencySwitcher, FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, humanize, toNum } from "@/lib/utils";
+import { formatDate, toNum } from "@/lib/utils";
+import { programLevelLabel } from "@/lib/constants";
 import { ApplyButton } from "@/components/apply-button";
 
 export const metadata = { title: "Program details" };
@@ -102,7 +103,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
                 {/* The program is the subject of the page, so its name is the heading. */}
                 <h1 className="break-words text-2xl font-bold">{program.name}</h1>
                 <p className="text-sm text-ink-muted">
-                  {[humanize(program.level), program.field, program.location ?? program.university?.country]
+                  {[programLevelLabel(program.level), program.field, program.location ?? program.university?.country]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>

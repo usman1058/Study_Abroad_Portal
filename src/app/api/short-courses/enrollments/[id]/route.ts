@@ -34,8 +34,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       where: { id },
       data: {
         status: newStatus,
-        approvedAt: new Date(),
-        approvedById: user.id,
+        approvedAt: newStatus === "enrolled" ? new Date() : null,
+        approvedById: newStatus === "enrolled" ? user.id : null,
       },
       select: { id: true, status: true, shortCourseId: true, studentId: true },
     });

@@ -1,12 +1,18 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { request as httpsRequest } from "node:https";
+import { prisma } from "@/lib/db";
 
 /**
- * Media storage on Neon's S3-compatible object storage.
+ * Media storage.
  *
- * Postgres stores only a reference (`s3:<key>`), never the bytes. Legacy rows
- * created before this change still hold `data:` URLs; `readStoredFile` keeps
- * those readable so nothing breaks without a data migration.
+ * Preferred backend is Neon's S3-compatible object storage; Postgres stores only
+ * a reference (`s3:<key>`), never the bytes. When the S3 credentials are absent
+ * (a fresh preview deployment, for example) uploads fall back to the
+ * `StoredFile` table and are referenced as `db:<id>`, so document uploads keep
+ * working instead of failing with "File storage is not configured".
+ *
+ * Legacy rows created before this change still hold `data:` URLs;
+ * `readStoredFile` keeps those readable so nothing breaks without a migration.
  *
  * The client talks the S3 REST API directly and signs requests with AWS
  * Signature Version 4, so the app needs no SDK dependency. Only the three
@@ -15,6 +21,7 @@ import { request as httpsRequest } from "node:https";
 
 const BUCKET = process.env.S3_BUCKET ?? "assets";
 const REF_PREFIX = "s3:";
+const DB_REF_PREFIX = "db:";
 const REGION = process.env.AWS_REGION ?? "ap-southeast-1";
 const SERVICE = "s3";
 
@@ -119,6 +126,33 @@ function send(
   body?: Uint8Array,
   contentType?: string,
 ): Promise<StorageResponse> {
+  return sendWithRetry(method, key, body, contentType);
+}
+
+async function sendWithRetry(
+  method: "GET" | "PUT" | "DELETE",
+  key: string,
+  body?: Uint8Array,
+  contentType?: string,
+): Promise<StorageResponse> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await sendOnce(method, key, body, contentType, attempt === 2);
+    } catch (error) {
+      if (!(error instanceof StorageError) || error.status !== 502 || attempt === 2) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+    }
+  }
+  throw new StorageError("File storage is unavailable. Please try again.", 502);
+}
+
+function sendOnce(
+  method: "GET" | "PUT" | "DELETE",
+  key: string,
+  body?: Uint8Array,
+  contentType?: string,
+  logFailure = true,
+): Promise<StorageResponse> {
   const { url, headers } = signedRequest(method, key, body, contentType);
   return new Promise((resolve, reject) => {
     const req = httpsRequest(
@@ -143,7 +177,7 @@ function send(
             return;
           }
           const detail = Buffer.from(bytes).toString("utf8").slice(0, 300);
-          console.error(`[storage] ${method} ${key} failed: ${status} ${detail}`);
+          if (logFailure) console.error(`[storage] ${method} ${key} failed: ${status} ${detail}`);
           if (status === 404) reject(new StorageError("The stored file could not be found.", 404));
           else if (status === 401 || status === 403) reject(new StorageError("File storage rejected the request.", 502));
           else reject(new StorageError("File storage is unavailable. Please try again.", 502));
@@ -151,9 +185,10 @@ function send(
       },
     );
     req.on("error", (error) => {
-      console.error(`[storage] ${method} ${key} network error:`, error);
+      if (logFailure) console.error(`[storage] ${method} ${key} network error:`, error);
       reject(new StorageError("File storage is unavailable. Please try again.", 502));
     });
+    req.setTimeout(15_000, () => req.destroy(new Error("File storage request timed out")));
     if (body) req.write(Buffer.from(body));
     req.end();
   });
@@ -161,7 +196,7 @@ function send(
 
 /** A stable key that never contains user-supplied text, so it cannot escape its prefix. */
 export function buildMediaKey(
-  kind: "documents" | "receipts" | "dashboard-ads",
+  kind: "documents" | "partner-documents" | "receipts" | "dashboard-ads" | "course-materials",
   ownerId: string,
   mime: string,
 ): string {
@@ -172,12 +207,21 @@ export function buildMediaKey(
 }
 
 export async function putObject(key: string, body: Uint8Array, contentType: string): Promise<string> {
+  if (!storageConfigured()) {
+    // No object storage on this deployment: keep the bytes in Postgres so the
+    // user's upload still succeeds.
+    const stored = await prisma.storedFile.create({
+      data: { key, contentType, size: body.byteLength, bytes: Buffer.from(body) },
+      select: { id: true },
+    });
+    return `${DB_REF_PREFIX}${stored.id}`;
+  }
   await send("PUT", key, body, contentType);
   return `${REF_PREFIX}${key}`;
 }
 
 export function isStorageRef(value: string | null | undefined): boolean {
-  return Boolean(value && value.startsWith(REF_PREFIX));
+  return Boolean(value && (value.startsWith(REF_PREFIX) || value.startsWith(DB_REF_PREFIX)));
 }
 
 export function keyFromRef(ref: string): string | null {
@@ -191,7 +235,16 @@ export async function getObject(key: string): Promise<{ bytes: Uint8Array; conte
 
 /** Best-effort cleanup; a failure must never fail the user's request. */
 export async function deleteObject(ref: string | null | undefined): Promise<void> {
-  const key = ref ? keyFromRef(ref) : null;
+  if (!ref) return;
+  if (ref.startsWith(DB_REF_PREFIX)) {
+    try {
+      await prisma.storedFile.delete({ where: { id: ref.slice(DB_REF_PREFIX.length) } });
+    } catch (error) {
+      console.error("[storage] delete failed:", error);
+    }
+    return;
+  }
+  const key = keyFromRef(ref);
   if (!key || !storageConfigured()) return;
   try {
     await send("DELETE", key);
@@ -211,10 +264,19 @@ export function parseDataUrl(value: string): { bytes: Uint8Array; contentType: s
 }
 
 /**
- * Read any stored media reference: an S3 key or a legacy data URL.
- * Throws `StorageError` when the reference is neither.
+ * Read any stored media reference: an S3 key, a database fallback row, or a
+ * legacy data URL. Throws `StorageError` when the reference is none of those.
  */
 export async function readStoredFile(ref: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+  if (ref.startsWith(DB_REF_PREFIX)) {
+    const stored = await prisma.storedFile.findUnique({
+      where: { id: ref.slice(DB_REF_PREFIX.length) },
+      select: { bytes: true, contentType: true },
+    });
+    if (!stored) throw new StorageError("The stored file could not be found.", 404);
+    return { bytes: new Uint8Array(stored.bytes), contentType: stored.contentType };
+  }
+
   const key = keyFromRef(ref);
   if (key) return getObject(key);
 

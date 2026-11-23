@@ -12,11 +12,13 @@ export function StageFilter({
   counts,
   total,
   sort,
+  query: searchQuery = "",
 }: {
   current: string;
   counts: Record<string, number>;
   total: number;
   sort?: string;
+  query?: string;
 }) {
   const chip = (active: boolean) =>
     "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-xs " +
@@ -26,6 +28,7 @@ export function StageFilter({
 
   const href = (stage?: string) => {
     const params = new URLSearchParams();
+    if (searchQuery) params.set("q", searchQuery);
     if (stage) params.set("stage", stage);
     if (sort && sort !== "updated_desc") params.set("sort", sort);
     const query = params.toString();

@@ -191,7 +191,7 @@ async function main() {
 
   await prisma.shortCourse.upsert({
     where: { id: "ielts-prep" },
-    update: {},
+    update: { status: "active", paymentType: "PAID", bankDetails: "DEMO ONLY — no real payments are accepted." },
     create: {
       id: "ielts-prep",
       title: "IELTS Preparation (6-week intensive)",
@@ -204,12 +204,15 @@ async function main() {
       classSchedule: "Mon/Wed 7:00 PM–9:00 PM (MYT), Sat mock-test sessions",
       meetingLink: "https://meet.example.com/ielts-prep",
       description: "Intensive band-6.5 preparation with mock tests.",
+      status: "active",
+      paymentType: "PAID",
+      bankDetails: "DEMO ONLY — no real payments are accepted.",
     },
   });
 
   await prisma.shortCourse.upsert({
     where: { id: "foundation-english" },
-    update: {},
+    update: { status: "active", paymentType: "PAID", bankDetails: "DEMO ONLY — no real payments are accepted." },
     create: {
       id: "foundation-english",
       title: "Foundation English for Academic Study",
@@ -222,6 +225,9 @@ async function main() {
       classSchedule: "Tue/Thu 9:00 AM–12:00 PM (MYT)",
       meetingLink: "https://meet.example.com/foundation-english",
       description: "Build academic writing and presentation skills.",
+      status: "active",
+      paymentType: "PAID",
+      bankDetails: "DEMO ONLY — no real payments are accepted.",
     },
   });
 

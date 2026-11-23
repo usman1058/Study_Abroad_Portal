@@ -7,16 +7,21 @@ import { Select } from "@/components/ui/select";
 
 // Module-level pub-sub so every FeeDisplay re-renders when CurrencySwitcher changes.
 const currencyListeners = new Set<() => void>();
+const isSupportedCurrency = (value: string | null | undefined): value is string =>
+  Boolean(value && CURRENCIES.includes(value));
 
 function useCurrency(defaultCurrency = "MYR") {
   const [currency, setCurrency] = useState("MYR");
   useEffect(() => {
     const stored = localStorage.getItem("currency");
-    if (stored && CURRENCY_RATES_TO_MYR[stored]) setCurrency(stored);
-    else if (CURRENCY_RATES_TO_MYR[defaultCurrency]) setCurrency(defaultCurrency);
+    if (isSupportedCurrency(stored)) setCurrency(stored);
+    else if (isSupportedCurrency(defaultCurrency)) setCurrency(defaultCurrency);
 
     const sync = () => {
-      const next = localStorage.getItem("currency") ?? "MYR";
+      const storedCurrency = localStorage.getItem("currency");
+      const next = isSupportedCurrency(storedCurrency)
+        ? storedCurrency
+        : isSupportedCurrency(defaultCurrency) ? defaultCurrency : "MYR";
       setCurrency(next);
     };
     currencyListeners.add(sync);
@@ -27,6 +32,7 @@ function useCurrency(defaultCurrency = "MYR") {
     };
   }, [defaultCurrency]);
   const apply = (c: string) => {
+    if (!isSupportedCurrency(c)) return;
     localStorage.setItem("currency", c);
     setCurrency(c);
     currencyListeners.forEach((fn) => fn());
@@ -36,10 +42,11 @@ function useCurrency(defaultCurrency = "MYR") {
 
 export function FeeDisplay({ amount, baseCurrency = "MYR" }: { amount: number; baseCurrency?: string }) {
   const { currency } = useCurrency();
-  const converted = convertAmount(amount, baseCurrency, currency);
+  const displayCurrency = CURRENCY_RATES_TO_MYR[baseCurrency] ? currency : baseCurrency;
+  const converted = convertAmount(amount, baseCurrency, displayCurrency);
   return (
-    <span title={formatCurrency(amount, baseCurrency)}>
-      {formatCurrency(converted, currency)}
+    <span title={`${displayCurrency === baseCurrency ? "Original amount" : "Approximate display conversion from"} ${baseCurrency}: ${formatCurrency(amount, baseCurrency)}.`}>
+      {formatCurrency(converted, displayCurrency)}
     </span>
   );
 }

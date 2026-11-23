@@ -57,6 +57,15 @@ enum DocumentType {
   OTHER
 }
 
+enum PartnerDocumentType {
+  BUSINESS_REGISTRATION
+  BUSINESS_LICENSE
+  TAX_REGISTRATION
+  AUTHORIZATION_LETTER
+  COMPANY_PROFILE
+  OTHER
+}
+
 enum ShortCourseCategory {
   LANGUAGE
   TEST_PREP
@@ -110,6 +119,8 @@ model User {
   applications            Application[]
   documents               Document[]
   verifiedDocuments       Document[]               @relation("VerifiedDocuments")
+  partnerDocuments        PartnerDocument[]        @relation("AgencyDocuments")
+  verifiedPartnerDocuments PartnerDocument[]       @relation("VerifiedPartnerDocuments")
   studentTransactions     Transaction[]            @relation("StudentTransactions")
   agencyTransactions      Transaction[]            @relation("AgencyTransactions")
   enteredTransactions     Transaction[]            @relation("EnteredTransactions")
@@ -125,12 +136,25 @@ model User {
   scopedStudentInvites    InviteLink[]             @relation("ScopedStudentInvites")
   visitorLeads            VisitorLead[]
   dashboardAdvertisements DashboardAdvertisement[] @relation("DashboardAdvertisementCreator")
+  uploadedShortCourseMaterials ShortCourseMaterial[] @relation("ShortCourseMaterialUploader")
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
   @@index([role])
   @@index([createdById])
   @@index([assignedCounselorId])
+}
+
+/// Fallback media store used when S3-compatible object storage is not
+/// configured (for example a deployment without storage credentials).
+/// Rows are referenced as `db:<id>`; the app treats them like any other file.
+model StoredFile {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  contentType String
+  size        Int
+  bytes       Bytes
+  createdAt   DateTime @default(now())
 }
 
 model University {
@@ -277,6 +301,21 @@ model Document {
   @@index([expiresAt])
 }
 
+model PartnerDocument {
+  id              String              @id @default(cuid())
+  agencyId        String
+  agency          User                @relation("AgencyDocuments", fields: [agencyId], references: [id], onDelete: Cascade)
+  type            PartnerDocumentType
+  originalName    String
+  fileUrl         String
+  status          DocumentStatus      @default(PENDING)
+  verifiedById    String?
+  verifiedBy      User?               @relation("VerifiedPartnerDocuments", fields: [verifiedById], references: [id], onDelete: SetNull)
+  uploadedAt      DateTime            @default(now())
+
+  @@index([agencyId, status])
+}
+
 model ShortCourse {
   id              String                  @id @default(cuid())
   title           String
@@ -290,16 +329,50 @@ model ShortCourse {
   meetingLink     String?
   prerequisites   String?
   description     String?
-  status          String                  @default("active")
+  status          String                  @default("draft")
   paymentType     String                  @default("FREE") // FREE, PAID, OTHER
   bankDetails     String?
   linkedProgramId String?
   linkedProgram   Program?                @relation(fields: [linkedProgramId], references: [id], onDelete: SetNull)
   enrollments     ShortCourseEnrollment[]
+  sessions        ShortCourseSession[]
+  materials       ShortCourseMaterial[]
   createdAt       DateTime                @default(now())
 
   @@index([category])
   @@index([status])
+}
+
+model ShortCourseSession {
+  id            String      @id @default(cuid())
+  shortCourseId String
+  shortCourse   ShortCourse @relation(fields: [shortCourseId], references: [id], onDelete: Cascade)
+  title         String
+  startsAt      DateTime
+  endsAt        DateTime
+  timeZone      String      @default("Asia/Kuala_Lumpur")
+  meetingLink   String?
+  createdAt     DateTime    @default(now())
+
+  @@index([shortCourseId, startsAt])
+}
+
+model ShortCourseMaterial {
+  id            String      @id @default(cuid())
+  shortCourseId String
+  shortCourse   ShortCourse @relation(fields: [shortCourseId], references: [id], onDelete: Cascade)
+  uploadedById  String?
+  uploadedBy    User?       @relation("ShortCourseMaterialUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  title         String
+  description   String?
+  fileName      String
+  contentType   String
+  fileSize      Int
+  objectRef     String
+  published     Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+
+  @@index([shortCourseId, published, createdAt])
 }
 
 model ShortCourseEnrollment {

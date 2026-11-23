@@ -7,6 +7,7 @@ import { studentScopeWhere } from "@/lib/permissions";
 import { MessageForm } from "@/components/message-form";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate, fullName, humanize } from "@/lib/utils";
+import { getStudentSupportContacts } from "@/lib/student-support-contacts";
 
 export const metadata = { title: "Messages" };
 
@@ -19,17 +20,22 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
   const user = await currentUser();
   if (!user) redirect("/");
   const { with: withId = "", q = "", before = "" } = await searchParams;
+  const supportContacts = user.role === "STUDENT" ? await getStudentSupportContacts(user.id) : [];
+  const supportContactIds = supportContacts.map((contact) => contact.id);
+  const studentMessageScope = user.role === "STUDENT"
+    ? { in: supportContactIds }
+    : undefined;
 
   // Conversation list from both directions, without loading every message.
   const [received, sent] = await Promise.all([
     prisma.message.groupBy({
       by: ["senderId"],
-      where: { recipientId: user.id },
+      where: { recipientId: user.id, ...(studentMessageScope ? { senderId: studentMessageScope } : {}) },
       _max: { createdAt: true },
     }),
     prisma.message.groupBy({
       by: ["recipientId"],
-      where: { senderId: user.id },
+      where: { senderId: user.id, ...(studentMessageScope ? { recipientId: studentMessageScope } : {}) },
       _max: { createdAt: true },
     }),
   ]);
@@ -55,58 +61,58 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
     .map((person) => ({ ...person, lastAt: lastAt.get(person.id)! }))
     .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime());
 
-  // Who this user may start a conversation with.
-  let suggestionFilter: Prisma.UserWhereInput;
-  if (user.role === "STUDENT") {
-    const me = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { assignedCounselorId: true, createdById: true },
-    });
-    const ids = [me?.assignedCounselorId, me?.createdById].filter((id): id is string => Boolean(id));
-    suggestionFilter = { id: { in: ids }, role: { not: "STUDENT" } };
-  } else if (user.role === "SUPER_ADMIN") {
-    suggestionFilter = { id: { not: user.id } };
-  } else {
-    suggestionFilter = studentScopeWhere(user);
+  // Students get fixed support contacts. Other roles can discover people in
+  // their permitted student scope, while Super Admins can contact any user.
+  let suggestions: { id: string; firstName: string; lastName: string; role: "SUPER_ADMIN" | "MANAGER" | "COUNSELOR" | "AGENCY" | "STUDENT" }[] = [];
+  let suggestionTotal = 0;
+  const search = q.trim();
+  if (user.role !== "STUDENT") {
+    const suggestionFilter: Prisma.UserWhereInput = user.role === "SUPER_ADMIN"
+      ? { id: { not: user.id } }
+      : studentScopeWhere(user);
+    const searchWhere: Prisma.UserWhereInput = search
+      ? {
+          AND: [
+            suggestionFilter,
+            {
+              OR: [
+                { firstName: { contains: search, mode: "insensitive" } },
+                { lastName: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+              ],
+            },
+          ],
+        }
+      : suggestionFilter;
+
+    const [suggestionRows, total] = await Promise.all([
+      prisma.user.findMany({
+        where: searchWhere,
+        select: { id: true, firstName: true, lastName: true, role: true },
+        orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+        take: SUGGESTION_LIMIT,
+      }),
+      prisma.user.count({ where: searchWhere }),
+    ]);
+    suggestions = suggestionRows;
+    suggestionTotal = total;
   }
 
-  const search = q.trim();
-  const searchWhere: Prisma.UserWhereInput = search
-    ? {
-        AND: [
-          suggestionFilter,
-          {
-            OR: [
-              { firstName: { contains: search, mode: "insensitive" } },
-              { lastName: { contains: search, mode: "insensitive" } },
-              { email: { contains: search, mode: "insensitive" } },
-            ],
-          },
-        ],
-      }
-    : suggestionFilter;
-
-  const [suggestionRows, suggestionTotal] = await Promise.all([
-    prisma.user.findMany({
-      where: searchWhere,
-      select: { id: true, firstName: true, lastName: true, role: true },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      take: SUGGESTION_LIMIT,
-    }),
-    prisma.user.count({ where: searchWhere }),
-  ]);
-
   const partnerIds = new Set(partners.map((person) => person.id));
-  const suggestions = suggestionRows.filter((person) => !partnerIds.has(person.id));
+  suggestions = suggestions.filter((person) => !partnerIds.has(person.id));
 
   const permittedIds = new Set([
     ...conversations.map((conversation) => conversation.id),
     ...suggestions.map((person) => person.id),
+    ...supportContactIds,
   ]);
-  const selectedId = withId && permittedIds.has(withId) ? withId : conversations[0]?.id ?? "";
+  const selectedId = withId && permittedIds.has(withId)
+    ? withId
+    : conversations[0]?.id ?? supportContactIds[0] ?? suggestions[0]?.id ?? "";
   const selectedUser =
     partners.find((person) => person.id === selectedId) ??
     suggestions.find((person) => person.id === selectedId) ??
+    supportContacts.find((person) => person.id === selectedId) ??
     null;
 
   // Opening a conversation marks it read. This is a user-visible state change
@@ -159,7 +165,9 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
     user.role === "SUPER_ADMIN"
       ? "Message any student, counselor, manager, agency, or administrator."
       : user.role === "STUDENT"
-        ? "Conversations with your counselor and agency."
+        ? supportContacts.some((contact) => contact.label === "Consultant")
+          ? "Message your consultant or contact Admin for support."
+          : "Contact Admin for account help or support."
         : "Conversations with your students.";
 
   return (
@@ -174,31 +182,55 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
           <CardContent className="p-3">
             <h2 className="px-1 pb-2 text-sm font-semibold">Conversations</h2>
 
-            <form action="/messages" method="get" role="search" className="mb-3 flex gap-2 px-1">
-              {selectedId && <input type="hidden" name="with" value={selectedId} />}
-              <label htmlFor="contact-search" className="sr-only">
-                Search contacts
-              </label>
-              <input
-                id="contact-search"
-                name="q"
-                type="search"
-                defaultValue={q}
-                placeholder="Search contacts…"
-                className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-white px-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 dark:border-navy-700 dark:bg-navy-900 dark:text-slate-100"
-              />
-              <button
-                type="submit"
-                className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-xs font-medium hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800"
-              >
-                Search
-              </button>
-            </form>
-            {search && (
+            {user.role !== "STUDENT" && (
+              <form action="/messages" method="get" role="search" className="mb-3 flex gap-2 px-1">
+                {selectedId && <input type="hidden" name="with" value={selectedId} />}
+                <label htmlFor="contact-search" className="sr-only">Search contacts</label>
+                <input
+                  id="contact-search"
+                  name="q"
+                  type="search"
+                  defaultValue={q}
+                  placeholder="Search contacts…"
+                  className="h-9 min-w-0 flex-1 rounded-lg border border-line-strong bg-white px-2 text-sm text-ink outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 dark:border-navy-700 dark:bg-navy-900 dark:text-slate-100"
+                />
+                <button type="submit" className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-xs font-medium hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800">Search</button>
+              </form>
+            )}
+            {search && user.role !== "STUDENT" && (
               <p className="mb-2 px-1 text-xs text-ink-muted">
                 {suggestionTotal} contact{suggestionTotal === 1 ? "" : "s"} match “{search}”
                 {suggestionTotal > SUGGESTION_LIMIT ? ` — showing the first ${SUGGESTION_LIMIT}` : ""}.
               </p>
+            )}
+
+            {user.role === "STUDENT" && (
+              <div className="mb-3 border-b border-line px-1 pb-3 dark:border-navy-700">
+                <h3 className="px-1 py-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">Support contacts</h3>
+                {supportContacts.length === 0 ? (
+                  <p className="px-1 py-2 text-sm text-ink-muted">No active Admin contact is available. Please contact the portal support team.</p>
+                ) : (
+                  <nav aria-label="Student support contacts" className="flex flex-wrap gap-2">
+                    {supportContacts.map((contact) => (
+                      <Link
+                        key={contact.id}
+                        href={`/messages?with=${contact.id}`}
+                        aria-current={selectedId === contact.id ? "page" : undefined}
+                        title={contact.label === "Admin" ? "For support requests, account help, or other issues" : "Message your assigned consultant"}
+                        className={
+                          "inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium " +
+                          (selectedId === contact.id
+                            ? "border-brand-600 bg-brand-600 text-white"
+                            : "border-line-strong hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800")
+                        }
+                      >
+                        <span>{contact.label}</span>
+                        <span className="text-xs font-normal opacity-80">{fullName(contact)}</span>
+                      </Link>
+                    ))}
+                  </nav>
+                )}
+              </div>
             )}
 
             {suggestions.length > 0 && (
@@ -292,7 +324,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
                   </h2>
                   {selectedUser && (
                     <p className="text-xs text-ink-muted">
-                      {humanize(selectedUser.role)}
+                      {supportContacts.find((contact) => contact.id === selectedUser.id)?.label ?? humanize(selectedUser.role)}
                       {unread.get(selectedId) ? ` · ${unread.get(selectedId)} unread` : ""}
                     </p>
                   )}

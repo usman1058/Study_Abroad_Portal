@@ -104,7 +104,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg shadow-navy-900/20 sm:px-7 sm:py-8">
-        <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+        <div aria-hidden="true" className="absolute right-0 top-0 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">My applications</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Your study journey in one place — track applications, find your next course, and keep every required step moving forward.</p></div>
           <div className="flex flex-wrap gap-2"><Link href="/apply" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> New application</Link><Link href="/programs" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold transition hover:bg-white/20"><GraduationCap className="h-4 w-4" /> Explore programs</Link></div>
@@ -187,6 +187,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                         )}
                         <Link href={`/scholarships/${a.program.slug ?? a.program.id}`} className="inline-flex min-h-6 items-center font-semibold hover:text-brand-600 hover:underline">{a.program.name}</Link>
                         <p className="text-xs text-ink-muted">{a.program.university.name}</p>
+                        <p className="break-all text-[11px] text-ink-muted">Application ID {a.id}</p>
                       </div>
                     <Badge tone={STAGE_TONE[a.stage]}>{humanize(a.stage)}</Badge>
                   </div>
@@ -247,12 +248,16 @@ function StudentMetric({ label, value, hint, icon: Icon, tone }: { label: string
 
 function MonthlyActivityChart({ points }: { points: { label: string; value: number }[] }) {
   const max = Math.max(1, ...points.map((point) => point.value));
-  return <div role="img" aria-label="Monthly application activity chart"><div className="grid h-[19.25rem] grid-cols-6 items-end gap-3 border-b border-line pb-7 dark:border-navy-700">{points.map((point) => <div key={point.label} className="flex h-full flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-ink-muted dark:text-slate-300">{point.value}</span><div className="flex h-56 w-full items-end rounded-t-lg bg-canvas-subtle px-1 dark:bg-navy-800"><div className="w-full rounded-t-md bg-gradient-to-t from-brand-700 to-indigo-500 transition-all" style={{ height: point.value ? `${Math.max(8, Math.round((point.value / max) * 100))}%` : "3px" }} title={`${point.label}: ${point.value} application${point.value === 1 ? "" : "s"}`} /></div><span className="text-xs font-medium text-ink-muted">{point.label}</span></div>)}</div><div className="mt-4 flex items-center justify-between text-xs text-ink-muted"><span>Monthly application starts</span><span>{max} monthly peak</span></div></div>;
+  return <div role="img" aria-label="Monthly application activity chart"><div className="grid h-[19.25rem] grid-cols-6 items-end gap-3 border-b border-line pb-7 dark:border-navy-700">{points.map((point) => {
+    const barHeight = point.value ? Math.max(8, Math.round((point.value / max) * 100)) : 2;
+    return <div key={point.label} className="flex h-full flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-ink-muted dark:text-slate-300">{point.value}</span><div className="h-56 w-full overflow-hidden rounded-t-lg bg-canvas-subtle dark:bg-navy-800"><svg aria-hidden="true" className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none"><rect x="0" y={100 - barHeight} width="100" height={barHeight} className="fill-brand-700 dark:fill-indigo-500" /></svg></div><span className="text-xs font-medium text-ink-muted">{point.label}</span></div>;
+  })}</div><div className="mt-4 flex items-center justify-between text-xs text-ink-muted"><span>Monthly application starts</span><span>{max} monthly peak</span></div></div>;
 }
 
 function StageDistributionChart({ counts, max }: { counts: Map<ApplicationStage, number>; max: number }) {
   return <div role="img" aria-label="Application stages distribution chart" className="space-y-3">{APPLICATION_STAGE_ORDER.map((stage) => {
     const count = counts.get(stage) ?? 0;
     const label = APPLICATION_STAGES.find((item) => item.value === stage)?.label ?? stage.replace(/_/g, " ");
-    return <div key={stage}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-ink-muted dark:text-slate-300">{label}</span><span className="font-bold text-slate-700 dark:text-slate-200">{count}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-canvas-subtle dark:bg-navy-800"><div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-brand-600 transition-all" style={{ width: count ? `${Math.max(7, Math.round((count / max) * 100))}%` : "0%" }} /></div></div>; })}</div>;
+    const barWidth = count ? Math.max(7, Math.round((count / max) * 100)) : 0;
+    return <div key={stage}><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium text-ink-muted dark:text-slate-300">{label}</span><span className="font-bold text-slate-700 dark:text-slate-200">{count}</span></div><div className="h-2.5 overflow-hidden rounded-full bg-canvas-subtle dark:bg-navy-800"><svg aria-hidden="true" className="h-full w-full" viewBox="0 0 100 10" preserveAspectRatio="none"><rect x="0" y="0" width={barWidth} height="10" className="fill-indigo-500 dark:fill-brand-500" /></svg></div></div>; })}</div>;
 }

@@ -7,7 +7,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FeeDisplay } from "@/components/currency";
-import { formatDate, humanize } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { programLevelLabel } from "@/lib/constants";
 
 type Program = {
   id: string;
@@ -59,7 +60,7 @@ export function ProgramDetailDialog({ program }: { program: Program }) {
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Info label="Level" value={humanize(program.level)} />
+              <Info label="Level" value={programLevelLabel(program.level)} />
               <Info label="Field" value={program.field || "—"} />
               <Info label="Tuition" value={<FeeDisplay amount={Number(program.tuitionFee)} />} />
               <Info

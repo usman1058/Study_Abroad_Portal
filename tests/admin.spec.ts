@@ -40,6 +40,26 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     await expect(nav.getByRole("link", { name: "Apply Application" })).toHaveCount(0);
   });
 
+  test("programs can be selected and downloaded together in one PDF", async ({ page }) => {
+    await page.goto("/programs");
+    const boxes = page.getByRole("checkbox", { name: /^Select / });
+    await expect(boxes.first()).toBeVisible();
+    await boxes.nth(0).check();
+    await boxes.nth(1).check();
+    await expect(page.getByText(/2 programs selected/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Download PDF" })).toBeVisible();
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+    await expect(page.getByText(/programs selected/)).toHaveCount(0);
+  });
+
+  test("program form offers PhD as a study level", async ({ page }) => {
+    await page.goto("/programs");
+    await page.getByRole("button", { name: "Add a new program" }).click();
+    const phd = page.getByLabel("Level").locator('option[value="phd"]');
+    await expect(phd).toHaveCount(1);
+    await expect(phd).toHaveText("PhD");
+  });
+
   test("users list shows seeded users and opens student detail", async ({ page }) => {
     await page.goto("/users");
     await expect(page.getByRole("row").filter({ hasText: "student@studyabroad.test" })).toBeVisible();
@@ -125,7 +145,8 @@ test.describe("Admin dashboard (SUPER_ADMIN)", () => {
     await expect(deleteButton).toBeVisible();
     await deleteButton.click();
     await page.getByRole("button", { name: "Delete announcement" }).click();
-    await expect(deleteButton).toHaveCount(0);
+    await expect(page.getByText("Announcement deleted.", { exact: true })).toBeVisible();
+    await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   });
 
   test("main dashboard renders the application trend graph", async ({ page }) => {

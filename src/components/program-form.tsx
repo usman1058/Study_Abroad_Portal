@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/searchable-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PROGRAM_LEVELS, programLevelLabel } from "@/lib/constants";
 
 type Props = {
   universities: { id: string; name: string; country: string }[];
@@ -229,9 +230,9 @@ export function ProgramForm({ universities, initial }: Props) {
         <div>
           <Label htmlFor={fieldId("level")}>Level</Label>
           <Select id={fieldId("level")} value={form.level} onChange={(e) => set("level", e.target.value)}>
-            {["undergrad", "postgrad", "diploma", "foundation", "english", "other"].map((l) => (
+            {PROGRAM_LEVELS.map((l) => (
               <option key={l} value={l}>
-                {l.charAt(0).toUpperCase() + l.slice(1)}
+                {programLevelLabel(l)}
               </option>
             ))}
           </Select>

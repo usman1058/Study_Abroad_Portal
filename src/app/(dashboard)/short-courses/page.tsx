@@ -28,13 +28,15 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
   const isSuperAdmin = user.role === "SUPER_ADMIN";
   const isStaff = user.role !== "STUDENT";
 
-  const [{ courses, total, truncated }, categoryRows] = await Promise.all([
-    listShortCourses({ category }),
+  const [{ courses, total, truncated }, categoryRows, activeCourseCount, draftCourseCount] = await Promise.all([
+    listShortCourses({ category, includeInactive: isSuperAdmin }),
     prisma.shortCourse.groupBy({
       by: ["category"],
-      where: { status: "active" },
+      where: isSuperAdmin ? {} : { status: "active" },
       _count: { _all: true },
     }),
+    prisma.shortCourse.count({ where: { status: "active" } }),
+    prisma.shortCourse.count({ where: { status: "draft" } }),
   ]);
 
   const myEnrollments =
@@ -86,15 +88,21 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
             Language, test-prep, foundation and professional courses.
           </p>
         </div>
-        {isSuperAdmin && <ShortCourseForm />}
+      {isSuperAdmin && <ShortCourseForm />}
       </div>
 
       {isSuperAdmin && (
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardContent className="p-5">
               <p className="text-xs text-ink-muted">Active courses</p>
-              <p className="mt-1 text-2xl font-bold">{totalCourses}</p>
+              <p className="mt-1 text-2xl font-bold">{activeCourseCount}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <p className="text-xs text-ink-muted">Draft courses</p>
+              <p className="mt-1 text-2xl font-bold">{draftCourseCount}</p>
             </CardContent>
           </Card>
           <Card>
@@ -188,7 +196,10 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                         <p className="text-xs text-ink-muted">{c.provider}</p>
                         <h2 className="text-base font-semibold">{c.title}</h2>
                       </div>
-                      <Badge tone="brand">{humanize(c.category)}</Badge>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        {isSuperAdmin && <Badge tone={c.status === "active" ? "green" : "slate"}>{humanize(c.status)}</Badge>}
+                        <Badge tone="brand">{humanize(c.category)}</Badge>
+                      </div>
                     </div>
                     <p className="mb-3 line-clamp-2 text-sm text-ink-muted">{c.description || "No description."}</p>
                     <dl className="mb-4 space-y-1 text-sm">
@@ -264,6 +275,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                                 : undefined,
                               paymentType: c.paymentType as "FREE" | "PAID" | "OTHER",
                               bankDetails: c.bankDetails ?? "",
+                              status: c.status as "draft" | "active",
                             }}
                           />
                           <DeleteButton endpoint={`/api/short-courses/${c.id}`} confirmText="Delete this short course?" label="Delete" />

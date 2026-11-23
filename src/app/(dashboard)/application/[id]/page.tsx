@@ -9,7 +9,7 @@ import { MessageForm } from "@/components/message-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, toNum, fullName, humanize } from "@/lib/utils";
-import { APPLICATION_STAGES, DOCUMENT_STATUS_LABELS } from "@/lib/constants";
+import { APPLICATION_STAGES, DOCUMENT_STATUS_LABELS, programLevelLabel } from "@/lib/constants";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
 import { hasVerifiedRequiredDocuments } from "@/lib/application-stages";
 
@@ -75,6 +75,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             <p className="text-sm text-ink-muted break-words">
               {application.program.name} · {application.program.university.name}
             </p>
+            <p className="break-all text-xs text-ink-muted">Application ID {application.id} · Student ID {application.student.id}</p>
             <p className="mt-1 text-xs text-ink-muted">
               Created {formatDate(application.createdAt)} · Updated {formatDate(application.updatedAt)} ·{" "}
               <Link href={`/users/${application.student.id}`} className="inline-flex min-h-6 items-center text-brand-600 hover:underline">
@@ -174,7 +175,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-muted">Level</dt>
-                  <dd className="text-right capitalize">{application.program.level}</dd>
+                  <dd className="text-right">{programLevelLabel(application.program.level)}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-muted">Field</dt>

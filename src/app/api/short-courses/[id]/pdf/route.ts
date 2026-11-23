@@ -15,6 +15,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
     if (auth.error) return auth.error;
     const course = await prisma.shortCourse.findUnique({ where: { id } });
     if (!course) return new Response("Course not found", { status: 404 });
+    if (course.status !== "active" && auth.user.role !== "SUPER_ADMIN") {
+      if (auth.user.role !== "STUDENT") return new Response("Course not found", { status: 404 });
+      const enrollment = await prisma.shortCourseEnrollment.findUnique({
+        where: { studentId_shortCourseId: { studentId: auth.user.id, shortCourseId: id } },
+        select: { id: true },
+      });
+      if (!enrollment) return new Response("Course not found", { status: 404 });
+    }
     const buffer = await shortCoursePdfBuffer({
       title: course.title, provider: course.provider, category: course.category, duration: course.duration,
       startDates: course.startDates.map((date) => date.toISOString()), fee: toNum(course.fee),

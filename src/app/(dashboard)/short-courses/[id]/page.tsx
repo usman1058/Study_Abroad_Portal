@@ -11,6 +11,9 @@ import { Download, ExternalLink, FileText, MessageCircle } from "lucide-react";
 import { formatDate, humanize, toNum } from "@/lib/utils";
 import { FeeDisplay } from "@/components/currency";
 import { AddCourseToCalendar } from "@/components/add-course-to-calendar";
+import { ShortCourseForm } from "@/components/short-course-form";
+import { ShortCourseStudio, type ShortCourseMaterialInfo, type ShortCourseSessionInfo } from "@/components/short-course-studio";
+import { formatInTimeZone } from "@/lib/time-zones";
 
 export const metadata = { title: "Course details" };
 
@@ -33,9 +36,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
   if (!course) notFound();
 
   const isStaff = user.role !== "STUDENT";
-  // Archived and draft courses stay visible to staff only.
-  if (course.status !== "active" && !isStaff) notFound();
-
+  const canManageClassroom = user.role === "SUPER_ADMIN";
   const enrollment =
     user.role === "STUDENT"
       ? await prisma.shortCourseEnrollment.findUnique({
@@ -45,6 +46,41 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
       : null;
 
   const hasClassAccess = enrollment?.status === "enrolled" || enrollment?.status === "completed";
+  const canViewPaymentDetails = user.role === "SUPER_ADMIN" || Boolean(
+    enrollment && ["pending_payment", "pending_approval", "rejected", "enrolled", "completed"].includes(enrollment.status),
+  );
+  // Drafts are private; students with an existing enrollment retain access if a course is unpublished.
+  if (course.status !== "active" && !canManageClassroom && !enrollment) notFound();
+
+  const [sessionRows, materialRows, roster] = await Promise.all([
+    prisma.shortCourseSession.findMany({ where: { shortCourseId: id }, orderBy: { startsAt: "asc" } }),
+    canManageClassroom || hasClassAccess
+      ? prisma.shortCourseMaterial.findMany({
+          where: { shortCourseId: id, ...(canManageClassroom ? {} : { published: true }) },
+          orderBy: [{ createdAt: "desc" }],
+          select: { id: true, title: true, description: true, fileName: true, contentType: true, fileSize: true, published: true, createdAt: true },
+        })
+      : Promise.resolve([]),
+    canManageClassroom
+      ? prisma.shortCourseEnrollment.findMany({
+          where: { shortCourseId: id },
+          orderBy: { enrolledAt: "desc" },
+          select: { id: true, status: true, enrolledAt: true, student: { select: { firstName: true, lastName: true, email: true } } },
+        })
+      : Promise.resolve([]),
+  ]);
+  const sessions: ShortCourseSessionInfo[] = sessionRows.map((session) => ({
+    id: session.id,
+    title: session.title,
+    startsAt: session.startsAt.toISOString(),
+    endsAt: session.endsAt.toISOString(),
+    timeZone: session.timeZone,
+    meetingLink: canManageClassroom || hasClassAccess ? session.meetingLink : null,
+  }));
+  const materials: ShortCourseMaterialInfo[] = materialRows.map((material) => ({
+    ...material,
+    createdAt: material.createdAt.toISOString(),
+  }));
   const isPendingPayment = enrollment?.status === "pending_payment";
   const isPendingApproval = enrollment?.status === "pending_approval";
   const isRejected = enrollment?.status === "rejected";
@@ -75,6 +111,25 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {canManageClassroom && <ShortCourseForm initial={{
+                id: course.id,
+                title: course.title,
+                provider: course.provider,
+                category: course.category,
+                duration: course.duration,
+                startDates: course.startDates,
+                fee: String(course.fee),
+                deliveryMode: course.deliveryMode,
+                classSchedule: course.classSchedule,
+                meetingLink: course.meetingLink,
+                prerequisites: course.prerequisites,
+                description: course.description,
+                linkedProgramId: course.linkedProgram?.id,
+                linkedProgramLabel: course.linkedProgram ? `${course.linkedProgram.university?.name ?? ""} — ${course.linkedProgram.name}` : undefined,
+                paymentType: course.paymentType as "FREE" | "PAID" | "OTHER",
+                bankDetails: course.bankDetails ?? "",
+                status: course.status as "draft" | "active",
+              }} />}
               <a
                 href={`/api/short-courses/${course.id}/pdf`}
                 target="_blank"
@@ -152,7 +207,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                 {isPaid ? "Bank transfer, receipt reviewed by staff" : "No payment"}
               </dd>
             </div>
-            {isPaid && course.bankDetails && (
+            {isPaid && canViewPaymentDetails && course.bankDetails && (
               <div className="col-span-2">
                 <dt className="text-xs text-ink-muted">Bank details</dt>
                 <dd className="mt-1 whitespace-pre-wrap rounded-lg bg-canvas p-3 text-sm dark:bg-navy-800">
@@ -196,9 +251,9 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
           <CardContent className="space-y-4">
             {!enrollment && (
               <div className="space-y-3">
-                <p className="text-sm text-ink-muted">
+              <p className="text-sm text-ink-muted">
                   {isPaid
-                    ? "Enrol first, transfer the fee using the bank details above, then upload your receipt for review."
+                    ? "Enrol first to see the payment instructions. Then transfer the course fee and upload your receipt for staff review."
                     : "This course is free. Enrol to receive the class schedule and meeting link."}
                 </p>
                 <EnrollButton
@@ -283,14 +338,6 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
                       <ExternalLink className="h-4 w-4" aria-hidden="true" /> Join class
                     </a>
                   )}
-                  {nextStart && (
-                    <AddCourseToCalendar
-                      title={course.title}
-                      provider={course.provider}
-                      startDate={nextStart.toISOString()}
-                      duration={course.duration}
-                    />
-                  )}
                 </div>
               </div>
             )}
@@ -299,6 +346,92 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
               <p className="text-sm text-ink-muted">
                 This course is finished. Your certificate is handled by your counselor.
               </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Class schedule</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-ink-muted">
+            {course.classSchedule || (sessions.length ? "All upcoming class times are shown below." : "Exact class dates and times will be posted here.")}
+          </p>
+          {sessions.length > 0 ? (
+            <ol className="divide-y divide-line dark:divide-navy-700">
+              {sessions.map((session) => (
+                <li key={session.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div>
+                    <p className="font-medium">{session.title}</p>
+                    <p className="text-sm text-ink-muted">
+                      {formatInTimeZone(session.startsAt, session.timeZone)} – {formatInTimeZone(session.endsAt, session.timeZone)} ({session.timeZone})
+                    </p>
+                  </div>
+                  {session.meetingLink && (canManageClassroom || hasClassAccess) ? (
+                    <a href={session.meetingLink} target="_blank" rel="noreferrer" aria-label={`Join class: ${session.title} (opens in a new tab)`} className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-brand-700 underline dark:text-brand-300">
+                      Join class <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  ) : <span className="text-xs text-ink-muted">Join link unlocks after enrollment confirmation</span>}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="rounded-lg border border-dashed border-line-strong p-4 text-sm text-ink-muted dark:border-navy-700">No dated sessions have been added yet.</p>
+          )}
+          {sessions.length > 0 && <AddCourseToCalendar title={course.title} provider={course.provider} sessions={sessions} />}
+        </CardContent>
+      </Card>
+
+      {user.role === "STUDENT" && (
+        <Card>
+          <CardHeader><CardTitle>Study materials</CardTitle></CardHeader>
+          <CardContent>
+            {!hasClassAccess ? (
+              <p className="rounded-lg bg-canvas p-4 text-sm text-ink-muted dark:bg-navy-800">
+                Course materials unlock after your enrollment is confirmed. For paid courses, staff confirm access after reviewing your receipt.
+              </p>
+            ) : materials.length === 0 ? (
+              <p className="text-sm text-ink-muted">Your instructor has not published study materials yet.</p>
+            ) : (
+              <ul className="divide-y divide-line dark:divide-navy-700">
+                {materials.map((material) => (
+                  <li key={material.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{material.title}</p>
+                      <p className="text-xs text-ink-muted">{material.fileName} · {Math.max(1, Math.round(material.fileSize / 1024))} KB</p>
+                      {material.description && <p className="mt-1 text-sm text-ink-muted">{material.description}</p>}
+                    </div>
+                    <a href={`/api/short-courses/${course.id}/materials/${material.id}`} aria-label={`Download ${material.title}`} className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-line-strong px-3 text-sm font-medium text-brand-700 hover:bg-brand-50 dark:border-navy-700 dark:text-brand-300 dark:hover:bg-brand-900/30">
+                      <Download className="h-4 w-4" aria-hidden="true" /> Download
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {canManageClassroom && <ShortCourseStudio courseId={course.id} sessions={sessions} materials={materials} />}
+
+      {canManageClassroom && (
+        <Card>
+          <CardHeader><CardTitle>Enrollment roster ({roster.length})</CardTitle></CardHeader>
+          <CardContent>
+            {roster.length === 0 ? <p className="py-3 text-sm text-ink-muted">Students appear here after they enroll.</p> : (
+              <div className="overflow-x-auto rounded-lg border border-line dark:border-navy-700">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">Students enrolled in {course.title}</caption>
+                  <thead className="bg-canvas text-left text-xs uppercase text-ink-muted dark:bg-navy-800">
+                    <tr><th scope="col" className="p-3">Student</th><th scope="col" className="p-3">Email</th><th scope="col" className="p-3">Status</th><th scope="col" className="p-3">Enrolled</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-line dark:divide-navy-700">
+                    {roster.map((entry) => <tr key={entry.id}><td className="p-3 font-medium">{entry.student.firstName} {entry.student.lastName}</td><td className="p-3">{entry.student.email}</td><td className="p-3">{humanize(entry.status)}</td><td className="p-3">{formatDate(entry.enrolledAt)}</td></tr>)}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>

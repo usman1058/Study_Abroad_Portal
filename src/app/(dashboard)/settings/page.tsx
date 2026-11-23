@@ -29,6 +29,7 @@ export default async function SettingsPage() {
           <div>
             <p className="mb-1.5 text-sm font-medium">Preferred currency</p>
             <CurrencySwitcher defaultCurrency={me?.preferredCurrency ?? "MYR"} />
+            <p className="mt-2 text-xs text-ink-muted">Converted prices are indicative display estimates. Course fees and payment instructions remain in MYR.</p>
           </div>
         </CardContent>
       </Card>

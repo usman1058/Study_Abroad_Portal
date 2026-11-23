@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
+import { deleteObject } from "@/lib/storage";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -61,6 +62,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     await prisma.shortCourseEnrollment.delete({
       where: { studentId_shortCourseId: { studentId: user.id, shortCourseId: id } },
     });
+    await deleteObject(enrollment.receiptUrl);
 
     await logAudit({ actorId: user.id, action: "delete", entityType: "ShortCourseEnrollment", entityId: enrollment.id });
     return ok({ id });
