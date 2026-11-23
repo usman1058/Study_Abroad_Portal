@@ -33,7 +33,6 @@ import { ROLE_LABELS } from "@/lib/constants";
 import type { Role } from "@/generated/prisma/client";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/components/providers";
-import { SidebarUserCreate } from "@/components/sidebar-user-create";
 
 const ICONS: Record<string, LucideIcon> = {
   home: Home,
@@ -64,13 +63,11 @@ export function Sidebar({
   sections,
   role,
   userName,
-  allowedRoles,
-  counselors,
   mobileOpen = false,
   onClose,
   collapsed = false,
   onToggleCollapsed,
-}: { sections: Section[]; role: Role; userName: string; allowedRoles: Role[]; counselors: { id: string; label: string }[]; mobileOpen?: boolean; onClose?: () => void; collapsed?: boolean; onToggleCollapsed?: () => void }) {
+}: { sections: Section[]; role: Role; userName: string; mobileOpen?: boolean; onClose?: () => void; collapsed?: boolean; onToggleCollapsed?: () => void }) {
   const pathname = usePathname();
   const { t } = useLang();
 
@@ -111,9 +108,6 @@ export function Sidebar({
       </nav>
 
       <div className={cn("border-t border-navy-800 p-3", collapsed && "lg:px-2")}>
-        {isPartner && (
-          <div className={cn(collapsed && "lg:hidden")}><SidebarUserCreate allowedRoles={allowedRoles} counselors={counselors} /></div>
-        )}
         {role !== "STUDENT" && (
           <a
             href="https://wa.me/?text=StudyAbroad%20Portal"
