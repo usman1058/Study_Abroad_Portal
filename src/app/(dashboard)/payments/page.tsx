@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { TRANSACTION_TYPES } from "@/lib/constants";
 import { formatDate, formatCurrency, fullName, humanize, toNum } from "@/lib/utils";
 import type { TransactionType } from "@/generated/prisma/client";
+import { ReceiptReview } from "@/components/receipt-review";
 
 export const metadata = { title: "Payments" };
 
@@ -70,13 +71,16 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   const { type: typeParam } = await searchParams;
 
   if (user.role === "STUDENT") {
-    const transactions = await prisma.transaction.findMany({
+    const paymentSetting = await prisma.portalSetting.findUnique({ where: { key: "paymentDetails" }, select: { value: true } });
+    let bank: { bankName?: string; accountName?: string; accountNumber?: string; iban?: string; bankInstructions?: string } = {};
+    if (paymentSetting) { try { bank = JSON.parse(paymentSetting.value); } catch { bank = {}; } }
+    const [transactions, courseReceipts] = await Promise.all([prisma.transaction.findMany({
       where: { relatedStudentId: user.id },
       orderBy: { date: "desc" },
       include: {
         relatedApplication: { include: { program: { include: { university: true } } } },
       },
-    });
+    }), prisma.shortCourseEnrollment.findMany({ where: { studentId: user.id, receiptUrl: { not: null } }, orderBy: { enrolledAt: "desc" }, include: { shortCourse: { select: { id: true, title: true } } } })]);
     const payments = transactions.filter((t) => !OUTGOING_TYPES.includes(t.type));
     const refunds = transactions.filter((t) => OUTGOING_TYPES.includes(t.type));
     const paid = moneySummary(sumByCurrency(payments));
@@ -205,6 +209,9 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
             )}
           </CardContent>
         </Card>
+
+        <Card><CardHeader><CardTitle>Short course receipts</CardTitle></CardHeader><CardContent>{courseReceipts.length ? <ul className="divide-y divide-line dark:divide-navy-700">{courseReceipts.map((entry) => <li key={entry.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-medium">{entry.shortCourse.title}</p><p className="text-xs text-ink-muted">Receipt status: {humanize(entry.status)}</p></div><a href={`/api/short-courses/${entry.shortCourse.id}/receipt`} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-sm font-medium text-brand-700 hover:bg-canvas">View receipt</a></li>)}</ul> : <p className="text-sm text-ink-muted">Short course receipts you upload will appear here for tracking.</p>}</CardContent></Card>
+        {(bank.bankName || bank.accountNumber) && <Card><CardHeader><CardTitle>Bank transfer details</CardTitle></CardHeader><CardContent className="grid gap-2 text-sm sm:grid-cols-2"><p><span className="text-ink-muted">Bank:</span> {bank.bankName || "—"}</p><p><span className="text-ink-muted">Account name:</span> {bank.accountName || "—"}</p><p><span className="text-ink-muted">Account number:</span> <span className="font-mono">{bank.accountNumber || "—"}</span></p><p><span className="text-ink-muted">IBAN / routing:</span> <span className="font-mono">{bank.iban || "—"}</span></p>{bank.bankInstructions && <p className="sm:col-span-2">{bank.bankInstructions}</p>}</CardContent></Card>}
       </div>
     );
   }
@@ -246,6 +253,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       _sum: { amount: true },
     }),
   ]);
+  const courseReceipts = await prisma.shortCourseEnrollment.findMany({
+    where: { student: studentScope, receiptUrl: { not: null } },
+    orderBy: { enrolledAt: "desc" },
+    take: 50,
+    include: { student: { select: { id: true, firstName: true, lastName: true } }, shortCourse: { select: { id: true, title: true } } },
+  });
 
   const shown = rows.slice(0, 100);
   const countMap = new Map(typeCounts.map((row) => [row.type, row._count._all]));
@@ -396,6 +409,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           )}
         </CardContent>
       </Card>
+      <Card><CardHeader><CardTitle>Short course receipts</CardTitle></CardHeader><CardContent>{courseReceipts.length ? <ul className="divide-y divide-line dark:divide-navy-700">{courseReceipts.map((entry) => <li key={entry.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-medium">{entry.shortCourse.title}</p><p className="text-xs text-ink-muted">{fullName(entry.student)} · {humanize(entry.status)}</p></div><div className="flex flex-wrap items-center gap-2"><a href={`/api/short-courses/${entry.shortCourse.id}/receipt`} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-sm font-medium text-brand-700 hover:bg-canvas">View receipt</a>{entry.status === "pending_approval" && <ReceiptReview enrollmentId={entry.id} studentName={fullName(entry.student)} />}</div></li>)}</ul> : <p className="text-sm text-ink-muted">No short course receipts have been submitted in your student scope.</p>}</CardContent></Card>
     </div>
   );
 }

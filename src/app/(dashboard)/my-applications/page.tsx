@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, humanize, toNum } from "@/lib/utils";
 import { APPLICATION_STAGES, APPLICATION_STAGE_ORDER } from "@/lib/constants";
+import { CopyRecordId } from "@/components/copy-record-id";
+import { DeleteButton } from "@/components/delete-button";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
 import { ArrowRight, BarChart3, ClipboardList, FileCheck2, GraduationCap, Sparkles, TrendingUp } from "lucide-react";
 import { DashboardAdRail } from "@/components/dashboard-ad-rail";
@@ -37,14 +39,15 @@ const TABS: { key: TabKey; label: string; match: (a: { stage: ApplicationStage; 
   { key: "rejected", label: "Rejected", match: (a) => a.stage === "REJECTED" || a.stage === "WITHDRAWN" },
 ];
 
-type SearchParams = Promise<{ tab?: string; submitted?: string }>;
+type SearchParams = Promise<{ tab?: string; submitted?: string; q?: string }>;
 
 export default async function MyApplicationsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
   if (user.role !== "STUDENT") redirect("/home");
 
-  const { tab = "all", submitted } = await searchParams;
+  const { tab = "all", submitted, q: rawQuery = "" } = await searchParams;
+  const q = rawQuery.trim().slice(0, 100);
   const now = new Date();
 
   const [applications, courseEnrollments, availableCourses, advertisements, totalDocs, pendingDocs] = await Promise.all([
@@ -66,8 +69,8 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
       select: { id: true, title: true, provider: true, category: true, duration: true, deliveryMode: true },
     }),
     prisma.dashboardAdvertisement.findMany({
-      where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
-      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+      where: { active: true, AND: [{ OR: [{ targetRoles: { isEmpty: true } }, { targetRoles: { has: "STUDENT" } }] }, { OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, targetRoles: true, sortOrder: true, startsAt: true, endsAt: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     }),
     // Count the student's documents directly: uploads made before an
@@ -83,7 +86,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
   }));
 
   const activeTab = (TABS.find((t) => t.key === tab)?.key ?? "all") as TabKey;
-  const visible = rows.filter((r) => TABS.find((t) => t.key === activeTab)!.match({ stage: r.stage, docsOk: r.docsOk }));
+  const visible = rows.filter((r) => TABS.find((t) => t.key === activeTab)!.match({ stage: r.stage, docsOk: r.docsOk }) && (!q || `${r.id} ${r.program.name} ${r.program.university.name} ${r.stage}`.toLowerCase().includes(q.toLowerCase())));
 
   const total = rows.length;
   const offered = rows.filter((a) => ["OFFER", "DEPOSIT_PAID"].includes(a.stage)).length;
@@ -141,13 +144,14 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">My applications</h2><p className="text-sm text-ink-muted">Choose a view to focus on what needs attention.</p></div><Link href="/apply" className="inline-flex w-fit min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Start another application <ArrowRight className="h-4 w-4" /></Link></div>
+        <form action="/my-applications" method="get" role="search" className="flex gap-2 rounded-xl border border-line bg-white p-3 dark:border-navy-700 dark:bg-navy-900"><input type="hidden" name="tab" value={activeTab} /><label htmlFor="my-application-search" className="sr-only">Search your applications by ID, program, university, or stage</label><input id="my-application-search" type="search" name="q" defaultValue={q} placeholder="Search application ID, program, university…" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-transparent px-3 text-sm" /><button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button></form>
         <div className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-2 dark:border-navy-700 dark:bg-navy-900">
           {TABS.map((t) => {
             const count = rows.filter((r) => t.match({ stage: r.stage, docsOk: r.docsOk })).length;
             return (
               <Link
                 key={t.key}
-                href={`/my-applications?tab=${t.key}`}
+                href={`/my-applications?${new URLSearchParams({ tab: t.key, ...(q ? { q } : {}) })}`}
                 aria-current={activeTab === t.key ? "page" : undefined}
                 className={
                   "rounded-full border px-3.5 py-1.5 text-sm font-medium transition " +
@@ -174,7 +178,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {visible.map((a) => (
-              <Card key={a.id} data-application-card={a.id} className="transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
+              <Card key={a.id} id={`application-${a.id}`} data-application-card={a.id} className="scroll-mt-24 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md">
 <CardContent className="p-5">
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -187,7 +191,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                         )}
                         <Link href={`/scholarships/${a.program.slug ?? a.program.id}`} className="inline-flex min-h-6 items-center font-semibold hover:text-brand-600 hover:underline">{a.program.name}</Link>
                         <p className="text-xs text-ink-muted">{a.program.university.name}</p>
-                        <p className="break-all text-[11px] text-ink-muted">Application ID {a.id}</p>
+                        <CopyRecordId id={a.id} prefix="Application ID" />
                       </div>
                     <Badge tone={STAGE_TONE[a.stage]}>{humanize(a.stage)}</Badge>
                   </div>
@@ -223,6 +227,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
                         Edit draft
                       </Link>
                       <DraftSubmitButton applicationId={a.id} />
+                      <DeleteButton endpoint={`/api/applications/${a.id}`} itemName={a.program.name} confirmText="Delete this draft application and its attached files?" label="Delete draft" />
                     </div>
                   )}
                 </CardContent>

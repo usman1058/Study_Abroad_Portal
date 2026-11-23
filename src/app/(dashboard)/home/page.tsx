@@ -58,8 +58,8 @@ export default async function HomePage() {
     prisma.shortCourseEnrollment.count({ where: { status: { in: ["enrolled", "completed"] } } }),
     prisma.transaction.groupBy({ by: ["currency"], where: user.role === "SUPER_ADMIN" ? { type: { not: "REFUND" } } : { type: { not: "REFUND" }, relatedStudent: studentScope }, _sum: { amount: true } }),
     prisma.dashboardAdvertisement.findMany({
-      where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
-      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true },
+      where: user.role === "SUPER_ADMIN" ? {} : { active: true, AND: [{ OR: [{ targetRoles: { isEmpty: true } }, { targetRoles: { has: user.role } }] }, { OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, targetRoles: true, sortOrder: true, startsAt: true, endsAt: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     }),
     prisma.application.groupBy({ by: ["stage"], where: { student: studentScope }, _count: { _all: true } }),

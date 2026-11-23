@@ -11,6 +11,11 @@ export function humanize(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Compact, memorable list ID; the full database ID remains searchable and is copied on demand. */
+export function shortRecordId(value: string, length = 8): string {
+  return value.length <= length ? value.toUpperCase() : value.slice(-length).toUpperCase();
+}
+
 export function toNum(value: unknown): number {
   if (typeof value === "number") return value;
   if (value && typeof value === "object" && "toNumber" in value) {

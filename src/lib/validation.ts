@@ -71,6 +71,7 @@ const dashboardAdFields = z.object({
   linkUrl: httpUrl(1200).optional(),
   ctaLabel: optionalText(40),
   active: z.boolean().optional(),
+  targetRoles: z.array(z.enum(["STUDENT", "COUNSELOR", "AGENCY"])).max(3).optional(),
   sortOrder: intRange(0, 999).optional(),
   startsAt: optionalDateTime,
   endsAt: optionalDateTime,

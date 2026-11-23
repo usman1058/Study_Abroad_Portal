@@ -9,6 +9,21 @@ import { APPLICATION_STAGE_TRANSITIONS, DOC_GATED_APPLICATION_STAGES, hasVerifie
 
 type Params = { params: Promise<{ id: string }> };
 
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  try {
+    const { id } = await params;
+    const { error, user } = await requireUser();
+    if (error) return error;
+    if (user.role !== "STUDENT") return fail("Only a student can delete their draft application", 403);
+    const application = await prisma.application.findFirst({ where: { id, studentId: user.id } });
+    if (!application) return fail("Application not found", 404);
+    if (application.stage !== "DRAFT") return fail("Only draft applications can be deleted", 409);
+    await prisma.application.delete({ where: { id } });
+    await logAudit({ actorId: user.id, action: "delete", entityType: "Application", entityId: id, before: { stage: application.stage } });
+    return ok({ id });
+  } catch (error) { return serverError(error); }
+}
+
 const updateSchema = z.object({
   stage: z.enum(["DRAFT", "SUBMITTED", "UNDER_REVIEW", "OFFER", "DEPOSIT_PAID", "VISA", "ENROLLED", "REJECTED", "WITHDRAWN"]),
   visaStage: z.string().optional().nullable(),

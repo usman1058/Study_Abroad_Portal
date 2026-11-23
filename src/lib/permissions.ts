@@ -10,7 +10,7 @@ export type Section = {
 };
 
 export const SECTIONS: Section[] = [
-  { key: "home", label: "Home", href: "/home", icon: "home", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY"] },
+  { key: "home", label: "Home", href: "/home", icon: "home", roles: ["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"] },
   { key: "advertisements", label: "Advertisements", href: "/advertisements", icon: "megaphone", roles: ["SUPER_ADMIN"] },
   { key: "my-applications", label: "My Applications", href: "/my-applications", icon: "file", roles: ["STUDENT"] },
   { key: "apply", label: "Apply Application", href: "/apply", icon: "filePlus", roles: ["STUDENT"] },
@@ -33,7 +33,9 @@ export const SECTIONS: Section[] = [
 ];
 
 export function sectionsForRole(role: Role): Section[] {
-  return SECTIONS.filter((section) => section.roles.includes(role));
+  return SECTIONS.filter((section) => section.roles.includes(role)).map((section) =>
+    role === "STUDENT" && section.key === "home" ? { ...section, href: "/student-home" } : section,
+  );
 }
 
 export function canManageUser(actor: Pick<User, "id" | "role">, target: Pick<User, "id" | "role">): boolean {

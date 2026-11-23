@@ -24,7 +24,7 @@ export default async function StudentLoginPage({ searchParams }: { searchParams:
         </>
       }
     >
-      <LoginForm nextPath={next ?? "/my-applications"} notice={notice} />
+      <LoginForm nextPath={next ?? "/student-home"} notice={notice} />
     </AuthShell>
   );
 }

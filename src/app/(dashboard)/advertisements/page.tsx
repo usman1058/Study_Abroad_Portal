@@ -18,6 +18,7 @@ export default async function AdvertisementsPage() {
       linkUrl: true,
       ctaLabel: true,
       active: true,
+      targetRoles: true,
       sortOrder: true,
       startsAt: true,
       endsAt: true,

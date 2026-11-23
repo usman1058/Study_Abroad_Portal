@@ -18,6 +18,17 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
   const [openNotifications, setOpenNotifications] = useState(false);
   const [notifications, setNotifications] = useState<{ id: string; title: string; body?: string | null; readAt?: string | null; createdAt: string; data?: { href?: string } | null }[]>([]);
 
+  function notificationHref(n: (typeof notifications)[number]) {
+    if (n.data?.href?.startsWith("/") && !n.data.href.startsWith("//")) return n.data.href;
+    const data = n.data as (typeof n.data & { applicationId?: string; documentId?: string; studentId?: string }) | null;
+    if (data?.applicationId) return role === "STUDENT" ? `/my-applications#application-${encodeURIComponent(data.applicationId)}` : `/application/${encodeURIComponent(data.applicationId)}`;
+    if (data?.documentId) return `/documents?document=${encodeURIComponent(data.documentId)}`;
+    if (data?.studentId) return `/users/${encodeURIComponent(data.studentId)}`;
+    if (n.title.toLowerCase().includes("message")) return "/messages";
+    if (n.title.toLowerCase().includes("partner")) return "/users?role=AGENCY";
+    return role === "STUDENT" ? "/student-home" : "/home";
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/notifications", { signal: controller.signal })
@@ -30,7 +41,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-line bg-white/90 px-4 backdrop-blur dark:border-navy-800 dark:bg-navy-900/90">
       <div className="flex min-w-0 items-center gap-1.5"><button type="button" onClick={onOpenNavigation} className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas-subtle dark:text-slate-300 dark:hover:bg-navy-800 lg:hidden" aria-label="Open navigation"><Menu className="h-5 w-5" /></button><Link
-          href={role === "STUDENT" ? "/my-applications" : "/home"}
+          href={role === "STUDENT" ? "/student-home" : "/home"}
           className="flex min-w-0 items-center gap-2.5"
           aria-label="Home"
         >
@@ -61,7 +72,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
           <div className="fixed inset-0 z-40" onClick={() => setOpenNotifications(false)} />
           <div id="notification-menu" className="absolute right-0 z-50 mt-2 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-line bg-white shadow-xl dark:border-navy-700 dark:bg-navy-900">
             <div className="flex items-center justify-between border-b border-line px-4 py-3 dark:border-navy-700"><div><p className="font-display font-semibold text-navy-900 dark:text-white">Notifications</p><p className="text-xs text-ink-muted">{unread ? `${unread} unread` : "You're all caught up"}</p></div>{unread > 0 && <button className="text-xs font-medium text-brand-600 hover:underline" onClick={async () => { await fetch("/api/notifications", { method: "PUT" }); setNotifications((items) => items.map((n) => ({ ...n, readAt: new Date().toISOString() }))); setUnread(0); }}>Mark all read</button>}</div>
-            <div className="max-h-96 overflow-y-auto">{notifications.length === 0 ? <p className="p-6 text-center text-sm text-ink-muted">No notifications yet.</p> : notifications.slice(0, 8).map((n) => <button key={n.id} className={cn("flex w-full items-start gap-3 border-b border-line px-4 py-3 text-left hover:bg-canvas dark:border-navy-800 dark:hover:bg-navy-800/60", !n.readAt && "bg-brand-50/60 dark:bg-brand-900/10")} onClick={async () => { if (!n.readAt) { await fetch(`/api/notifications/${n.id}`, { method: "PUT" }); setNotifications((items) => items.map((x) => x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)); setUnread((v) => Math.max(0, v - 1)); } if (n.data?.href) window.location.href = n.data.href; }}><span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", n.readAt ? "bg-slate-300" : "bg-brand-600")} /><span className="min-w-0 flex-1"><span className="block text-sm font-medium">{n.title}</span>{n.body && <span className="mt-0.5 block text-xs text-ink-muted">{n.body}</span>}<span className="mt-1 block text-[11px] text-slate-400">{new Date(n.createdAt).toLocaleString()}</span></span>{n.data?.href && <ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400" />}</button>)}</div>
+            <div className="max-h-96 overflow-y-auto">{notifications.length === 0 ? <p className="p-6 text-center text-sm text-ink-muted">No notifications yet.</p> : notifications.slice(0, 8).map((n) => <Link key={n.id} href={notificationHref(n)} onClick={async () => { setOpenNotifications(false); if (!n.readAt) { await fetch(`/api/notifications/${n.id}`, { method: "PUT" }); setNotifications((items) => items.map((x) => x.id === n.id ? { ...x, readAt: new Date().toISOString() } : x)); setUnread((v) => Math.max(0, v - 1)); } }} className={cn("flex items-start gap-3 border-b border-line px-4 py-3 text-left hover:bg-canvas dark:border-navy-800 dark:hover:bg-navy-800/60", !n.readAt && "bg-brand-50/60 dark:bg-brand-900/10")}><span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", n.readAt ? "bg-slate-300" : "bg-brand-600")} /><span className="min-w-0 flex-1"><span className="block text-sm font-medium">{n.title}</span>{n.body && <span className="mt-0.5 block text-xs text-ink-muted">{n.body}</span>}<span className="mt-1 block text-[11px] text-slate-400">{new Date(n.createdAt).toLocaleString()}</span></span><ExternalLink className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400" /></Link>)}</div>
             <Link href="/messages" onClick={() => setOpenNotifications(false)} className="flex items-center justify-center gap-2 p-3 text-xs font-medium text-brand-600 hover:bg-canvas dark:hover:bg-navy-800"><CheckCheck className="h-3.5 w-3.5" /> Open message center</Link>
           </div>
         </>}

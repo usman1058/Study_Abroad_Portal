@@ -14,6 +14,7 @@ import { VerifyPartnerDocument } from "@/components/verify-partner-document";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
+import { DocumentGroups } from "@/components/document-groups";
 
 export const metadata = { title: "Documents" };
 
@@ -43,8 +44,8 @@ const documentInclude = {
   },
 };
 
-export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ docs?: string }> }) {
-  const { docs: rawDocsFilter = "all" } = await searchParams;
+export default async function DocumentsPage({ searchParams }: { searchParams: Promise<{ docs?: string; document?: string }> }) {
+  const { docs: rawDocsFilter = "all", document: focusDocumentId = "" } = await searchParams;
   const docsFilter = ["pending", "verified", "rejected"].includes(rawDocsFilter) ? rawDocsFilter : "all";
   const user = await currentUser();
   if (!user) redirect("/");
@@ -75,7 +76,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
     const pending = documents.filter((document) => document.status === "PENDING").length;
     const rejected = documents.filter((document) => document.status === "REJECTED").length;
-    const filteredDocuments = documents.filter((document) => docsFilter === "all" || document.status.toLowerCase() === docsFilter);
+    const filteredDocuments = documents.filter((document) => (docsFilter === "all" || document.status.toLowerCase() === docsFilter) && (!focusDocumentId || document.id === focusDocumentId));
     const applicationOptions = applications.map((application) => ({
       id: application.id,
       label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
@@ -138,7 +139,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 {filteredDocuments.map((document) => {
                   const expiry = daysUntil(document.expiresAt);
                   return (
-                  <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <li key={document.id} id={`document-${document.id}`} className={`flex flex-wrap items-center justify-between gap-3 py-3 ${document.id === focusDocumentId ? "rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20" : ""}`}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{humanize(document.type)}</p>
                       <p className="truncate text-xs text-ink-muted">
@@ -285,7 +286,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           <h2 className="text-lg font-semibold">Student documents</h2>
           <p className="text-sm text-ink-muted">Student files grouped by student and review status.</p>
         </div>
-        <DocumentGroup title={user.role === "SUPER_ADMIN" ? "All students" : "Students in your scope"} students={visibleDirect} onlyStatus={docsFilter} />
+        <DocumentGroups title={user.role === "SUPER_ADMIN" ? "All student documents" : "Student document groups"} students={visibleDirect} onlyStatus={docsFilter} focusDocumentId={focusDocumentId} />
       </section>
 
       {user.role === "MANAGER" && (
@@ -294,7 +295,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <h2 className="text-lg font-semibold">Counselor activity and documents</h2>
             <p className="text-sm text-ink-muted">Cases assigned to counselors you created.</p>
           </div>
-          <DocumentGroup title="Managed counselor cases" students={oversightStudents} showCounselor onlyStatus={docsFilter} />
+          <DocumentGroups title="Managed counselor cases" students={oversightStudents} showCounselor onlyStatus={docsFilter} focusDocumentId={focusDocumentId} />
         </section>
       )}
     </div>

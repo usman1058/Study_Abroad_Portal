@@ -26,7 +26,7 @@ function RoleCard({ href, icon, title, description }: { href: string; icon: Reac
 export default async function LandingPage() {
   const user = await currentUser();
   if (user) {
-    redirect(user.role === "STUDENT" ? "/my-applications" : "/home");
+    redirect(user.role === "STUDENT" ? "/student-home" : "/home");
   }
 
   return (

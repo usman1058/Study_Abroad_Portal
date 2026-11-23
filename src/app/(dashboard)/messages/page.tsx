@@ -172,13 +172,14 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Messages</h1>
-        <p className="text-sm text-ink-muted">{subtitle}</p>
-      </div>
+      <header className="rounded-2xl bg-gradient-to-r from-navy-900 to-brand-700 px-5 py-6 text-white shadow-sm sm:px-7">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">Communication center</p>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Messages</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">{subtitle}</p>
+      </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="min-w-0">
+        <Card className="min-w-0 overflow-hidden shadow-sm">
           <CardContent className="p-3">
             <h2 className="px-1 pb-2 text-sm font-semibold">Conversations</h2>
 
@@ -312,13 +313,13 @@ export default async function MessagesPage({ searchParams }: { searchParams: Sea
           </CardContent>
         </Card>
 
-        <Card className="min-w-0 lg:col-span-2">
+        <Card className="min-w-0 overflow-hidden shadow-sm lg:col-span-2">
           <CardContent className="p-0">
             {!selectedId ? (
               <p className="py-12 text-center text-sm text-ink-muted">Select a conversation.</p>
             ) : (
-              <div className="flex h-[28rem] flex-col">
-                <div className="border-b border-line px-4 py-3 dark:border-navy-700">
+              <div className="flex h-[34rem] flex-col">
+                <div className="border-b border-line bg-canvas-subtle/60 px-4 py-4 dark:border-navy-700 dark:bg-navy-800/40">
                   <h2 className="text-sm font-semibold">
                     {selectedUser ? fullName(selectedUser) : "Conversation"}
                   </h2>

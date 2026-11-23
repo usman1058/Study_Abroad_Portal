@@ -5,6 +5,7 @@ import { ChangePasswordForm } from "@/components/change-password-form";
 import { CurrencySwitcher } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { humanize } from "@/lib/utils";
+import { PortalSettingsForm, blankPortalSettings } from "@/components/portal-settings-form";
 
 export const metadata = { title: "Settings" };
 
@@ -13,6 +14,15 @@ export default async function SettingsPage() {
   if (!user) redirect("/");
 
   const me = await prisma.user.findUnique({ where: { id: user.id } });
+  const portalRows = user.role === "SUPER_ADMIN"
+    ? await prisma.portalSetting.findMany({ where: { key: { in: ["paymentDetails", "whatsappNumber"] } } })
+    : [];
+  let portalSettings = { ...blankPortalSettings };
+  const paymentSetting = portalRows.find((row) => row.key === "paymentDetails");
+  if (paymentSetting) {
+    try { portalSettings = { ...portalSettings, ...JSON.parse(paymentSetting.value) }; } catch { /* use empty settings */ }
+  }
+  portalSettings.whatsappNumber = portalRows.find((row) => row.key === "whatsappNumber")?.value ?? "";
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -33,6 +43,8 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {user.role === "SUPER_ADMIN" && <Card><CardHeader><CardTitle>Portal settings</CardTitle></CardHeader><CardContent><PortalSettingsForm initial={portalSettings} /></CardContent></Card>}
 
       <Card>
         <CardHeader>

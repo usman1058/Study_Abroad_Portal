@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -70,6 +71,12 @@ export function Sidebar({
 }: { sections: Section[]; role: Role; userName: string; mobileOpen?: boolean; onClose?: () => void; collapsed?: boolean; onToggleCollapsed?: () => void }) {
   const pathname = usePathname();
   const { t } = useLang();
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/portal-settings", { signal: controller.signal }).then((response) => response.json()).then((json) => setWhatsappNumber(json?.data?.whatsappNumber ?? "")).catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   const isPartner = role !== "STUDENT";
 
@@ -77,7 +84,7 @@ export function Sidebar({
     <>
       {mobileOpen && <button type="button" className="fixed inset-0 z-40 bg-navy-950/50 lg:hidden" onClick={onClose} aria-label="Close navigation" />}
       <aside aria-label="Main navigation" className={cn("fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col border-r border-navy-800 bg-navy-900 transition-[transform,width] duration-200 lg:z-40 lg:translate-x-0", collapsed ? "lg:w-16" : "lg:w-60", mobileOpen && "translate-x-0")}>
-      <div className="relative flex h-16 items-center border-b border-navy-800"><Link href={role === "STUDENT" ? "/my-applications" : "/home"} onClick={onClose} className={cn("flex h-full flex-1 items-center gap-3 px-4 transition hover:bg-white/5", collapsed && "lg:justify-center lg:px-0")}>
+      <div className="relative flex h-16 items-center border-b border-navy-800"><Link href={role === "STUDENT" ? "/student-home" : "/home"} onClick={onClose} className={cn("flex h-full flex-1 items-center gap-3 px-4 transition hover:bg-white/5", collapsed && "lg:justify-center lg:px-0")}>
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-sm">SA</span>
         <span className={cn("min-w-0", collapsed && "lg:hidden")}><span className="block truncate font-display text-sm font-bold text-white">{t("StudyAbroad")}</span><span className="block truncate text-[11px] font-medium text-navy-300">{isPartner ? "Partner workspace" : "Student workspace"}</span></span>
       </Link>{onToggleCollapsed && <button type="button" onClick={onToggleCollapsed} className="absolute -right-3 top-5 hidden h-6 w-6 items-center justify-center rounded-full border border-navy-700 bg-navy-900 text-navy-300 shadow-sm hover:bg-navy-800 hover:text-white lg:flex" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}</button>}</div>
@@ -110,7 +117,7 @@ export function Sidebar({
       <div className={cn("border-t border-navy-800 p-3", collapsed && "lg:px-2")}>
         {role !== "STUDENT" && (
           <a
-            href="https://wa.me/?text=StudyAbroad%20Portal"
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("StudyAbroad Portal")}`}
             target="_blank"
             rel="noreferrer"
             className={cn("mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-white/5 hover:text-emerald-200", collapsed && "lg:justify-center lg:px-2")}

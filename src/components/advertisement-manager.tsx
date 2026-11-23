@@ -16,6 +16,7 @@ export type DashboardAd = {
   linkUrl: string | null;
   ctaLabel: string | null;
   active: boolean;
+  targetRoles: string[];
   sortOrder: number;
   startsAt: Date | string | null;
   endsAt: Date | string | null;
@@ -23,10 +24,10 @@ export type DashboardAd = {
 
 type FormState = {
   title: string; body: string; imageUrl: string; linkUrl: string; ctaLabel: string;
-  active: boolean; sortOrder: string; startsAt: string; endsAt: string;
+  active: boolean; targetRoles: string[]; sortOrder: string; startsAt: string; endsAt: string;
 };
 
-const blankForm: FormState = { title: "", body: "", imageUrl: "", linkUrl: "", ctaLabel: "Learn more", active: true, sortOrder: "0", startsAt: "", endsAt: "" };
+const blankForm: FormState = { title: "", body: "", imageUrl: "", linkUrl: "", ctaLabel: "Learn more", active: true, targetRoles: [], sortOrder: "0", startsAt: "", endsAt: "" };
 
 function toDateInput(value: Date | string | null): string {
   if (!value) return "";
@@ -41,6 +42,7 @@ function adToForm(ad: DashboardAd): FormState {
     linkUrl: ad.linkUrl ?? "",
     ctaLabel: ad.ctaLabel ?? "Learn more",
     active: ad.active,
+    targetRoles: ad.targetRoles ?? [],
     sortOrder: String(ad.sortOrder),
     startsAt: toDateInput(ad.startsAt),
     endsAt: toDateInput(ad.endsAt),
@@ -152,7 +154,7 @@ export function AdvertisementManager({
     focusForm();
   }
 
-  function field(key: keyof FormState, value: string | boolean) {
+  function field(key: keyof FormState, value: string | boolean | string[]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -428,6 +430,8 @@ export function AdvertisementManager({
             <Input id="ad-cta" value={form.ctaLabel} onChange={(event) => field("ctaLabel", event.target.value)} maxLength={40} />
           </div>
         </div>
+
+        <fieldset className="rounded-lg border border-line p-3"><legend className="px-1 text-sm font-medium">Show announcement to</legend><p className="mb-2 text-xs text-ink-muted">Leave all unchecked to show it to everyone.</p><div className="flex flex-wrap gap-4">{[["STUDENT", "Students"], ["COUNSELOR", "Consultants"], ["AGENCY", "Agencies"]].map(([value, label]) => <label key={value} className="inline-flex min-h-8 items-center gap-2 text-sm"><input type="checkbox" checked={form.targetRoles.includes(value)} onChange={(event) => field("targetRoles", event.target.checked ? [...form.targetRoles, value] : form.targetRoles.filter((role) => role !== value))} />{label}</label>)}</div></fieldset>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div>

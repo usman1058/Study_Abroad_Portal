@@ -9,8 +9,9 @@ import { APPLICATION_STAGES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StageFilter } from "@/components/stage-filter";
-import { formatDate, humanize } from "@/lib/utils";
+import { formatDate, humanize, shortRecordId } from "@/lib/utils";
 import type { ApplicationStage, Prisma } from "@/generated/prisma/client";
+import { CopyRecordId } from "@/components/copy-record-id";
 
 export const metadata = { title: "Applications" };
 
@@ -212,7 +213,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                     <p className="text-xs text-ink-muted">
                       {a.program.university.name} · updated {formatDate(a.updatedAt)}
                     </p>
-                    <p className="break-all text-[11px] text-ink-muted">Application ID {a.id} · Student ID {a.student.id}</p>
+                    <CopyRecordId id={a.id} prefix="App" />
                     <Link href={`/users/${a.student.id}`} className="inline-flex min-h-8 items-center text-sm hover:underline">
                       {a.student.firstName} {a.student.lastName}
                     </Link>
@@ -225,6 +226,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                   <caption className="sr-only">Applications in your pipeline</caption>
                   <thead>
                     <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
+                      <th scope="col" className="p-4">Application ID</th>
                       <th scope="col" className="p-4">Student</th>
                       <th scope="col" className="p-4">Program</th>
                       <th scope="col" className="p-4">University</th>
@@ -236,17 +238,17 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
                   <tbody className="divide-y divide-line dark:divide-navy-700">
                     {applications.map((a) => (
                       <tr key={a.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
+                        <td className="p-4"><CopyRecordId id={a.id} prefix="App" /></td>
                         <td className="p-4">
                           <Link href={`/users/${a.student.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                             {a.student.firstName} {a.student.lastName}
                           </Link>
-                          <p className="break-all text-[11px] text-ink-muted">Student ID {a.student.id}</p>
+                          <p title={a.student.id} className="font-mono text-[11px] text-ink-muted">Student ID {shortRecordId(a.student.id)}</p>
                         </td>
                         <td className="p-4">
                           <Link href={`/application/${a.id}`} className="inline-flex min-h-6 items-center hover:underline">
                             {a.program.name}
                           </Link>
-                          <p className="break-all text-[11px] text-ink-muted">Application ID {a.id}</p>
                         </td>
                         <td className="p-4 text-ink-muted">{a.program.university.name}</td>
                         <td className="p-4">

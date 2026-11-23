@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { Role } from "@/generated/prisma/client";
 
-const STUDENT_ONLY = ["/my-shortlist", "/my-applications", "/apply"];
+const STUDENT_ONLY = ["/my-shortlist", "/my-applications", "/student-home", "/apply"];
 const PARTNER_ONLY = [
   "/home",
   "/advertisements",
@@ -80,7 +80,7 @@ export async function proxy(request: NextRequest) {
   ) {
     if (authed) {
       return redirectWithCsp(
-        new URL(role === "STUDENT" ? "/my-applications" : "/home", request.url)
+        new URL(role === "STUDENT" ? "/student-home" : "/home", request.url)
       );
     }
     return continueRequest();
@@ -92,7 +92,7 @@ export async function proxy(request: NextRequest) {
 
   if (role === "STUDENT") {
     if (matches(pathname, PARTNER_ONLY)) {
-      return redirectWithCsp(new URL("/my-applications", request.url));
+      return redirectWithCsp(new URL("/student-home", request.url));
     }
   } else {
     if (matches(pathname, STUDENT_ONLY)) {
@@ -129,6 +129,7 @@ export const config = {
     "/visitor-form/:path*",
     "/my-shortlist/:path*",
     "/my-applications/:path*",
+    "/student-home/:path*",
     "/apply/:path*",
     "/messages/:path*",
     "/payments/:path*",

@@ -58,7 +58,7 @@ export function LoginForm({
       }
       const session = await getSession();
       const role = session?.user?.role;
-      const fallback = role === "STUDENT" ? "/my-applications" : "/home";
+      const fallback = role === "STUDENT" ? "/student-home" : "/home";
       router.push(safeNextPath(nextPath) ?? fallback);
       router.refresh();
     } catch {

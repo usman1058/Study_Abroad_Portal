@@ -14,9 +14,9 @@ export async function GET() {
     const ads = await prisma.dashboardAdvertisement.findMany({
       where: user.role === "SUPER_ADMIN" ? {} : {
         active: true,
-        AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
+        AND: [{ OR: [{ targetRoles: { isEmpty: true } }, { targetRoles: { has: user.role } }] }, { OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
       },
-      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, sortOrder: true, startsAt: true, endsAt: true, createdAt: true },
+      select: { id: true, title: true, body: true, imageUrl: true, linkUrl: true, ctaLabel: true, active: true, targetRoles: true, sortOrder: true, startsAt: true, endsAt: true, createdAt: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
     return ok(ads);
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const ad = await prisma.dashboardAdvertisement.create({
       data: {
         title: data.title, body: data.body ?? null, imageUrl: data.imageUrl ?? null, linkUrl: data.linkUrl ?? null,
-        ctaLabel: data.ctaLabel ?? "Learn more", active: data.active ?? true, sortOrder: data.sortOrder ?? 0,
+        ctaLabel: data.ctaLabel ?? "Learn more", active: data.active ?? true, targetRoles: data.targetRoles ?? [], sortOrder: data.sortOrder ?? 0,
         startsAt: data.startsAt ? new Date(data.startsAt) : null, endsAt: data.endsAt ? new Date(data.endsAt) : null,
         createdById: user.id,
       },

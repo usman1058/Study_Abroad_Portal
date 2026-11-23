@@ -77,7 +77,7 @@ export function SignupForm() {
         return;
       }
       const session = await getSession();
-      router.push(session?.user?.role === "STUDENT" ? "/my-applications" : "/home");
+      router.push(session?.user?.role === "STUDENT" ? "/student-home" : "/home");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

@@ -502,6 +502,7 @@ model DashboardAdvertisement {
   linkUrl     String?
   ctaLabel    String?   @default("Learn more")
   active      Boolean   @default(true)
+  targetRoles String[]  @default([])
   sortOrder   Int       @default(0)
   startsAt    DateTime?
   endsAt      DateTime?
@@ -512,4 +513,10 @@ model DashboardAdvertisement {
 
   @@index([active, sortOrder])
   @@index([startsAt, endsAt])
+}
+
+model PortalSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

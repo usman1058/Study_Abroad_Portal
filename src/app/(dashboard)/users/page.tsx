@@ -14,6 +14,7 @@ import { formatDate, fullName } from "@/lib/utils";
 import { UserRoleEditor } from "@/components/user-role-editor";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import type { Prisma } from "@/generated/prisma/client";
+import { CopyRecordId } from "@/components/copy-record-id";
 
 export const metadata = { title: "Users" };
 const USER_PAGE_SIZE = 25;
@@ -51,7 +52,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   ]);
   const pageCount = Math.max(1, Math.ceil(userCount / USER_PAGE_SIZE));
   if (userCount > 0 && requestedPage > pageCount) redirect(`/users?${new URLSearchParams({ ...(q ? { q } : {}), ...(roleFilter ? { role: roleFilter } : {}), ...(statusFilter ? { status: statusFilter } : {}), ...(pageCount > 1 ? { page: String(pageCount) } : {}) })}`);
-  const visibleUsers = await prisma.user.findMany({ where: listWhere, include: { partnerDocuments: { select: { type: true, status: true } } }, orderBy: { createdAt: "desc" }, skip: (requestedPage - 1) * USER_PAGE_SIZE, take: USER_PAGE_SIZE });
+  const visibleUsers = await prisma.user.findMany({ where: listWhere, include: { partnerDocuments: { select: { type: true, status: true } } }, orderBy: [{ role: "asc" }, { firstName: "asc" }, { lastName: "asc" }], skip: (requestedPage - 1) * USER_PAGE_SIZE, take: USER_PAGE_SIZE });
   // Only students, super admins and managers have a detail page for non-student
   // accounts (for example an agency's application officer).
   const canOpenDetail = (role: string) => role === "STUDENT" || user.role === "SUPER_ADMIN" || user.role === "MANAGER";
@@ -80,6 +81,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         <select id="user-status" name="status" defaultValue={statusFilter} className="min-h-10 rounded-lg border border-line-strong px-2 text-sm"><option value="">All statuses</option><option value="active">Active</option><option value="pending">Pending</option><option value="inactive">Inactive</option></select>
         <button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button>
       </form>
+      <nav aria-label="Quick filter users by role" className="flex flex-wrap gap-2">{[["", "All accounts"], ...Object.entries(ROLE_LABELS).map(([key]) => [key, roleOptionLabel(key as keyof typeof ROLE_LABELS)])].map(([value, label]) => <Link key={value} href={`/users?${new URLSearchParams({ ...(q ? { q } : {}), ...(value ? { role: value } : {}), ...(statusFilter ? { status: statusFilter } : {}) })}`} aria-current={roleFilter === value ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium ${roleFilter === value ? "border-brand-500 bg-brand-50 text-brand-700" : "border-line-strong text-ink-muted hover:bg-canvas"}`}>{label}</Link>)}</nav>
 
       {allowed.length > 0 && (
         <UserForm
@@ -96,11 +98,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </CardHeader>
         <CardContent>
           {visibleUsers.length === 0 ? <p className="py-8 text-center text-sm text-ink-muted">No users match these filters.</p> : <>
-            <ul className="divide-y divide-line lg:hidden">{visibleUsers.map((u) => <li key={u.id} className="space-y-2 py-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0">{canOpenDetail(u.role) ? <Link href={`/users/${u.id}`} className="inline-flex min-h-6 font-medium hover:underline">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</Link> : <span className="inline-flex min-h-6 font-medium">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</span>}<p className="break-all text-xs text-ink-muted">{u.email}</p><p className="break-all text-[11px] text-ink-muted">ID {u.id}</p>{u.role === "AGENCY" && u.status === "pending" && <><p className="text-xs text-ink-muted">{u.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{u.partnerDocuments.length} verification documents verified</p><Link href="/documents?docs=pending" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Review partner documents</Link></>}</div><Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>{roleOptionLabel(u.role)}</Badge></div><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-ink-muted">{u.phone ?? "No phone"} · {u.status}</span><div className="flex flex-wrap gap-2">{u.status === "pending" && <ApproveButton userId={u.id} email={u.email} disabled={u.role === "AGENCY" && !partnerDocumentsReady(u)} />}{u.role !== "SUPER_ADMIN" && !(user.role === "AGENCY" && u.role === "STUDENT") && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}<DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" /></div></div></li>)}</ul>
+            <ul className="divide-y divide-line lg:hidden">{visibleUsers.map((u) => <li key={u.id} className="space-y-2 py-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><CopyRecordId id={u.id} />{canOpenDetail(u.role) ? <Link href={`/users/${u.id}`} className="inline-flex min-h-6 font-medium hover:underline">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</Link> : <span className="inline-flex min-h-6 font-medium">{u.userTitle ? `${u.userTitle} ` : ""}{fullName(u)}</span>}<p className="break-all text-xs text-ink-muted">{u.email}</p>{u.role === "AGENCY" && u.status === "pending" && <><p className="text-xs text-ink-muted">{u.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{u.partnerDocuments.length} verification documents verified</p><Link href="/documents?docs=pending" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Review partner documents</Link></>}</div><Badge tone={u.role === "AGENCY" ? "brand" : u.role === "STUDENT" ? "green" : "slate"}>{roleOptionLabel(u.role)}</Badge></div><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-ink-muted">{u.phone ?? "No phone"} · {u.status}</span><div className="flex flex-wrap gap-2">{u.status === "pending" && <ApproveButton userId={u.id} email={u.email} disabled={u.role === "AGENCY" && !partnerDocumentsReady(u)} />}{u.role !== "SUPER_ADMIN" && !(user.role === "AGENCY" && u.role === "STUDENT") && allowed.some((candidate) => candidate !== u.role) && <UserRoleEditor userId={u.id} role={u.role} allowedRoles={allowed} />}<DeleteButton endpoint={`/api/users/${u.id}`} confirmText={`Delete ${u.email}?`} label="Delete" /></div></div></li>)}</ul>
           <div className="hidden min-w-0 max-w-full overflow-x-auto lg:block" tabIndex={0} role="region" aria-label="User accounts table">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
+                  <th scope="col" className="pb-2 pr-4">ID</th>
                   <th scope="col" className="pb-2 pr-4">Name</th>
                   <th scope="col" className="pb-2 pr-4">Email</th>
                   <th scope="col" className="pb-2 pr-4">Role</th>
@@ -113,18 +116,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <tbody className="divide-y divide-line dark:divide-navy-700">
                 {visibleUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-canvas dark:hover:bg-navy-800/40">
+                    <td className="py-2.5 pr-4"><CopyRecordId id={u.id} /></td>
                     <td className="py-2.5 pr-4">
                       {canOpenDetail(u.role) ? (
                         <Link href={`/users/${u.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                           {u.userTitle ? `${u.userTitle} ` : ""}
                           {fullName(u)}
-                        <span className="ml-2 text-[11px] font-normal text-ink-muted">ID {u.id}</span>
                         </Link>
                       ) : (
                         <span className="inline-flex min-h-6 items-center font-medium">
                           {u.userTitle ? `${u.userTitle} ` : ""}
                           {fullName(u)}
-                        <span className="ml-2 text-[11px] font-normal text-ink-muted">ID {u.id}</span>
                         </span>
                       )}
                     </td>
@@ -151,7 +153,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 ))}
                 {visibleUsers.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-ink-muted">
+                    <td colSpan={8} className="py-8 text-center text-ink-muted">
                       No users to show.
                     </td>
                   </tr>
