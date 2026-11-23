@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { RouteProgress } from "@/components/route-progress";
@@ -19,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <body>
-        <RouteProgress />
+        <Suspense fallback={null}><RouteProgress /></Suspense>
         <Providers>{children}</Providers>
       </body>
     </html>
