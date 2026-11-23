@@ -14,28 +14,26 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     const { id } = await params;
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role !== "STUDENT") return fail("Only a student can delete their draft application", 403);
+    if (user.role !== "STUDENT") return fail("Only a student can delete their own application", 403);
     const application = await prisma.application.findFirst({ where: { id, studentId: user.id } });
     if (!application) return fail("Application not found", 404);
-    if (application.stage !== "DRAFT") return fail("Only draft applications can be deleted", 409);
     await prisma.application.delete({ where: { id } });
-    await logAudit({ actorId: user.id, action: "delete", entityType: "Application", entityId: id, before: { stage: application.stage } });
+    await logAudit({ actorId: user.id, action: "delete", entityType: "Application", entityId: id, before: { stage: application.stage, programId: application.programId } });
     return ok({ id });
   } catch (error) { return serverError(error); }
 }
 
 const updateSchema = z.object({
-  stage: z.enum(["DRAFT", "SUBMITTED", "UNDER_REVIEW", "OFFER", "DEPOSIT_PAID", "VISA", "ENROLLED", "REJECTED", "WITHDRAWN"]),
+  stage: z.enum(["DRAFT", "SUBMITTED", "UNDER_REVIEW", "OFFER", "DEPOSIT_PAID", "VISA", "ENROLLED", "REJECTED", "WITHDRAWN"]).optional(),
   visaStage: z.string().optional().nullable(),
-});
+  programId: z.string().min(1).optional(),
+}).refine((value) => value.stage !== undefined || value.programId !== undefined, "Provide an application update");
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role === "STUDENT") return fail("Students cannot change application stages", 403);
-
     const application = await prisma.application.findUnique({
       where: { id },
       include: { student: true, program: true, documents: true },
@@ -48,8 +46,32 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
-    const { stage, visaStage } = parsed.data;
+    const { stage, visaStage, programId } = parsed.data;
     const before = application.stage;
+
+    if (user.role === "STUDENT") {
+      if (application.studentId !== user.id) return fail("Forbidden", 403);
+      if (stage !== undefined) {
+        if (stage !== "WITHDRAWN") return fail("Students can only withdraw their application", 403);
+        if (!APPLICATION_STAGE_TRANSITIONS[before].includes("WITHDRAWN")) return fail("This application can no longer be withdrawn", 409);
+        const updated = await prisma.application.update({ where: { id }, data: { stage: "WITHDRAWN", decisionAt: new Date() }, select: { id: true } });
+        await logAudit({ actorId: user.id, action: "update", entityType: "Application", entityId: id, before: { stage: before }, after: { stage: "WITHDRAWN" } });
+        return ok({ id: updated.id });
+      }
+      if (!programId) return fail("Select a program", 422);
+      if (!["DRAFT", "SUBMITTED", "UNDER_REVIEW"].includes(before)) return fail("This application can no longer be edited", 409);
+      const targetProgram = await prisma.program.findUnique({ where: { id: programId }, select: { id: true } });
+      if (!targetProgram) return fail("Program not found", 404);
+      const updated = await prisma.application.update({
+        where: { id },
+        data: { programId, ...(before === "DRAFT" ? {} : { stage: "SUBMITTED", submittedAt: new Date(), decisionAt: null }) },
+        select: { id: true },
+      });
+      await logAudit({ actorId: user.id, action: "update", entityType: "Application", entityId: id, before: { stage: before, programId: application.programId }, after: { stage: before === "DRAFT" ? before : "SUBMITTED", programId } });
+      return ok({ id: updated.id });
+    }
+
+    if (stage === undefined) return fail("A stage is required for staff updates", 422);
 
     if (stage !== before && !APPLICATION_STAGE_TRANSITIONS[before].includes(stage)) {
       return fail(`Cannot move an application from ${before.replace(/_/g, " ")} to ${stage.replace(/_/g, " ")}`, 422);

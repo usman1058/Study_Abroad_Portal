@@ -48,6 +48,7 @@ export function ApplicationWizard({
   documents,
   draftId,
   draftProgramId,
+  editExisting = false,
   applications = [],
 }: {
   personal: WizardPersonal;
@@ -55,6 +56,7 @@ export function ApplicationWizard({
   documents: { type: string; status: string }[];
   draftId?: string;
   draftProgramId?: string;
+  editExisting?: boolean;
   applications?: { id: string; label: string }[];
 }) {
   const router = useRouter();
@@ -147,7 +149,13 @@ export function ApplicationWizard({
     setBusy(true);
     try {
       let res: Response;
-      if (draftId) {
+      if (editExisting && draftId) {
+        res = await fetch(`/api/applications/${draftId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ programId }),
+        });
+      } else if (draftId) {
         res = await fetch(`/api/applications/${draftId}/submit`, { method: "POST" });
       } else {
         res = await fetch("/api/applications", {
@@ -161,7 +169,7 @@ export function ApplicationWizard({
         setError(json.error ?? "Submission failed.");
         return;
       }
-      router.push("/my-applications?submitted=1");
+      router.push(editExisting ? "/my-applications?updated=1" : "/my-applications?submitted=1");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -324,7 +332,7 @@ export function ApplicationWizard({
 
       {step === 3 && (
         <div className="space-y-4">
-          {draftId ? (
+          {draftId && !editExisting ? (
             <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-800 dark:bg-brand-900/30 dark:text-brand-100">
               This submission completes your saved draft application.
             </div>
@@ -352,7 +360,7 @@ export function ApplicationWizard({
              </Button>
            ) : (
              <Button onClick={submit} disabled={busy}>
-               {busy && <Spinner size={14} className="mr-1" />} {busy ? "Submitting…" : draftId ? "Complete & submit draft" : "Submit application"}
+               {busy && <Spinner size={14} className="mr-1" />} {busy ? (editExisting ? "Saving…" : "Submitting…") : editExisting ? "Save changes" : draftId ? "Complete & submit draft" : "Submit application"}
              </Button>
            )}
         </div>

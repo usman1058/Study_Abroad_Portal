@@ -7,14 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Start an application" };
 
-type SearchParams = Promise<{ draft?: string }>;
+type SearchParams = Promise<{ draft?: string; edit?: string }>;
 
 export default async function ApplyPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
   if (user.role !== "STUDENT") redirect("/home");
 
-  const { draft: draftParam = "" } = await searchParams;
+  const { draft: draftParam = "", edit: editParam = "" } = await searchParams;
+  const applicationParam = editParam || draftParam;
 
   const [me, documents, drafts] = await Promise.all([
     prisma.user.findUnique({
@@ -40,14 +41,16 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
   // Draft editing: only the owner's own DRAFT applications can be completed here.
   let draftId: string | undefined;
   let draftProgramId: string | undefined;
-  if (draftParam) {
+  let editExisting = false;
+  if (applicationParam) {
     const draft = await prisma.application.findUnique({
-      where: { id: draftParam },
+      where: { id: applicationParam },
       select: { id: true, studentId: true, stage: true, programId: true },
     });
-    if (draft && draft.studentId === user.id && draft.stage === "DRAFT") {
+    if (draft && draft.studentId === user.id && (draft.stage === "DRAFT" || (editParam && ["SUBMITTED", "UNDER_REVIEW"].includes(draft.stage)))) {
       draftId = draft.id;
       draftProgramId = draft.programId;
+      editExisting = Boolean(editParam && draft.stage !== "DRAFT");
     }
   }
 
@@ -60,7 +63,9 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
         <Link href="/my-applications" className="inline-flex min-h-6 items-center text-sm text-brand-600 hover:underline">← My applications</Link>
         <h1 className="mt-1 text-2xl font-bold">Start an application</h1>
         <p className="text-sm text-ink-muted">
-          {draftId
+          {editExisting
+            ? "Change the program on this application. Saving sends it back for review."
+            : draftId
             ? "Editing your saved draft — update any section, then submit it for review. Each step is saved when you continue."
             : "Four steps: your details, academics, documents, then choose a university. Each step is saved when you continue."}
         </p>
@@ -76,7 +81,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
 
       <Card>
         <CardHeader>
-          <CardTitle>{draftId ? "Complete draft application" : "New application"}</CardTitle>
+          <CardTitle>{editExisting ? "Edit application" : draftId ? "Complete draft application" : "New application"}</CardTitle>
         </CardHeader>
         <CardContent>
           <ApplicationWizard
@@ -85,6 +90,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
             documents={documents.map((d) => ({ type: d.type, status: d.status }))}
             draftId={draftId}
             draftProgramId={draftProgramId}
+            editExisting={editExisting}
             applications={drafts.map((draft) => ({
               id: draft.id,
               label: `${draft.program.university.name} — ${draft.program.name}`,

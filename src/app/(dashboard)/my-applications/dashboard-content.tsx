@@ -5,8 +5,9 @@ import { prisma } from "@/lib/db";
 import { DashboardAdRail } from "@/components/dashboard-ad-rail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, FileCheck2, GraduationCap, MessageSquare, Sparkles } from "lucide-react";
+import { ArrowRight, FileCheck2, GraduationCap, MessageSquare, Sparkles, ClipboardList } from "lucide-react";
 import { humanize } from "@/lib/utils";
+import { APPLICATION_STAGE_ORDER } from "@/lib/constants";
 
 export async function StudentDashboardContent() {
   const user = await currentUser();
@@ -14,7 +15,7 @@ export async function StudentDashboardContent() {
   if (user.role !== "STUDENT") redirect("/home");
 
   const now = new Date();
-  const [courseEnrollments, availableCourses, advertisements, totalDocs, pendingDocs, unreadMessages] = await Promise.all([
+  const [courseEnrollments, availableCourses, advertisements, totalDocs, pendingDocs, unreadMessages, applications] = await Promise.all([
     prisma.shortCourseEnrollment.findMany({
       where: { studentId: user.id, status: { notIn: ["withdrawn", "rejected"] } },
       orderBy: { enrolledAt: "desc" },
@@ -35,7 +36,17 @@ export async function StudentDashboardContent() {
     prisma.document.count({ where: { ownerId: user.id } }),
     prisma.document.count({ where: { ownerId: user.id, status: { not: "VERIFIED" } } }),
     prisma.message.count({ where: { recipientId: user.id, readAt: null } }),
+    prisma.application.findMany({ where: { studentId: user.id }, select: { stage: true, createdAt: true } }),
   ]);
+
+  const appStages = APPLICATION_STAGE_ORDER.map((stage) => ({ stage, count: applications.filter((app) => app.stage === stage).length }));
+  const maxStageCount = Math.max(1, ...appStages.map((item) => item.count));
+  const monthLabels = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    return { label: new Intl.DateTimeFormat("en", { month: "short" }).format(date), year: date.getFullYear(), month: date.getMonth() };
+  });
+  const monthlyApplications = monthLabels.map((item) => applications.filter((app) => app.createdAt.getFullYear() === item.year && app.createdAt.getMonth() === item.month).length);
+  const maxMonthly = Math.max(1, ...monthlyApplications);
 
   return <div className="space-y-6">
     <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg sm:px-7 sm:py-8">
@@ -44,9 +55,15 @@ export async function StudentDashboardContent() {
     </section>
 
     <section aria-label="Student overview" className="grid gap-3 sm:grid-cols-3">
+      <Link href="/my-applications"><Card className="h-full transition hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-center justify-between gap-3 p-5"><div><p className="text-sm text-ink-muted">Applications</p><p className="mt-1 text-2xl font-bold">{applications.length}</p><p className="mt-1 text-xs text-ink-muted">View your application progress</p></div><ClipboardList className="h-5 w-5 text-brand-600" /></CardContent></Card></Link>
       <Link href="/documents"><Card className="h-full transition hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-center justify-between gap-3 p-5"><div><p className="text-sm text-ink-muted">Documents needing attention</p><p className="mt-1 text-2xl font-bold">{pendingDocs}</p><p className="mt-1 text-xs text-ink-muted">{totalDocs} total documents</p></div><FileCheck2 className="h-5 w-5 text-brand-600" /></CardContent></Card></Link>
       <Link href="/messages"><Card className="h-full transition hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-center justify-between gap-3 p-5"><div><p className="text-sm text-ink-muted">Unread messages</p><p className="mt-1 text-2xl font-bold">{unreadMessages}</p><p className="mt-1 text-xs text-ink-muted">Updates from your support team</p></div><MessageSquare className="h-5 w-5 text-brand-600" /></CardContent></Card></Link>
       <Link href="/short-courses"><Card className="h-full transition hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-center justify-between gap-3 p-5"><div><p className="text-sm text-ink-muted">My short courses</p><p className="mt-1 text-2xl font-bold">{courseEnrollments.length}</p><p className="mt-1 text-xs text-ink-muted">Active learning</p></div><GraduationCap className="h-5 w-5 text-brand-600" /></CardContent></Card></Link>
+    </section>
+
+    <section aria-label="Application progress overview" className="grid gap-5 xl:grid-cols-2">
+      <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle>Application progress</CardTitle><p className="mt-1 text-sm text-ink-muted">A stage summary of your applications.</p></div><Link href="/my-applications" className="text-sm font-semibold text-brand-600 hover:underline">View applications</Link></CardHeader><CardContent><div className="space-y-3">{appStages.map(({ stage, count }) => <div key={stage} className="grid grid-cols-[7rem_1fr_2rem] items-center gap-3 text-sm"><span className="truncate text-ink-muted">{humanize(stage)}</span><div className="h-2 overflow-hidden rounded-full bg-canvas-subtle dark:bg-navy-800" role="img" aria-label={`${count} ${humanize(stage)} applications`}><div className="h-full rounded-full bg-brand-600" style={{ width: `${(count / maxStageCount) * 100}%` }} /></div><span className="text-right font-semibold">{count}</span></div>)}</div></CardContent></Card>
+      <Card><CardHeader><CardTitle>Applications over time</CardTitle><p className="mt-1 text-sm text-ink-muted">New applications created in the last six months.</p></CardHeader><CardContent><div className="flex h-40 items-end justify-around gap-3 border-b border-line px-2 dark:border-navy-700" role="img" aria-label="Bar chart showing new applications by month">{monthLabels.map((item, index) => <div key={`${item.year}-${item.month}`} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><span className="text-xs font-medium text-ink-muted">{monthlyApplications[index]}</span><div className="w-full max-w-10 rounded-t-md bg-brand-600" style={{ height: `${Math.max(5, (monthlyApplications[index] / maxMonthly) * 100)}%` }} /><span className="pb-2 text-xs text-ink-muted">{item.label}</span></div>)}</div></CardContent></Card>
     </section>
 
     <section aria-label="Student announcements" className="grid gap-5 xl:grid-cols-2"><DashboardAdRail ads={advertisements} variant="image" /><Card><CardHeader><CardTitle>Keep your journey moving</CardTitle><p className="text-sm text-ink-muted">Quick links to common tasks.</p></CardHeader><CardContent className="grid gap-2">{[{ href: "/documents", title: "Check documents", detail: totalDocs === 0 ? "Upload your first document" : pendingDocs ? `${pendingDocs} document${pendingDocs === 1 ? "" : "s"} need attention` : "All documents are verified", icon: FileCheck2 }, { href: "/short-courses", title: "Explore courses", detail: courseEnrollments.length ? `${courseEnrollments.length} course${courseEnrollments.length === 1 ? "" : "s"} in your list` : "Find a course to start", icon: GraduationCap }, { href: "/programs", title: "Find a program", detail: "Compare universities and options", icon: GraduationCap }].map((item) => <Link key={item.href} href={item.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><item.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{item.title}</span><span className="block truncate text-xs text-ink-muted">{item.detail}</span></span><ArrowRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent></Card></section>
