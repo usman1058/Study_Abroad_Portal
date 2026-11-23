@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, GraduationCap, Menu } from "lucide-react";
+import { ArrowUpRight, GraduationCap, Menu, UserRoundPlus } from "lucide-react";
 import { portalUrl } from "@/lib/portal";
 
 const navigation = [
@@ -16,19 +16,20 @@ export function SiteHeader() {
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white shadow-sm transition group-hover:bg-blue"><GraduationCap aria-hidden="true" className="h-5 w-5" /></span>
         <span className="font-display text-[1.12rem] font-extrabold tracking-tight text-navy">StudyAbroad<span className="text-blue">.</span></span>
       </Link>
-      <nav aria-label="Main navigation" className="hidden items-center gap-7 md:flex">
+      <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
         {navigation.map((item) => <Link key={item.href} href={item.href} className="text-sm font-semibold text-slate-600 transition hover:text-blue">{item.label}</Link>)}
       </nav>
-      <div className="hidden items-center gap-3 md:flex">
-        <Link href={portalUrl("/student/login")} className="px-2 py-2 text-sm font-bold text-navy hover:text-blue">Log in</Link>
-        <Link href="/contact" className="btn-primary">Talk to an advisor <ArrowUpRight aria-hidden="true" className="h-4 w-4" /></Link>
+      <div className="hidden items-center gap-2 lg:flex">
+        <Link href={portalUrl("/")} className="rounded-lg px-3 py-2 text-sm font-bold text-navy transition hover:bg-blue-soft hover:text-blue">Access portal</Link>
+        <Link href="/get-started" className="btn-primary"><UserRoundPlus aria-hidden="true" className="h-4 w-4" />Create account</Link>
       </div>
-      <details className="relative md:hidden">
+      <details className="relative lg:hidden">
         <summary aria-label="Open navigation menu" className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 text-navy [&::-webkit-details-marker]:hidden"><Menu className="h-5 w-5" /></summary>
         <nav aria-label="Mobile navigation" className="absolute right-0 top-12 flex w-64 flex-col gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
           {navigation.map((item) => <Link key={item.href} href={item.href} className="rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-soft hover:text-blue">{item.label}</Link>)}
-          <Link href={portalUrl("/student/login")} className="rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-soft">Student login</Link>
-          <Link href="/contact" className="btn-primary mt-1">Talk to an advisor <ArrowUpRight className="h-4 w-4" /></Link>
+          <Link href={portalUrl("/")} className="rounded-lg px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-soft">Access portal</Link>
+          <Link href="/get-started" className="btn-primary mt-1"><UserRoundPlus className="h-4 w-4" />Create account</Link>
+          <Link href="/contact" className="btn-secondary mt-1">Talk to an advisor <ArrowUpRight className="h-4 w-4" /></Link>
         </nav>
       </details>
     </div>

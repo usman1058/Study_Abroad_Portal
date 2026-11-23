@@ -45,4 +45,11 @@ button, input, select, textarea { font: inherit; }
 .prose-copy { color: #4e5f74; font-size: 1rem; line-height: 1.8; }
 .program-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
 .program-card:hover { transform: translateY(-3px); border-color: #b5c9f8; box-shadow: 0 18px 42px #10274715; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+.site-reveal { animation: site-rise-in .72s cubic-bezier(.2,.75,.25,1) both; }
+.site-reveal-delay-1 { animation-delay: .12s; }
+.site-reveal-delay-2 { animation-delay: .24s; }
+.site-float { animation: site-float 7s ease-in-out infinite; }
+.site-float-slow { animation: site-float 9s ease-in-out -2s infinite; }
+@keyframes site-rise-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes site-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; } }

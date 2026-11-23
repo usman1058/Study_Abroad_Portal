@@ -16,7 +16,7 @@ export function HeroArt() {
       </div>
       <GraduationCap className="absolute right-[9%] top-[13%] h-8 w-8 rotate-[-12deg] text-amber" />
     </div>
-    <div className="absolute right-[2%] top-[37%] flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2.5 text-xs font-bold text-navy shadow-xl sm:right-0 sm:px-4 sm:py-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-soft text-blue"><GraduationCap className="h-4 w-4" /></span>Explore real programs</div>
+    <div className="site-float absolute right-[2%] top-[37%] flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2.5 text-xs font-bold text-navy shadow-xl sm:right-0 sm:px-4 sm:py-3"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-soft text-blue"><GraduationCap className="h-4 w-4" /></span>Explore real programs</div>
     <div className="absolute bottom-[5%] left-0 h-5 w-5 rounded-full bg-amber shadow-[0_0_0_8px_#f3b54a24]" />
   </div>;
 }
