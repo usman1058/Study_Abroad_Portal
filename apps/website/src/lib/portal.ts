@@ -37,6 +37,18 @@ export function portalUrl(path = "") {
   return `${(process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000").replace(/\/$/, "")}${path}`;
 }
 
+export async function getWhatsAppNumber(): Promise<string> {
+  try {
+    const response = await fetch(`${apiBase()}/api/public/contact-settings`, { next: { revalidate: 300 } });
+    if (!response.ok) return "";
+    const data = await response.json() as { whatsappNumber?: string };
+    const number = (data.whatsappNumber ?? "").replace(/\D/g, "");
+    return /^\d{7,15}$/.test(number) ? number : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function getPrograms(filters: ProgramFilters = {}): Promise<ProgramListing> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) if (value) params.set(key, String(value));
@@ -77,3 +89,4 @@ export function formatDuration(months?: number | null) {
 export function programHref(program: PublicProgram) {
   return `/applications/${encodeURIComponent(program.slug || program.id)}`;
 }
+

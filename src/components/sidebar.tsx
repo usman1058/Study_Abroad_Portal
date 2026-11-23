@@ -98,9 +98,10 @@ export function Sidebar({
               key={section.key}
               href={section.href}
               onClick={onClose}
+              aria-current={active ? "page" : undefined}
               aria-label={t(section.label)}
               className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
+                "flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
                 collapsed && "lg:justify-center lg:px-2",
                 active
                   ? "bg-brand-600 text-white shadow-sm"
@@ -115,12 +116,12 @@ export function Sidebar({
       </nav>
 
       <div className={cn("border-t border-navy-800 p-3", collapsed && "lg:px-2")}>
-        {role !== "STUDENT" && (
+        {role !== "STUDENT" && whatsappNumber && (
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("StudyAbroad Portal")}`}
             target="_blank"
-            rel="noreferrer"
-            className={cn("mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-white/5 hover:text-emerald-200", collapsed && "lg:justify-center lg:px-2")}
+            rel="noopener noreferrer"
+            className={cn("mb-2 flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-white/5 hover:text-emerald-200", collapsed && "lg:justify-center lg:px-2")}
             aria-label={t("WhatsApp quick launch")}
           >
             <MessageCircle className="h-4 w-4" />
@@ -140,3 +141,4 @@ export function Sidebar({
     </>
   );
 }
+

@@ -22,8 +22,9 @@ export function DashboardShell({ children, sections, role, userName, userEmail, 
       <Sidebar sections={sections} role={role} userName={userName} mobileOpen={navigationOpen} onClose={() => setNavigationOpen(false)} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)} />
       <div className={cn("min-w-0 transition-[padding] duration-200", sidebarCollapsed ? "lg:pl-16" : "lg:pl-60")}>
         <Topbar role={role} userName={userName} userEmail={userEmail} preferredCurrency={preferredCurrency} onOpenNavigation={() => setNavigationOpen(true)} />
-        <main className="mx-auto max-w-7xl p-4 sm:p-6">{children}</main>
+        <main className="portal-main mx-auto max-w-7xl p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
 }
+

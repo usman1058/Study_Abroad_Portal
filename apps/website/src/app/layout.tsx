@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { WhatsAppContactButton } from "@/components/whatsapp-contact-button";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -19,5 +20,7 @@ export default function WebsiteLayout({ children }: Readonly<{ children: React.R
     <SiteHeader />
     <main id="main-content">{children}</main>
     <SiteFooter />
+    <WhatsAppContactButton />
   </body></html>;
 }
+

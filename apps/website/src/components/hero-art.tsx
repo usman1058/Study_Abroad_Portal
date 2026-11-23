@@ -20,3 +20,4 @@ export function HeroArt() {
     <div className="absolute bottom-[5%] left-0 h-5 w-5 rounded-full bg-amber shadow-[0_0_0_8px_#f3b54a24]" />
   </div>;
 }
+

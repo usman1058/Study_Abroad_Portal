@@ -13,3 +13,4 @@ export function SiteFooter() {
     <div className="border-t border-white/10"><div className="site-container flex flex-col gap-3 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><p>© {new Date().getFullYear()} StudyAbroad. All rights reserved.</p><nav aria-label="Legal" className="flex gap-5"><Link href="/privacy" className="hover:text-white">Privacy</Link><Link href="/terms" className="hover:text-white">Terms</Link></nav></div></div>
   </footer>;
 }
+
