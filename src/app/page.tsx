@@ -53,8 +53,8 @@ export default async function LandingPage() {
           <RoleCard
             href="/partner/login"
             icon={<Briefcase className="h-6 w-6" />}
-            title="I am a Partner"
-            description="Agency staff and counselors. Login to manage cases, students and operations."
+            title="I am an Institution / Partner"
+            description="Institutions, agency teams and counselors. Login to manage students, applications and operations."
           />
         </div>
       </div>
