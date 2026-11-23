@@ -7,17 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Start an application" };
 
-type SearchParams = Promise<{ draft?: string; edit?: string }>;
+type SearchParams = Promise<{ draft?: string; edit?: string; programId?: string }>;
 
 export default async function ApplyPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
   if (user.role !== "STUDENT") redirect("/home");
 
-  const { draft: draftParam = "", edit: editParam = "" } = await searchParams;
+  const { draft: draftParam = "", edit: editParam = "", programId: programParam = "" } = await searchParams;
   const applicationParam = editParam || draftParam;
 
-  const [me, documents, drafts] = await Promise.all([
+  const [me, documents, drafts, selectedProgram] = await Promise.all([
     prisma.user.findUnique({
       where: { id: user.id },
       select: {
@@ -36,6 +36,7 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
       orderBy: { updatedAt: "desc" },
       select: { id: true, program: { select: { name: true, university: { select: { name: true } } } } },
     }),
+    programParam ? prisma.program.findUnique({ where: { id: programParam.slice(0, 64) }, select: { id: true, name: true, university: { select: { name: true } } } }) : Promise.resolve(null),
   ]);
 
   // Draft editing: only the owner's own DRAFT applications can be completed here.
@@ -90,6 +91,8 @@ export default async function ApplyPage({ searchParams }: { searchParams: Search
             documents={documents.map((d) => ({ type: d.type, status: d.status }))}
             draftId={draftId}
             draftProgramId={draftProgramId}
+            initialProgramId={selectedProgram?.id}
+            initialProgramLabel={selectedProgram ? `${selectedProgram.university.name} — ${selectedProgram.name}` : undefined}
             editExisting={editExisting}
             applications={drafts.map((draft) => ({
               id: draft.id,

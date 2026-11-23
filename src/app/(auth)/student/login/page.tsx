@@ -9,6 +9,11 @@ type SearchParams = Promise<{ next?: string | string[]; reset?: string | string[
 export default async function StudentLoginPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const next = typeof params.next === "string" ? params.next : undefined;
+  let selectedProgramId: string | undefined;
+  if (next?.startsWith("/apply?")) {
+    selectedProgramId = new URLSearchParams(next.slice(next.indexOf("?") + 1)).get("programId") ?? undefined;
+  }
+  const signupHref = selectedProgramId ? `/student/signup?programId=${encodeURIComponent(selectedProgramId)}` : "/student/signup";
   const notice = params.reset ? "Your password was updated. Sign in with the new one." : undefined;
 
   return (
@@ -18,7 +23,7 @@ export default async function StudentLoginPage({ searchParams }: { searchParams:
       footer={
         <>
           New here?{" "}
-          <Link href="/student/signup" className="font-medium text-brand-600 hover:underline">
+          <Link href={signupHref} className="font-medium text-brand-600 hover:underline">
             Create a free account
           </Link>
         </>

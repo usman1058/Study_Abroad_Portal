@@ -48,6 +48,8 @@ export function ApplicationWizard({
   documents,
   draftId,
   draftProgramId,
+  initialProgramId,
+  initialProgramLabel,
   editExisting = false,
   applications = [],
 }: {
@@ -56,6 +58,8 @@ export function ApplicationWizard({
   documents: { type: string; status: string }[];
   draftId?: string;
   draftProgramId?: string;
+  initialProgramId?: string;
+  initialProgramLabel?: string;
   editExisting?: boolean;
   applications?: { id: string; label: string }[];
 }) {
@@ -94,7 +98,7 @@ export function ApplicationWizard({
     education.length > 0 ? education : [{ ...EMPTY_EDU }]
   );
 
-  const [programId, setProgramId] = useState(draftProgramId ?? "");
+  const [programId, setProgramId] = useState(draftProgramId ?? initialProgramId ?? "");
 
   const verifiedDocs = documents.filter((d) => d.status === "VERIFIED").length;
 
@@ -339,7 +343,7 @@ export function ApplicationWizard({
           ) : (
            <div>
                <p className="mb-1.5 block text-sm font-medium text-navy-900 dark:text-slate-300">Choose university &amp; program *</p>
-               <ProgramPicker value={programId} onChange={(id) => { setTouched(true); setProgramId(id); }} emptyLabel="Search and select a program…" />
+               <ProgramPicker value={programId} onChange={(id) => { setTouched(true); setProgramId(id); }} emptyLabel="Search and select a program…" selectedLabel={initialProgramLabel} />
                <p className="mt-1 text-xs text-ink-muted">Browse the full catalogs under Programs or Scholarships before deciding.</p>
              </div>
           )}

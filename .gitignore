@@ -3,6 +3,8 @@
 
 # next.js
 /.next/
+/apps/website/.next/
+/apps/website/.env.local
 /out/
 
 # production

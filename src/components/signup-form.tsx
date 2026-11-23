@@ -10,7 +10,7 @@ import { PasswordInput } from "@/components/password-input";
 import { PasswordChecklist, isStrongPassword } from "@/components/password-checklist";
 import { Spinner } from "@/components/ui/spinner";
 
-export function SignupForm() {
+export function SignupForm({ initialProgramId }: { initialProgramId?: string }) {
   const router = useRouter();
   const [form, setForm] = useState({
     firstName: "",
@@ -77,7 +77,7 @@ export function SignupForm() {
         return;
       }
       const session = await getSession();
-      router.push(session?.user?.role === "STUDENT" ? "/student-home" : "/home");
+      router.push(session?.user?.role === "STUDENT" ? (initialProgramId ? `/apply?programId=${encodeURIComponent(initialProgramId)}` : "/student-home") : "/home");
       router.refresh();
     } catch {
       setError("Network error. Please try again.");

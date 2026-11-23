@@ -55,7 +55,7 @@ export default async function VisitorFormPage({ searchParams }: { searchParams: 
             <p className="py-6 text-center text-sm text-ink-muted">No visitor leads yet.</p>
           ) : (
             <>
-          <ul className="divide-y divide-line md:hidden">{leads.map((lead) => <li key={lead.id} className="space-y-2 py-4"><p className="font-medium">{lead.name}</p><div className="flex flex-wrap gap-3 text-sm"><a className="min-h-6" href={`tel:${lead.phone}`}>{lead.phone}</a>{lead.email && <a className="min-h-6" href={`mailto:${lead.email}`}>{lead.email}</a>}</div><p className="text-xs text-ink-muted">{[lead.courseOfInterest, lead.countryOfInterest].filter(Boolean).join(" · ") || "No interests recorded"}</p><div className="flex flex-wrap items-center justify-between gap-2"><VisitorLeadActions id={lead.id} status={lead.status} controlId={`lead-status-mobile-${lead.id}`} /><span className="text-xs text-ink-muted">Received {formatDate(lead.createdAt)}</span><DeleteButton endpoint={`/api/visitor-form/${lead.id}`} confirmText="Delete this lead?" label="Delete" /></div></li>)}</ul>
+          <ul className="divide-y divide-line md:hidden">{leads.map((lead) => <li key={lead.id} className="space-y-2 py-4"><p className="font-medium">{lead.name}</p><div className="flex flex-wrap gap-3 text-sm"><a className="min-h-6" href={`tel:${lead.phone}`}>{lead.phone}</a>{lead.email && <a className="min-h-6" href={`mailto:${lead.email}`}>{lead.email}</a>}</div><p className="text-xs text-ink-muted">{[lead.courseOfInterest, lead.countryOfInterest].filter(Boolean).join(" · ") || "No interests recorded"}{lead.source && <span className="ml-2">· Source: {humanize(lead.source)}</span>}</p><details className="rounded-lg bg-canvas-subtle px-3 py-2 text-sm dark:bg-navy-800"><summary className="min-h-7 cursor-pointer font-semibold text-brand-700">Read enquiry message</summary><p className="whitespace-pre-wrap pt-2 leading-6 text-ink-muted">{lead.notes || "No message provided."}</p></details><div className="flex flex-wrap items-center justify-between gap-2"><VisitorLeadActions id={lead.id} status={lead.status} controlId={`lead-status-mobile-${lead.id}`} /><span className="text-xs text-ink-muted">Received {formatDate(lead.createdAt)}</span><DeleteButton endpoint={`/api/visitor-form/${lead.id}`} confirmText="Delete this lead?" label="Delete" /></div></li>)}</ul>
             <div className="hidden overflow-x-auto md:block" tabIndex={0} role="region" aria-label="Visitor leads table">
               <table className="w-full text-sm"><caption className="sr-only">Visitor leads and follow-up information</caption>
                 <thead>
@@ -63,6 +63,7 @@ export default async function VisitorFormPage({ searchParams }: { searchParams: 
                     <th scope="col" className="p-4">Name</th>
                     <th scope="col" className="p-4">Contact</th>
                     <th scope="col" className="p-4">Interests</th>
+                    <th scope="col" className="p-4">Message</th>
                     <th scope="col" className="p-4">Status</th>
                     <th scope="col" className="p-4">Received</th>
                     <th scope="col" className="p-4 text-right">Actions</th>
@@ -75,7 +76,9 @@ export default async function VisitorFormPage({ searchParams }: { searchParams: 
                       <td className="p-4 text-ink-muted"><a href={`tel:${l.phone}`} className="inline-flex min-h-6 items-center hover:underline">{l.phone}</a>{l.email && <div><a href={`mailto:${l.email}`} className="inline-flex min-h-6 items-center text-xs hover:underline">{l.email}</a></div>}</td>
                       <td className="p-4 text-ink-muted">
                         {[l.courseOfInterest, l.countryOfInterest].filter(Boolean).join(" · ") || "—"}
+                        {l.source && <div className="mt-1 text-xs">Source: {humanize(l.source)}</div>}
                       </td>
+                      <td className="max-w-xs p-4 text-ink-muted"><details><summary className="min-h-8 cursor-pointer font-semibold text-brand-700">Read message</summary><p className="max-h-48 overflow-y-auto whitespace-pre-wrap pt-2 text-xs leading-5">{l.notes || "No message provided."}</p></details></td>
                       <td className="p-4"><VisitorLeadActions id={l.id} status={l.status} controlId={`lead-status-table-${l.id}`} /></td>
                       <td className="p-4 text-ink-muted">{formatDate(l.createdAt)}</td>
                       <td className="p-4 text-right">
