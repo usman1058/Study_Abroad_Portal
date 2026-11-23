@@ -14,4 +14,3 @@ export async function WhatsAppContactButton() {
     <span className="hidden sm:inline">{number ? "WhatsApp us" : "Contact us"}</span>
   </Link>;
 }
-

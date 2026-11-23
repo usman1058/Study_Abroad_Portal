@@ -27,4 +27,3 @@ export function DashboardShell({ children, sections, role, userName, userEmail, 
     </div>
   );
 }
-

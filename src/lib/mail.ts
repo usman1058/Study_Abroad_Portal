@@ -1,10 +1,8 @@
-/**
- * Minimal transactional email. Uses Resend when RESEND_API_KEY + MAIL_FROM are
- * configured; otherwise the message is written to the server log so the flow
- * stays usable in local development without a mail provider.
- *
- * Every helper resolves instead of throwing: a mail outage must never fail the
- * account action that triggered the message.
+import nodemailer from "nodemailer";
+
+/** Transactional email prefers the configured CheckMyUni mailbox via SMTP.
+ * Resend remains an optional HTTPS fallback. Email failures never block account
+ * actions, and message bodies are never written to application logs.
  */
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "StudyAbroad Portal";
@@ -15,11 +13,39 @@ function appUrl(): string {
 }
 
 async function sendMail(to: string, subject: string, text: string): Promise<"sent" | "logged"> {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPassword = process.env.SMTP_PASSWORD;
+  const smtpPort = Number.parseInt(process.env.SMTP_PORT ?? "465", 10);
+  const smtpSecure = process.env.SMTP_SECURE === "true" || smtpPort === 465;
+  const replyTo = process.env.MAIL_REPLY_TO;
+  const from = process.env.MAIL_FROM || (smtpUser ? `CheckMyUni <${smtpUser}>` : "");
+
+  if (smtpHost && smtpUser && smtpPassword && Number.isInteger(smtpPort) && smtpPort > 0) {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user: smtpUser, pass: smtpPassword },
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 20_000,
+    });
+    try {
+      await transporter.sendMail({ from, to, replyTo, subject, text });
+      return "sent";
+    } catch (error) {
+      console.error("[mail] SMTP delivery failed", error instanceof Error ? error.name : "unknown error");
+      return "logged";
+    } finally {
+      transporter.close();
+    }
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM;
 
   if (!apiKey || !from) {
-    console.info(`[mail] ${to} | ${subject}\n${text}`);
+    console.info("[mail] no email provider is configured; message was not sent");
     return "logged";
   }
 
@@ -27,15 +53,15 @@ async function sendMail(to: string, subject: string, text: string): Promise<"sen
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, text }),
+      body: JSON.stringify({ from, to, reply_to: replyTo, subject, text }),
     });
     if (!res.ok) {
-      console.error(`[mail] provider error ${res.status}: ${await res.text().catch(() => "")}`);
+      console.error(`[mail] HTTPS provider returned status ${res.status}`);
       return "logged";
     }
     return "sent";
   } catch (error) {
-    console.error("[mail] provider unreachable", error);
+    console.error("[mail] HTTPS provider unreachable", error instanceof Error ? error.name : "unknown error");
     return "logged";
   }
 }

@@ -89,4 +89,3 @@ export function formatDuration(months?: number | null) {
 export function programHref(program: PublicProgram) {
   return `/applications/${encodeURIComponent(program.slug || program.id)}`;
 }
-

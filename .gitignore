@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+/apps/website/node_modules/
 
 # next.js
 /.next/

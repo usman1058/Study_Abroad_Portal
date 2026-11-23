@@ -23,4 +23,3 @@ export default function WebsiteLayout({ children }: Readonly<{ children: React.R
     <WhatsAppContactButton />
   </body></html>;
 }
-
