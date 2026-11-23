@@ -62,12 +62,28 @@ export async function PUT(req: NextRequest, { params }: Params) {
       if (!["DRAFT", "SUBMITTED", "UNDER_REVIEW"].includes(before)) return fail("This application can no longer be edited", 409);
       const targetProgram = await prisma.program.findUnique({ where: { id: programId }, select: { id: true } });
       if (!targetProgram) return fail("Program not found", 404);
+      const duplicate = await prisma.application.findFirst({ where: { studentId: user.id, programId, id: { not: id } }, select: { id: true } });
+      if (duplicate) return fail("You already have an application for this program", 409);
+      const programChanged = programId !== application.programId;
       const updated = await prisma.application.update({
         where: { id },
-        data: { programId, ...(before === "DRAFT" ? {} : { stage: "SUBMITTED", submittedAt: new Date(), decisionAt: null }) },
+        data: { programId, ...(before === "DRAFT" || !programChanged ? {} : { stage: "SUBMITTED", submittedAt: new Date(), decisionAt: null }) },
         select: { id: true },
       });
-      await logAudit({ actorId: user.id, action: "update", entityType: "Application", entityId: id, before: { stage: before, programId: application.programId }, after: { stage: before === "DRAFT" ? before : "SUBMITTED", programId } });
+      const updatedStage = before === "DRAFT" || !programChanged ? before : "SUBMITTED";
+      await logAudit({ actorId: user.id, action: "update", entityType: "Application", entityId: id, before: { stage: before, programId: application.programId }, after: { stage: updatedStage, programId } });
+      if (programChanged) {
+        const recipients = new Set([application.student.assignedCounselorId, application.student.createdById].filter((recipientId): recipientId is string => Boolean(recipientId)));
+        const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
+        for (const admin of admins) recipients.add(admin.id);
+        await Promise.all([...recipients].map((recipientId) => createNotification({
+          userId: recipientId,
+          type: "application",
+          title: "Application updated by student",
+          body: `${application.student.firstName} ${application.student.lastName} changed the program for an application. It is ready for review.`,
+          data: { applicationId: id, studentId: user.id },
+        })));
+      }
       return ok({ id: updated.id });
     }
 
