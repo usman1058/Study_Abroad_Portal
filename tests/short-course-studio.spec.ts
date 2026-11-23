@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { CONTRAST_JS, METRICS_JS } from "../.audit-lib";
+import { CONTRAST_JS, METRICS_JS } from "./helpers/visual-audit";
 
 test("admin builds a short course and enrolled student receives its schedule and materials", async ({ page, browser }) => {
   test.setTimeout(180_000);
