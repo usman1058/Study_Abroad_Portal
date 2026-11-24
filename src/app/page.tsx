@@ -30,8 +30,8 @@ export default async function LandingPage() {
 
   return (
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden bg-canvas px-4 py-12 sm:px-6">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-28 -top-32 h-[34rem] w-[34rem] rounded-full bg-brand-100/70 blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -bottom-44 -left-32 h-[32rem] w-[32rem] rounded-full bg-indigo-100/60 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-28 -top-32 h-[34rem] w-[34rem] rounded-full bg-brand-100/70 blur-3xl dark:bg-brand-900/30" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-44 -left-32 h-[32rem] w-[32rem] rounded-full bg-indigo-100/60 blur-3xl dark:bg-indigo-900/25" />
 
       <div className="relative w-full max-w-5xl">
         <div className="mb-7">

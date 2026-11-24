@@ -6,39 +6,39 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  /* Executive Meridian — surfaces */
-  --color-canvas: #f8fafc;
-  --color-canvas-subtle: #f1f5f9;
-  --color-ink: #0b1c30;
-  --color-ink-muted: #45464e;
-  --color-line: #e2e8f0;
-  --color-line-strong: #cbd5e1;
+  /* Lavender-tinted neutrals */
+  --color-canvas: #f8f7fc;
+  --color-canvas-subtle: #f0eff8;
+  --color-ink: #17162b;
+  --color-ink-muted: #56566f;
+  --color-line: #e3e1ef;
+  --color-line-strong: #c9c6da;
 
-  /* Executive Meridian — deep navy shell */
-  --color-navy-950: #0a192f;
-  --color-navy-900: #0f2042;
-  --color-navy-800: #16294f;
-  --color-navy-700: #1f3a68;
-  --color-navy-600: #2b4b80;
-  --color-navy-500: #3a5a92;
-  --color-navy-400: #6b83ad;
-  --color-navy-300: #9fb0cc;
-  --color-navy-200: #c6d2e6;
-  --color-navy-100: #e2e9f4;
-  --color-navy-50: #f2f6fc;
+  /* Midnight indigo surfaces */
+  --color-navy-950: #101023;
+  --color-navy-900: #191a35;
+  --color-navy-800: #242544;
+  --color-navy-700: #33345d;
+  --color-navy-600: #484a78;
+  --color-navy-500: #62648f;
+  --color-navy-400: #8587aa;
+  --color-navy-300: #aaacc7;
+  --color-navy-200: #c9cadb;
+  --color-navy-100: #e3e4ef;
+  --color-navy-50: #f3f4f9;
 
-  /* Executive Meridian — Vibrant Trust Blue (#2563eb primary action) */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  /* Violet primary with enough depth for white button text */
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6fe;
+  --color-brand-300: #c4b5fd;
+  --color-brand-400: #a78bfa;
+  --color-brand-500: #8b6ce0;
+  --color-brand-600: #704cc8;
+  --color-brand-700: #5d3caf;
+  --color-brand-800: #4c318d;
+  --color-brand-900: #372465;
+  --color-brand-950: #241746;
 }
 
 :root {
@@ -47,6 +47,12 @@
 
 .dark {
   color-scheme: dark;
+  --color-canvas: #101023;
+  --color-canvas-subtle: #191a35;
+  --color-ink: #f3f1ff;
+  --color-ink-muted: #b9b8cf;
+  --color-line: #302f4e;
+  --color-line-strong: #4a4969;
 }
 
 html {
@@ -61,6 +67,7 @@ body {
 
 body {
   font-family: var(--font-sans);
+  line-height: 1.55;
   @apply bg-canvas text-ink antialiased dark:bg-navy-950 dark:text-slate-100;
 }
 
@@ -69,7 +76,29 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
+  letter-spacing: -0.025em;
 }
+
+h1 { line-height: 1.12; }
+h2, h3 { line-height: 1.2; }
+
+/* Keep surfaces and text legible even on older screens without explicit dark utilities. */
+.dark .bg-white:not([class*="dark:bg-"]) { background-color: #1c1d39; }
+.dark :is(.bg-slate-50, .bg-gray-50):not([class*="dark:bg-"]) { background-color: #1c1d39; }
+.dark :is(.bg-brand-50, .bg-brand-100):not([class*="dark:bg-"]) { background-color: #30264e; }
+.dark :is(.bg-red-50, .bg-red-100):not([class*="dark:bg-"]) { background-color: #3b232e; }
+.dark :is(.bg-emerald-50, .bg-green-50):not([class*="dark:bg-"]) { background-color: #1b3932; }
+.dark :is(.bg-amber-50, .bg-amber-100):not([class*="dark:bg-"]) { background-color: #3a2f1e; }
+.dark :is(.bg-sky-50, .bg-blue-50):not([class*="dark:bg-"]) { background-color: #1b2f4b; }
+.dark :is(.bg-indigo-50, .bg-violet-50):not([class*="dark:bg-"]) { background-color: #292546; }
+.dark :is(.border-slate-200, .border-slate-300, .border-gray-200):not([class*="dark:border-"]) { border-color: #383755; }
+
+.dark :is(.text-navy-950, .text-navy-900, .text-navy-700, .text-slate-800, .text-slate-700):not([class*="dark:text-"]) { color: #f0efff; }
+.dark :is(.text-slate-600, .text-slate-500):not([class*="dark:text-"]) { color: #c0bfd4; }
+.dark :is(.text-brand-600, .text-brand-700, .text-brand-800, .text-indigo-700, .text-sky-700, .text-violet-700):not([class*="dark:text-"]) { color: #c4b5fd; }
+.dark :is(.text-red-900, .text-red-800, .text-red-700, .text-red-600):not([class*="dark:text-"]) { color: #fca5a5; }
+.dark :is(.text-emerald-800, .text-emerald-700, .text-emerald-600, .text-green-800):not([class*="dark:text-"]) { color: #6ee7b7; }
+.dark :is(.text-amber-900, .text-amber-800, .text-amber-700):not([class*="dark:text-"]) { color: #fcd34d; }
 
 /* Tabular lining figures for metrics, currency, and identifiers */
 .tnum {

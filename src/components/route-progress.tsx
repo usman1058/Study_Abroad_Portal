@@ -107,7 +107,7 @@ export function RouteProgress() {
   if (!visible && !overlay) return null;
   return <>
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[120] h-1" aria-hidden="true">
-      <div className="h-full bg-gradient-to-r from-brand-500 via-sky-400 to-indigo-500 shadow-[0_0_12px_rgba(37,99,235,.55)] transition-[width] duration-300 ease-out" style={{ width: visible ? `${width}%` : "0%" }} />
+      <div className="h-full bg-gradient-to-r from-brand-500 via-violet-400 to-indigo-500 shadow-[0_0_12px_rgba(112,76,200,.55)] transition-[width] duration-300 ease-out" style={{ width: visible ? `${width}%` : "0%" }} />
     </div>
     {overlay && <div role="status" aria-live="polite" aria-label={message} className="pointer-events-none fixed inset-0 z-[110] flex items-center justify-center bg-navy-950/20 p-4 backdrop-blur-[2px]">
       <div className="flex min-w-64 items-center gap-4 rounded-2xl border border-white/70 bg-white/95 px-5 py-4 shadow-2xl shadow-navy-950/15 dark:border-navy-700 dark:bg-navy-900/95">

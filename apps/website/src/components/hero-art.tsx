@@ -3,7 +3,7 @@ import { ArrowUpRight, Globe2, GraduationCap, Sparkles } from "lucide-react";
 export function HeroArt() {
   return <div aria-hidden="true" className="relative mx-auto aspect-[1.02] w-full max-w-[34rem]">
     <div className="absolute inset-[8%] rounded-[2.5rem] bg-gradient-to-br from-[#dce8ff] via-[#edf1fb] to-[#fbe9c8] rotate-3" />
-    <div className="absolute inset-[14%_10%_9%_14%] overflow-hidden rounded-[2.2rem] border border-white/80 bg-gradient-to-br from-[#244d9f] via-[#1c3d79] to-[#0a192f] shadow-[0_35px_80px_#102c5a30]">
+    <div className="absolute inset-[14%_10%_9%_14%] overflow-hidden rounded-[2.2rem] border border-white/80 bg-gradient-to-br from-[#4f3d9e] via-[#302b66] to-[#111126] shadow-[0_35px_80px_#17162b30]">
       <div className="absolute -right-[14%] -top-[10%] h-[90%] w-[90%] rounded-full border border-white/15" />
       <div className="absolute -right-[3%] top-[4%] h-[70%] w-[70%] rounded-full border border-white/15" />
       <div className="absolute right-[10%] top-[17%] h-[47%] w-[47%] rounded-full border border-white/20 bg-blue-300/5" />
