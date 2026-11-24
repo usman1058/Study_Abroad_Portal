@@ -5,6 +5,8 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
 import { buildMediaKey, parseDataUrl, putObject, StorageError } from "@/lib/storage";
+import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { DocumentType } from "@/generated/prisma/client";
 import { directDocumentStudentScopeWhere } from "@/lib/permissions";
@@ -16,8 +18,6 @@ const uploadSchema = z.object({
   expiresAt: z.string().optional().nullable(),
 });
 
-const MAX_BYTES = 5 * 1024 * 1024;
-
 function dataUrlByteLength(value: string): number {
   const payload = value.split(",", 2)[1];
   if (!payload) return 0;
@@ -27,8 +27,9 @@ function dataUrlByteLength(value: string): number {
 
 export async function POST(req: NextRequest) {
   try {
+    const maxBytes = await getMaxUploadSizeBytes();
     const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (contentLength > 7_100_000) return fail("File is too large (max 5 MB)", 413);
+    if (contentLength > Math.ceil(maxBytes * 4 / 3) + 16_384) return fail(`File is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))})`, 413);
 
     const { error, user } = await requireUser();
     if (error) return error;
@@ -40,11 +41,11 @@ export async function POST(req: NextRequest) {
 
     const { type, base64, applicationId, expiresAt } = parsed.data;
 
-    if (dataUrlByteLength(base64) > MAX_BYTES) return fail("File is too large (max 5 MB)", 413);
+    if (dataUrlByteLength(base64) > maxBytes) return fail(`File is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))})`, 413);
 
     const mime = detectMimeFromBase64(base64);
     if (!mime || !isAllowedMimeType(mime)) {
-      return fail("File type not allowed. Allowed: PDF, JPEG, PNG, DOC, DOCX", 415);
+      return fail("File type not allowed. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX", 415);
     }
 
     // applicationId must belong to this student

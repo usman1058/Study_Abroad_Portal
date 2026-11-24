@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { localDateTimeInZoneToDate } from "@/lib/time-zones";
 import { formatInTimeZone } from "@/lib/time-zones";
+import { useUploadLimit } from "@/hooks/use-upload-limit";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
+import { canConvertImageToWebP, prepareUploadFile } from "@/lib/upload-image";
 
 const COMMON_TIME_ZONES = [
   "Asia/Kuala_Lumpur",
@@ -64,6 +67,8 @@ export function ShortCourseStudio({
   const [material, setMaterial] = useState({ title: "", description: "", published: true });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const { maxUploadSizeMB, maxUploadSizeBytes } = useUploadLimit();
   const [feedback, setFeedback] = useState<string | null>(null);
 
   async function addSession(event: React.FormEvent<HTMLFormElement>) {
@@ -115,24 +120,31 @@ export function ShortCourseStudio({
       setError("Choose a study material file first.");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setError("Choose a file smaller than 20 MB.");
+    if (file.size > maxUploadSizeBytes && !canConvertImageToWebP(file)) {
+      setError(`Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}. PDF and Word files cannot be automatically compressed.`);
       return;
     }
     setBusy(true);
     setError(null);
+    setUploadNotice(null);
     setFeedback(null);
     try {
+      const prepared = await prepareUploadFile(file, maxUploadSizeBytes);
+      if (prepared.file.size > maxUploadSizeBytes) {
+        setError(`Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}.`);
+        return;
+      }
+      if (prepared.convertedToWebP) setUploadNotice(`Image optimized to WebP (${formatUploadSizeMB(prepared.file.size / (1024 * 1024))}).`);
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result));
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(prepared.file);
       });
       const response = await fetch(`/api/short-courses/${courseId}/materials`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: material.title, description: material.description, fileName: file.name, base64, published: material.published }),
+        body: JSON.stringify({ title: material.title, description: material.description, fileName: prepared.file.name, base64, published: material.published }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -141,10 +153,10 @@ export function ShortCourseStudio({
       }
       setMaterial({ title: "", description: "", published: true });
       if (fileRef.current) fileRef.current.value = "";
-      setFeedback(material.published ? "Study material uploaded and published for enrolled students." : "Study material uploaded as a draft.");
+      setFeedback(`${prepared.convertedToWebP ? "Image optimized as WebP. " : ""}${material.published ? "Study material uploaded and published for enrolled students." : "Study material uploaded as a draft."}`);
       router.refresh();
-    } catch {
-      setError("Could not read the file. Please choose it again.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not prepare the selected file.");
     } finally {
       setBusy(false);
     }
@@ -178,6 +190,7 @@ export function ShortCourseStudio({
         <p className="mt-1 text-sm text-ink-muted">Schedule live classes and publish study files. Published materials are available to enrolled students.</p>
       </div>
       {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</p>}
+      {uploadNotice && <p role="status" className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">{uploadNotice}</p>}
       {feedback && <p role="status" aria-live="polite" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">{feedback}</p>}
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -218,7 +231,16 @@ export function ShortCourseStudio({
           <form onSubmit={addMaterial} aria-busy={busy} className="space-y-3">
             <div><Label htmlFor="material-title">Material title</Label><Input id="material-title" required maxLength={160} value={material.title} onChange={(e) => setMaterial({ ...material, title: e.target.value })} placeholder="Week 1 lecture notes" /></div>
             <div><Label htmlFor="material-description">Description (optional)</Label><Textarea id="material-description" rows={2} maxLength={1000} value={material.description} onChange={(e) => setMaterial({ ...material, description: e.target.value })} /></div>
-            <div><Label htmlFor="material-file">File (PDF, JPEG, PNG, DOC, DOCX; max 20 MB)</Label><Input ref={fileRef} id="material-file" required type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,application/pdf,image/jpeg,image/png,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" /></div>
+            <div><Label htmlFor="material-file">File (PDF, JPEG, PNG, WebP, DOC, DOCX)</Label><Input ref={fileRef} id="material-file" required type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" aria-describedby="material-file-size-help" onChange={(event) => {
+              const selected = event.target.files?.[0];
+              setUploadNotice(null);
+              setError(selected && selected.size > maxUploadSizeBytes && !canConvertImageToWebP(selected)
+                ? `Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}. PDF and Word files cannot be automatically compressed.`
+                : null);
+              if (selected && selected.size > maxUploadSizeBytes && canConvertImageToWebP(selected)) {
+                setUploadNotice(`This image will be resized/compressed to WebP before upload (maximum ${formatUploadSizeMB(maxUploadSizeMB)}).`);
+              }
+            }} /><p id="material-file-size-help" className="text-xs text-ink-muted">Maximum file size: {formatUploadSizeMB(maxUploadSizeMB)}. JPG/PNG images are optimized to WebP.</p></div>
             <label className="flex min-h-9 items-center gap-2 text-sm"><input type="checkbox" checked={material.published} onChange={(e) => setMaterial({ ...material, published: e.target.checked })} /> Publish now so enrolled students can access it</label>
             <Button type="submit" disabled={busy}>{busy ? "Uploading material…" : "Upload material"}</Button>
           </form>

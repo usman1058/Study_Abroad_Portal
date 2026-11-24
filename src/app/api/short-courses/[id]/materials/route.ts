@@ -6,16 +6,16 @@ import { logAudit } from "@/lib/audit";
 import { detectMimeFromBase64 } from "@/lib/utils";
 import { buildMediaKey, deleteObject, parseDataUrl, putObject, StorageError } from "@/lib/storage";
 import { optionalText, requiredName } from "@/lib/validation";
+import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
 
 const materialSchema = z.object({
   title: requiredName(160),
   description: optionalText(1000),
   fileName: requiredName(255),
-  base64: z.string().min(1).max(28_000_000),
+  base64: z.string().min(1).max(4_300_000),
   published: z.boolean().default(true),
 });
-const MAX_BYTES = 20 * 1024 * 1024;
-
 function dataUrlByteLength(value: string): number {
   const payload = value.split(",", 2)[1];
   if (!payload) return 0;
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!course) return fail("Course not found", 404);
 
     const { base64, fileName, ...metadata } = parsed.data;
-    if (dataUrlByteLength(base64) > MAX_BYTES) return fail("File is too large (maximum 20 MB)", 413);
+    const maxBytes = await getMaxUploadSizeBytes();
+    if (dataUrlByteLength(base64) > maxBytes) return fail(`File is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))})`, 413);
     const mime = detectMimeFromBase64(base64);
     const file = parseDataUrl(base64);
     if (!file || !mime || file.contentType !== mime) {

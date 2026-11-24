@@ -1,4 +1,6 @@
 import { buildMediaKey, parseDataUrl, putObject, StorageError } from "@/lib/storage";
+import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
@@ -15,6 +17,10 @@ export async function storeImageUrl(
   const parsed = parseDataUrl(imageUrl);
   if (!parsed || !ALLOWED_IMAGE_TYPES.has(parsed.contentType)) {
     throw new StorageError("Use a PNG, JPEG, WebP, or GIF image.", 422);
+  }
+  const maxBytes = await getMaxUploadSizeBytes();
+  if (parsed.bytes.byteLength > maxBytes) {
+    throw new StorageError(`Image is too large. Maximum size is ${formatUploadSizeMB(maxBytes / (1024 * 1024))}.`, 413);
   }
   return putObject(buildMediaKey("dashboard-ads", ownerId, parsed.contentType), parsed.bytes, parsed.contentType);
 }

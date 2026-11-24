@@ -5,8 +5,8 @@ import { prisma } from "@/lib/db";
 /**
  * Media storage.
  *
- * Preferred backend is Neon's S3-compatible object storage; Postgres stores only
- * a reference (`s3:<key>`), never the bytes. When the S3 credentials are absent
+ * Preferred backend is S3-compatible object storage (Cloudflare R2 in production);
+ * Postgres stores only a reference (`s3:<key>`), never the bytes. When the S3 credentials are absent
  * (a fresh preview deployment, for example) uploads fall back to the
  * `StoredFile` table and are referenced as `db:<id>`, so document uploads keep
  * working instead of failing with "File storage is not configured".

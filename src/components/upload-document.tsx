@@ -8,6 +8,9 @@ import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/label";
 import { DOCUMENT_TYPES } from "@/lib/constants";
 import { humanize } from "@/lib/utils";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
+import { useUploadLimit } from "@/hooks/use-upload-limit";
+import { canConvertImageToWebP, prepareUploadFile } from "@/lib/upload-image";
 
 export function UploadDocument({
   applications,
@@ -27,6 +30,8 @@ export function UploadDocument({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const { maxUploadSizeMB, maxUploadSizeBytes } = useUploadLimit();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,24 +40,31 @@ export function UploadDocument({
       setError("Choose a file to upload.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File is too large. Maximum size is 5 MB.");
+    if (file.size > maxUploadSizeBytes && !canConvertImageToWebP(file)) {
+      setError(`This file is too large. Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}. PDF and Word files cannot be automatically compressed.`);
       return;
     }
     setBusy(true);
     setError(null);
+    setNotice(null);
     setDone(false);
     try {
+      const prepared = await prepareUploadFile(file, maxUploadSizeBytes);
+      if (prepared.file.size > maxUploadSizeBytes) {
+        setError(`This file is too large. Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}.`);
+        return;
+      }
+      if (prepared.convertedToWebP) setNotice(`Image optimized to WebP and reduced to ${formatUploadSizeMB(prepared.file.size / (1024 * 1024))}.`);
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(String(reader.result));
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(prepared.file);
       });
       const res = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, applicationId: applicationId || null, fileName: file.name, base64 }),
+        body: JSON.stringify({ type, applicationId: applicationId || null, fileName: prepared.file.name, base64 }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -62,8 +74,8 @@ export function UploadDocument({
       fileRef.current!.value = "";
       setDone(true);
       router.refresh();
-    } catch {
-      setError("Could not read file.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not prepare the selected file.");
     } finally {
       setBusy(false);
     }
@@ -88,8 +100,18 @@ export function UploadDocument({
           ))}
         </Select>
       </Field>
-      <Field label="File" hint="PDF, JPG, PNG or DOC up to 5 MB." className="sm:col-span-2">
-        <Input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+      {notice && <p role="status" className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800 sm:col-span-2">{notice}</p>}
+      <Field label="File" hint={`Maximum file size: ${formatUploadSizeMB(maxUploadSizeMB)}. JPG/PNG images are optimized as WebP; PDF, WebP and Word files keep their format.`} className="sm:col-span-2">
+        <Input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" onChange={(event) => {
+          const selected = event.target.files?.[0];
+          setNotice(null);
+          setError(selected && selected.size > maxUploadSizeBytes && !canConvertImageToWebP(selected)
+            ? `This file is too large. Choose a file no larger than ${formatUploadSizeMB(maxUploadSizeMB)}. PDF and Word files cannot be automatically compressed.`
+            : null);
+          if (selected && selected.size > maxUploadSizeBytes && canConvertImageToWebP(selected)) {
+            setNotice(`This image will be resized/compressed to WebP before upload (maximum ${formatUploadSizeMB(maxUploadSizeMB)}).`);
+          }
+        }} />
       </Field>
       <div className="sm:col-span-2">
         <Button type="submit" disabled={busy}>{busy ? "Uploading…" : submitLabel}</Button>

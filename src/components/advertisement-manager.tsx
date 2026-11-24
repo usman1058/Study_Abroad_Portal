@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useUploadLimit } from "@/hooks/use-upload-limit";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
+import { canConvertImageToWebP, prepareUploadFile } from "@/lib/upload-image";
 
 export type DashboardAd = {
   id: string;
@@ -120,7 +123,9 @@ export function AdvertisementManager({
   const [form, setForm] = useState<FormState>(blankForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { maxUploadSizeMB, maxUploadSizeBytes } = useUploadLimit();
   const [saved, setSaved] = useState<string | null>(null);
+  const [preparingImage, setPreparingImage] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<DashboardAd | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -166,21 +171,42 @@ export function AdvertisementManager({
       setError("Choose a PNG, JPEG, WebP, or GIF image.");
       return;
     }
-    if (file.size > 1_000_000) {
-      setError("Image must be 1 MB or smaller.");
+    if (file.size > maxUploadSizeBytes && !canConvertImageToWebP(file)) {
+      setError(`Image must be ${formatUploadSizeMB(maxUploadSizeMB)} or smaller.`);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      field("imageUrl", String(reader.result));
-      setError(null);
-    };
-    reader.onerror = () => setError("The image could not be read. Please try another file.");
-    reader.readAsDataURL(file);
+    setPreparingImage(true);
+    setError(null);
+    setSaved(null);
+    void (async () => {
+      try {
+        const prepared = await prepareUploadFile(file, maxUploadSizeBytes);
+        if (prepared.file.size > maxUploadSizeBytes) {
+          setError(`Image must be ${formatUploadSizeMB(maxUploadSizeMB)} or smaller.`);
+          return;
+        }
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("The image could not be read. Please try another file."));
+          reader.readAsDataURL(prepared.file);
+        });
+        field("imageUrl", dataUrl);
+        setSaved(prepared.convertedToWebP ? "Image optimized to WebP. Save the announcement to apply it." : null);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "The image could not be prepared.");
+      } finally {
+        setPreparingImage(false);
+      }
+    })();
   }
 
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (preparingImage) {
+      setError("Wait for the image optimization to finish before saving.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setSaved(null);
@@ -395,8 +421,10 @@ export function AdvertisementManager({
               onChange={selectImage}
               className="max-w-xs"
               aria-label="Upload advertisement image"
+              aria-describedby="dashboard-ad-image-help"
+              disabled={busy || preparingImage}
             />
-            <span className="text-xs text-ink-muted">PNG, JPEG, WebP, or GIF · up to 1 MB</span>
+            <span id="dashboard-ad-image-help" className="text-xs text-ink-muted">PNG, JPEG, WebP, or GIF · maximum {formatUploadSizeMB(maxUploadSizeMB)}. JPG/PNG images are optimized as WebP; GIF animation is preserved.</span>
           </div>
           <Input
             type="url"
@@ -462,8 +490,8 @@ export function AdvertisementManager({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" disabled={busy}>
-            {busy ? "Saving…" : editing ? "Save changes" : "Create announcement"}
+          <Button type="submit" disabled={busy || preparingImage}>
+            {preparingImage ? "Optimizing image…" : busy ? "Saving…" : editing ? "Save changes" : "Create announcement"}
           </Button>
           {editing && (
             <Button type="button" variant="outline" onClick={startCreate} disabled={busy}>

@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import { PasswordChecklist, isStrongPassword } from "@/components/password-checklist";
 import { Spinner } from "@/components/ui/spinner";
-
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const MAX_TOTAL_FILE_BYTES = 4 * 1024 * 1024;
+import { useUploadLimit } from "@/hooks/use-upload-limit";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
+import { canConvertImageToWebP, prepareUploadFile } from "@/lib/upload-image";
 
 export function PartnerSignupForm() {
+  const { maxUploadSizeMB, maxUploadSizeBytes } = useUploadLimit();
   const [form, setForm] = useState({
     companyName: "",
     licenseNumber: "",
@@ -26,7 +27,9 @@ export function PartnerSignupForm() {
   });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [preparingFiles, setPreparingFiles] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const consentRef = useRef<HTMLInputElement>(null);
   const registrationFileRef = useRef<HTMLInputElement>(null);
@@ -34,6 +37,24 @@ export function PartnerSignupForm() {
 
   function set<K extends keyof typeof form>(key: K, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function validateSelectedFiles() {
+    const files = [
+      registrationFileRef.current?.files?.[0],
+      ...Array.from(supportingFilesRef.current?.files ?? []),
+    ].filter((file): file is File => Boolean(file));
+    setUploadNotice(null);
+    if (files.some((file) => file.size > maxUploadSizeBytes && !canConvertImageToWebP(file))) {
+      setError(`This file exceeds ${formatUploadSizeMB(maxUploadSizeMB)}. PDF and Word files cannot be automatically compressed.`);
+    } else if (files.reduce((total, file) => total + file.size, 0) > maxUploadSizeBytes && files.some(canConvertImageToWebP)) {
+      setError(null);
+      setUploadNotice(`JPG/PNG files will be optimized to WebP before upload. The ${formatUploadSizeMB(maxUploadSizeMB)} combined limit is checked after optimization.`);
+    } else if (files.reduce((total, file) => total + file.size, 0) > maxUploadSizeBytes) {
+      setError(`The combined document size must be ${formatUploadSizeMB(maxUploadSizeMB)} or smaller.`);
+    } else {
+      setError(null);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -58,14 +79,6 @@ export function PartnerSignupForm() {
       return;
     }
     const files = [registrationFile, ...supportingFiles];
-    if (files.some((file) => file.size > MAX_FILE_BYTES)) {
-      setError("Each document must be 4 MB or smaller.");
-      return;
-    }
-    if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_FILE_BYTES) {
-      setError("The combined document size must be 4 MB or smaller.");
-      return;
-    }
     if (!isStrongPassword(form.password)) {
       setError("Choose a password with at least 8 characters, one letter and one number.");
       document.getElementById("password")?.focus();
@@ -83,13 +96,26 @@ export function PartnerSignupForm() {
     }
 
     setLoading(true);
+    setPreparingFiles(true);
     try {
+      const preparedFiles = await Promise.all(files.map((file) => prepareUploadFile(file, maxUploadSizeBytes)));
+      setPreparingFiles(false);
+      if (preparedFiles.some(({ file }) => file.size > maxUploadSizeBytes)) {
+        setError(`Each document must be ${formatUploadSizeMB(maxUploadSizeMB)} or smaller. Oversized PDF and Word files cannot be automatically compressed.`);
+        return;
+      }
+      if (preparedFiles.reduce((total, item) => total + item.file.size, 0) > maxUploadSizeBytes) {
+        setError(`The combined document size must be ${formatUploadSizeMB(maxUploadSizeMB)} or smaller after image optimization.`);
+        return;
+      }
+      const [preparedRegistration, ...preparedSupporting] = preparedFiles.map((item) => item.file);
+      if (preparedFiles.some((item) => item.convertedToWebP)) setUploadNotice("JPG/PNG documents were converted to WebP and optimized before upload.");
       const body = new FormData();
       for (const [key, value] of Object.entries(form)) {
         if (key !== "confirmPassword") body.append(key, value);
       }
-      body.append("businessRegistration", registrationFile);
-      supportingFiles.forEach((file) => body.append("supportingDocuments", file));
+      body.append("businessRegistration", preparedRegistration);
+      preparedSupporting.forEach((file) => body.append("supportingDocuments", file));
       const res = await fetch("/api/auth/partner-signup", { method: "POST", body });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -100,6 +126,7 @@ export function PartnerSignupForm() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Network error. Please try again.");
     } finally {
+      setPreparingFiles(false);
       setLoading(false);
     }
   }
@@ -222,12 +249,13 @@ export function PartnerSignupForm() {
         </div>
         <div>
           <Label htmlFor="business-registration-file">Business registration document *</Label>
-          <Input ref={registrationFileRef} id="business-registration-file" name="businessRegistration" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required />
+          <Input ref={registrationFileRef} id="business-registration-file" name="businessRegistration" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" required aria-describedby="partner-upload-limit-hint" onChange={validateSelectedFiles} />
         </div>
         <div>
           <Label htmlFor="partner-supporting-files">Other supporting documents</Label>
-          <Input ref={supportingFilesRef} id="partner-supporting-files" name="supportingDocuments" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple />
-          <p className="mt-1 text-xs text-ink-muted">PDF, JPG, PNG, DOC or DOCX · up to 4 MB each and 4 MB combined · maximum 5 additional files.</p>
+          <Input ref={supportingFilesRef} id="partner-supporting-files" name="supportingDocuments" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" multiple aria-describedby="partner-upload-limit-hint" onChange={validateSelectedFiles} />
+          <p id="partner-upload-limit-hint" className="mt-1 text-xs text-ink-muted">PDF, JPG, PNG, WebP, DOC or DOCX · up to {formatUploadSizeMB(maxUploadSizeMB)} per file and combined · maximum 5 additional files. JPG/PNG images are optimized to WebP.</p>
+          {uploadNotice && <p role="status" className="mt-1 text-xs text-blue-700 dark:text-blue-300">{uploadNotice}</p>}
         </div>
       </section>
       <div className="flex items-start gap-2">
@@ -244,9 +272,9 @@ export function PartnerSignupForm() {
           I am authorised to request an account for this agency and the details above are accurate.
         </Label>
       </div>
-      <Button type="submit" className="w-full" disabled={loading} size="lg">
+      <Button type="submit" className="w-full" disabled={loading || preparingFiles} size="lg">
         {loading && <Spinner size={16} className="mr-1" />}
-        {loading ? "Submitting request…" : "Request account"}
+        {preparingFiles ? "Optimizing documents…" : loading ? "Submitting request…" : "Request account"}
       </Button>
     </form>
   );

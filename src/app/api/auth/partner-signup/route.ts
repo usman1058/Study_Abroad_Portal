@@ -9,9 +9,8 @@ import { requiredName, emailField, phoneField, passwordField } from "@/lib/valid
 import { sendSignupConfirmationEmail } from "@/lib/mail";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
 import { buildMediaKey, deleteObject, parseDataUrl, putObject, StorageError } from "@/lib/storage";
-
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const MAX_TOTAL_FILE_BYTES = 4 * 1024 * 1024;
+import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
 
 const partnerSignupSchema = z.object({
   companyName: requiredName(160, "Company name is required"),
@@ -29,8 +28,9 @@ export async function POST(req: NextRequest) {
   if (rl) return rl;
 
   try {
+    const maxBytes = await getMaxUploadSizeBytes();
     const contentLength = Number(req.headers.get("content-length") ?? 0);
-    if (contentLength > 4_500_000) return fail("The combined document upload is too large (max 4 MB of files)", 413);
+    if (contentLength > maxBytes + 1_000_000) return fail(`The combined document upload is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))} of files)`, 413);
 
     const formData = await req.formData();
     const value = (name: string) => {
@@ -67,14 +67,14 @@ export async function POST(req: NextRequest) {
     const decodedDocuments: { type: "BUSINESS_REGISTRATION" | "OTHER"; originalName: string; mime: string; bytes: Uint8Array }[] = [];
     let totalBytes = 0;
     for (const { file, type } of uploads) {
-      if (!file.size || file.size > MAX_FILE_BYTES) return fail("Each document must be valid and 4 MB or smaller", 413);
+      if (!file.size || file.size > maxBytes) return fail(`Each document must be valid and ${formatUploadSizeMB(maxBytes / (1024 * 1024))} or smaller`, 413);
       totalBytes += file.size;
-      if (totalBytes > MAX_TOTAL_FILE_BYTES) return fail("The combined document size must be 4 MB or smaller", 413);
+      if (totalBytes > maxBytes) return fail(`The combined document size must be ${formatUploadSizeMB(maxBytes / (1024 * 1024))} or smaller`, 413);
 
       const bytes = new Uint8Array(await file.arrayBuffer());
       const mime = detectMimeFromBase64(Buffer.from(bytes).toString("base64"));
       if (!mime || !isAllowedMimeType(mime)) {
-        return fail("File type not allowed. Use PDF, JPEG, PNG, DOC or DOCX files", 415);
+        return fail("File type not allowed. Use PDF, JPEG, PNG, WebP, DOC or DOCX files", 415);
       }
       const originalName = file.name.replace(/\\/g, "/").split("/").pop()?.slice(0, 120) || "supporting-document";
       decodedDocuments.push({ type, originalName, mime, bytes });

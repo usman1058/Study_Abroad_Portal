@@ -49,12 +49,12 @@ export const httpUrl = (max = 300) =>
  * already-stored object reference (`s3:<key>`) sent back unchanged when the
  * admin edits other fields. Routes re-check stored refs against the row. */
 const dashboardImageUrl = emptyToNull(
-  z.string().trim().max(1_400_000, "Image must be smaller than 1 MB").refine((value) => {
-    if (/^https?:\/\/[^\s]+$/i.test(value)) return true;
+  z.string().trim().max(4_300_000, "Image data exceeds the supported size limit").refine((value) => {
+    if (/^https?:\/\/[^\s]+$/i.test(value)) return value.length <= 1400;
     if (/^s3:[A-Za-z0-9][A-Za-z0-9/_.-]{0,300}$/.test(value)) return true;
     const match = value.match(/^data:image\/(?:png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]+)$/i);
-    return !!match && Math.floor((match[1].length * 3) / 4) <= 1_000_000;
-  }, "Use an http(s) image URL or a PNG, JPEG, WebP, or GIF smaller than 1 MB")
+    return !!match && Math.floor((match[1].length * 3) / 4) <= 3 * 1024 * 1024;
+  }, "Use an http(s) image URL or a PNG, JPEG, WebP, or GIF within the upload size limit")
 );
 
 const optionalDateTime = z

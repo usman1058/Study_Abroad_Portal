@@ -13,17 +13,19 @@ import {
   readStoredFile,
   StorageError,
 } from "@/lib/storage";
+import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
+import { formatUploadSizeMB } from "@/lib/upload-limits";
 
 const uploadSchema = z.object({
   fileName: z.string().min(1).max(255),
   base64: z.string().min(1),
 });
 
-const MAX_BYTES = 5 * 1024 * 1024;
 const MIME_EXTENSIONS: Record<string, string> = {
   "application/pdf": "pdf",
   "image/jpeg": "jpg",
   "image/png": "png",
+  "image/webp": "webp",
   "application/msword": "doc",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
@@ -105,8 +107,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const { fileName, base64 } = parsed.data;
+    const maxBytes = await getMaxUploadSizeBytes();
 
-    if (dataUrlByteLength(base64) > MAX_BYTES) return fail("File is too large (max 5 MB)", 413);
+    if (dataUrlByteLength(base64) > maxBytes) return fail(`File is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))})`, 413);
 
     const mime = detectMimeFromBase64(base64);
     if (!mime || !isAllowedMimeType(mime)) {

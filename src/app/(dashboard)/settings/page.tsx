@@ -6,6 +6,7 @@ import { CurrencySwitcher } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { humanize } from "@/lib/utils";
 import { PortalSettingsForm, blankPortalSettings } from "@/components/portal-settings-form";
+import { parseUploadSizeMB } from "@/lib/upload-limits";
 
 export const metadata = { title: "Settings" };
 
@@ -15,7 +16,7 @@ export default async function SettingsPage() {
 
   const me = await prisma.user.findUnique({ where: { id: user.id } });
   const portalRows = user.role === "SUPER_ADMIN"
-    ? await prisma.portalSetting.findMany({ where: { key: { in: ["paymentDetails", "whatsappNumber"] } } })
+    ? await prisma.portalSetting.findMany({ where: { key: { in: ["paymentDetails", "whatsappNumber", "maxUploadSizeMB"] } } })
     : [];
   let portalSettings = { ...blankPortalSettings };
   const paymentSetting = portalRows.find((row) => row.key === "paymentDetails");
@@ -23,6 +24,7 @@ export default async function SettingsPage() {
     try { portalSettings = { ...portalSettings, ...JSON.parse(paymentSetting.value) }; } catch { /* use empty settings */ }
   }
   portalSettings.whatsappNumber = portalRows.find((row) => row.key === "whatsappNumber")?.value ?? "";
+  portalSettings.maxUploadSizeMB = parseUploadSizeMB(portalRows.find((row) => row.key === "maxUploadSizeMB")?.value);
 
   return (
     <div className="max-w-2xl space-y-6">
