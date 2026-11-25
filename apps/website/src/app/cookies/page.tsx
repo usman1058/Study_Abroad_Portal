@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Cookie notice",
-  description: "How necessary cookies support sign-in and security on the CheckMyUni portal.",
-};
+export const metadata = pageMetadata({ title: 'Cookie notice', description: 'Learn how cookies support sign-in, site security, and essential functions on CheckMyUni.', path: '/cookies', keywords: 'CheckMyUni cookies' });
 
 export default function CookiesPage() {
   return <section className="bg-ivory py-14 sm:py-20">

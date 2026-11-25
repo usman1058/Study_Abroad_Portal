@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Clock3, ExternalLink, FileCheck2, Globe2, MapPin } from "lucide-react";
@@ -9,8 +10,8 @@ type Params = Promise<{ id: string }>;
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const program = await getProgram(id);
-  if (!program) return { title: "Program not found" };
-  return { title: program.name, description: `${program.name} at ${program.university.name}. Review program details and how to apply.` };
+  if (!program) return pageMetadata({ title: "Program not found", description: "This study program could not be found in the CheckMyUni catalog.", path: `/applications/${encodeURIComponent(id)}`, noIndex: true });
+  return pageMetadata({ title: `${program.name} at ${program.university.name}`, description: `Explore ${program.name} at ${program.university.name}. Review study level, entry requirements, tuition information, and how to apply.`, path: `/applications/${encodeURIComponent(program.slug || program.id)}`, keywords: `${program.name}, ${program.university.name}, study abroad program, ${program.university.country}` });
 }
 
 export default async function ApplicationDetailPage({ params }: { params: Params }) {

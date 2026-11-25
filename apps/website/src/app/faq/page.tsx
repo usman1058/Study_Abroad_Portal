@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, CircleHelp } from "lucide-react";
 
-export const metadata: Metadata = { title: "Frequently asked questions", description: "Answers about programs, enquiries, applications, and the student portal." };
+export const metadata = pageMetadata({ title: 'Study abroad FAQs', description: 'Find answers about study programs, tuition information, applications, documents, and getting support from CheckMyUni.', path: '/faq', keywords: 'study abroad questions, university application FAQs' });
 
 const groups = [
   { title: "Programs and costs", questions: [

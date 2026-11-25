@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Privacy notice",
-  description: "How CheckMyUni handles information submitted through its website and study portal.",
-};
+export const metadata = pageMetadata({ title: 'Privacy notice', description: 'Read how CheckMyUni handles information submitted through the public website, contact form, and study portal.', path: '/privacy', keywords: 'CheckMyUni privacy notice' });
 
 const sections = [
   {

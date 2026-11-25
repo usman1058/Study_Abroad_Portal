@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, ClipboardCheck, FileText, MessageSquareText, Search, UserRoundPlus } from "lucide-react";
 import { portalUrl } from "@/lib/portal";
 
-export const metadata: Metadata = { title: "How it works", description: "Understand the main steps from exploring programs to managing an application." };
+export const metadata = pageMetadata({ title: 'How CheckMyUni works', description: 'See how to explore university programs, discuss your goals with an advisor, and manage your application with CheckMyUni.', path: '/how-it-works', keywords: 'how to study abroad, university application process' });
 
 const stages = [
   { number: "01", icon: Search, title: "Explore programs", text: "Search the public catalog by subject, study level, or destination. Open a program to review its listed costs, intakes, and requirements." },

@@ -1,13 +1,10 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search, SlidersHorizontal } from "lucide-react";
 import { ProgramCard } from "@/components/program-card";
 import { getPrograms } from "@/lib/portal";
 
-export const metadata: Metadata = {
-  title: "Study programs",
-  description: "Search and compare study programs from our live catalog.",
-};
+export const metadata = pageMetadata({ title: 'Study programs and universities', description: 'Search study abroad programs by destination, subject, and study level. Compare tuition, entry requirements, and university details in the CheckMyUni catalog.', path: '/applications', keywords: 'study abroad programs, university courses, international students' });
 
 type SearchParams = Promise<{ q?: string; country?: string; level?: string; field?: string; page?: string }>;
 

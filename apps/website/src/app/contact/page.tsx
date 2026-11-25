@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import { ArrowDownRight, Clock3, MessageCircle, ShieldCheck } from "lucide-react";
 import { ContactForm } from "@/components/contact-form";
 
-export const metadata: Metadata = { title: "Contact us", description: "Ask a question about study programs or your next steps." };
+export const metadata = pageMetadata({ title: 'Contact CheckMyUni', description: 'Contact the CheckMyUni advising team about study programs, destinations, applications, or your next steps.', path: '/contact', keywords: 'contact study abroad advisor, university application help' });
 
 export default function ContactPage() {
   return <>

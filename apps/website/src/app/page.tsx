@@ -1,8 +1,11 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, BookOpenCheck, Globe2, HeartHandshake, ShieldCheck, Sparkles, UserRoundPlus } from "lucide-react";
 import { HeroArt } from "@/components/hero-art";
 import { ProgramCard } from "@/components/program-card";
 import { getPrograms, portalUrl } from "@/lib/portal";
+
+export const metadata = pageMetadata({ title: "CheckMyUni — Explore study programs abroad", description: "Explore study programs and university options around the world. Compare destinations, levels, tuition, and entry requirements, then get practical guidance for your next step.", path: "/", keywords: "study abroad, study programs, universities, international education" });
 
 const steps = [
   { number: "01", title: "Explore your options", body: "Browse real study programs and compare locations, levels, fees, and entry requirements." },

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, Menu } from "lucide-react";
 import { useTheme, useLang } from "@/components/providers";
@@ -46,7 +45,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
           className="flex min-w-0 items-center gap-2.5"
           aria-label="Home"
         >
-          <Image src="/checkmyuni-logo.png" alt="" aria-hidden="true" width={76} height={57} priority className="h-auto w-[4.75rem] shrink-0 rounded-md bg-white" />
+          <span className="truncate text-xs font-semibold text-navy-800 dark:text-white sm:text-sm">{role === "STUDENT" ? "Student workspace" : "Partner workspace"}</span>
         </Link></div>
 
       <div className="flex items-center gap-2">

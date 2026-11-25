@@ -1,10 +1,7 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Terms of use",
-  description: "Terms for using the CheckMyUni website and portal.",
-};
+export const metadata = pageMetadata({ title: 'Terms of use', description: 'Review the terms for using the CheckMyUni public website and connected study portal.', path: '/terms', keywords: 'CheckMyUni terms of use' });
 
 const sections = [
   {

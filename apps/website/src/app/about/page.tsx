@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, Compass, FileCheck2, Handshake, Sparkles, UserRoundPlus, UsersRound } from "lucide-react";
 import { portalUrl } from "@/lib/portal";
 
-export const metadata: Metadata = { title: "About us", description: "Learn how CheckMyUni helps students make informed choices about studying overseas." };
+export const metadata = pageMetadata({ title: 'About CheckMyUni', description: 'Learn how CheckMyUni helps students compare study options and get clear, practical guidance for applying to universities abroad.', path: '/about', keywords: 'about CheckMyUni, study abroad guidance' });
 
 const principles = [
   { icon: Compass, title: "Start with your goals", text: "Your subject, budget, preferred destination, and timeline shape which options make sense for you." },
