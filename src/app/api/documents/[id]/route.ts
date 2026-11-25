@@ -5,6 +5,7 @@ import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canAccessStudentDocuments } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 import { deleteObject, readStoredFile, StorageError } from "@/lib/storage";
+import { sendDocumentRejectedEmail } from "@/lib/mail";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -50,7 +51,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (error) return error;
     if (user.role === "STUDENT") return fail("Only agency staff can verify documents", 403);
 
-    const doc = await prisma.document.findUnique({ where: { id }, include: { owner: true } });
+    const doc = await prisma.document.findUnique({ where: { id }, include: { owner: true, application: { include: { program: { select: { name: true } } } } } });
     if (!doc) return fail("Document not found", 404);
 
     if (!(await canAccessStudentDocuments(user, doc.owner))) return fail("Forbidden", 403);
@@ -79,6 +80,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
       body: `${doc.type} was ${status.toLowerCase()}${reason ? ` — ${reason}` : ""}.`,
       data: { documentId: id },
     }).catch(() => {});
+
+    if (status === "REJECTED" && reason?.trim()) {
+      await sendDocumentRejectedEmail(doc.owner.email, {
+        studentName: `${doc.owner.firstName} ${doc.owner.lastName}`.trim(),
+        documentType: doc.type.replace(/_/g, " ").toLowerCase(),
+        reason: reason.trim(),
+        documentId: doc.id,
+        programName: doc.application?.program.name,
+      });
+    }
 
     return ok({ id: updated.id });
   } catch (e) {

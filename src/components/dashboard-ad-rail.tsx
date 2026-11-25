@@ -74,7 +74,7 @@ export function DashboardAdRail({
         <div
           className={
             imageOnly
-              ? "flex h-56 items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 p-5 text-center text-sm text-white sm:h-64"
+              ? "flex h-40 items-center justify-center bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 p-4 text-center text-sm text-white sm:h-64 sm:p-5"
               : "p-5 text-sm text-ink-muted"
           }
         >
@@ -89,16 +89,16 @@ export function DashboardAdRail({
           {imageOnly ? (
             ad.linkUrl ? (
               <a href={ad.linkUrl} target="_blank" rel="noreferrer" aria-label={ad.title} className="block">
-                <AdImage ad={ad} className="h-56 sm:h-64" />
+                <AdImage ad={ad} className="h-40 sm:h-64" />
               </a>
             ) : (
-              <AdImage ad={ad} className="h-56 sm:h-64" />
+              <AdImage ad={ad} className="h-40 sm:h-64" />
             )
           ) : (
-            <AdImage ad={ad} className={variant === "hero" ? "h-48 sm:h-60" : "h-28"} />
+            <AdImage ad={ad} className={variant === "hero" ? "h-36 sm:h-60" : "h-28"} />
           )}
           {!imageOnly && (
-            <div className="space-y-3 p-4">
+            <div className="space-y-2 p-3 sm:space-y-3 sm:p-4">
               <div>
                 <p className="text-sm font-semibold">{ad.title}</p>
                 {ad.body && <p className="mt-1 text-xs leading-5 text-ink-muted">{ad.body}</p>}

@@ -6,14 +6,16 @@ import type { Role } from "@/generated/prisma/client";
 import type { Section } from "@/lib/permissions";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import { TemporaryPasswordChange } from "@/components/temporary-password-change";
 
-export function DashboardShell({ children, sections, role, userName, userEmail, preferredCurrency }: {
+export function DashboardShell({ children, sections, role, userName, userEmail, preferredCurrency, mustChangePassword = false }: {
   children: ReactNode;
   sections: Section[];
   role: Role;
   userName: string;
   userEmail: string;
   preferredCurrency: string;
+  mustChangePassword?: boolean;
 }) {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,6 +26,7 @@ export function DashboardShell({ children, sections, role, userName, userEmail, 
         <Topbar role={role} userName={userName} userEmail={userEmail} preferredCurrency={preferredCurrency} onOpenNavigation={() => setNavigationOpen(true)} />
         <main className="portal-main mx-auto max-w-7xl p-4 sm:p-6">{children}</main>
       </div>
+      {mustChangePassword && <TemporaryPasswordChange email={userEmail} homeHref={role === "STUDENT" ? "/student-home" : "/home"} />}
     </div>
   );
 }

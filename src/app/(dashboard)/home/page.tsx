@@ -104,9 +104,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className="xl:hidden"><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
-
-      <section aria-label="Dashboard metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Dashboard metrics" className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         <MetricCard label="Applications in progress" value={appsInProgress} hint="Across your accessible students" icon={ClipboardList} tone="brand" href="/application" />
         <MetricCard label="Pending documents" value={pendingDocs} hint="Needs verification" icon={FileCheck2} tone="amber" href="/documents" />
         <MetricCard label="New leads" value={leadsThisWeek} hint="Created in the last 7 days" icon={Users} tone="indigo" href={canManageUsers ? "/users" : null} />
@@ -133,7 +131,7 @@ export default async function HomePage() {
             </Card>
             <Card>
               <CardHeader><CardTitle>Workspace tools</CardTitle><CardDescription>Common actions for today</CardDescription></CardHeader>
-              <CardContent className="grid gap-2">{quickActions.map((action) => <Link key={action.href} href={action.href} className="group flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="rounded-lg bg-canvas-subtle p-2 text-ink-muted transition group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><action.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{action.label}</span><span className="block truncate text-xs text-ink-muted">{action.detail}</span></span><ArrowUpRight className="h-4 w-4 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent>
+              <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-1 sm:gap-2">{quickActions.map((action) => <Link key={action.href} href={action.href} className="group flex min-h-[5.25rem] min-w-0 items-center gap-2 rounded-xl border border-line p-2 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15 sm:min-h-0 sm:gap-3 sm:p-3"><span className="shrink-0 rounded-lg bg-canvas-subtle p-1.5 text-ink-muted transition group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200 sm:p-2"><action.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold leading-4 sm:text-sm sm:leading-normal">{action.label}</span><span className="hidden truncate text-xs text-ink-muted min-[390px]:block sm:block">{action.detail}</span></span><ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-brand-600 sm:h-4 sm:w-4" /></Link>)}</CardContent>
             </Card>
           </div>
 
@@ -141,13 +139,15 @@ export default async function HomePage() {
         </div>
         <aside className="hidden xl:block">{showAdRail && <DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} />}</aside>
       </div>
+
+      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className="xl:hidden"><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
     </div>
   );
 }
 
 function MetricCard({ label, value, hint, icon: Icon, tone, href }: { label: string; value: string | number; hint: string; icon: typeof Users; tone: "brand" | "amber" | "indigo" | "violet"; href: string | null }) {
   const colors = { brand: "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200", amber: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200", indigo: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200", violet: "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-200" };
-  const content = <Card data-metric={label} className="h-full transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5"><div><p className="text-xs font-medium text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{hint}</p></div><span className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="h-5 w-5" /></span></CardContent></Card>;
+  const content = <Card data-metric={label} className="h-full transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"><CardContent className="flex items-start justify-between gap-2 p-3 sm:gap-3 sm:p-5"><div className="min-w-0"><p className="text-xs font-medium leading-4 text-ink-muted">{label}</p><p className="mt-1 text-2xl font-bold tracking-tight">{value}</p><p className="mt-1 text-xs leading-4 text-slate-500 dark:text-slate-400">{hint}</p></div><span className={`shrink-0 rounded-xl p-2 sm:p-2.5 ${colors[tone]}`}><Icon className="h-4 w-4 sm:h-5 sm:w-5" /></span></CardContent></Card>;
   return href ? <Link href={href}>{content}</Link> : content;
 }
 

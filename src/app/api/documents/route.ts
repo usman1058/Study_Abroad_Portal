@@ -2,9 +2,11 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
-import { logAudit } from "@/lib/audit";
+import { logAudit, createNotification } from "@/lib/audit";
+import { getStudentSupportRecipients } from "@/lib/student-notifications";
+import { sendStaffDocumentUploadedEmail } from "@/lib/mail";
 import { detectMimeFromBase64, isAllowedMimeType } from "@/lib/utils";
-import { buildMediaKey, parseDataUrl, putObject, StorageError } from "@/lib/storage";
+import { buildMediaKey, parseDataUrl, putObject, StorageError, deleteObject } from "@/lib/storage";
 import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
 import { formatUploadSizeMB } from "@/lib/upload-limits";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
@@ -16,6 +18,7 @@ const uploadSchema = z.object({
   base64: z.string().min(1),
   applicationId: z.string().optional().nullable(),
   expiresAt: z.string().optional().nullable(),
+  replaceDocumentId: z.string().max(64).optional(),
 });
 
 function dataUrlByteLength(value: string): number {
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
     const parsed = uploadSchema.safeParse(body);
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
-    const { type, base64, applicationId, expiresAt } = parsed.data;
+    const { type, base64, applicationId, expiresAt, replaceDocumentId } = parsed.data;
 
     if (dataUrlByteLength(base64) > maxBytes) return fail(`File is too large (maximum ${formatUploadSizeMB(maxBytes / (1024 * 1024))})`, 413);
 
@@ -49,9 +52,21 @@ export async function POST(req: NextRequest) {
     }
 
     // applicationId must belong to this student
+    let applicationProgramName: string | undefined;
     if (applicationId) {
-      const app = await prisma.application.findUnique({ where: { id: applicationId } });
+      const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { program: { select: { name: true } } } });
       if (!app || app.studentId !== user.id) return fail("Invalid application", 403);
+      applicationProgramName = app.program.name;
+    }
+
+    const rejectedDocument = replaceDocumentId
+      ? await prisma.document.findUnique({ where: { id: replaceDocumentId }, select: { id: true, ownerId: true, type: true, status: true, applicationId: true, fileUrl: true, expiresAt: true } })
+      : null;
+    if (replaceDocumentId && (!rejectedDocument || rejectedDocument.ownerId !== user.id || rejectedDocument.status !== "REJECTED")) {
+      return fail("Only your rejected documents can be replaced", 404);
+    }
+    if (rejectedDocument && (rejectedDocument.type !== type || rejectedDocument.applicationId !== (applicationId ?? null))) {
+      return fail("A replacement must keep the original document type and application", 422);
     }
 
     const bytes = parseDataUrl(base64);
@@ -65,18 +80,44 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    const doc = await prisma.document.create({
-      data: {
-        ownerId: user.id,
-        applicationId: applicationId ?? null,
-        type,
-        fileUrl,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-      },
-      select: { id: true, type: true },
-    });
+    const doc = rejectedDocument
+      ? await prisma.document.update({
+          where: { id: rejectedDocument.id },
+          data: { fileUrl, status: "PENDING", rejectionReason: null, verifiedById: null, uploadedAt: new Date(), expiresAt: expiresAt ? new Date(expiresAt) : rejectedDocument.expiresAt },
+          select: { id: true, type: true },
+        })
+      : await prisma.document.create({
+          data: {
+            ownerId: user.id,
+            applicationId: applicationId ?? null,
+            type,
+            fileUrl,
+            expiresAt: expiresAt ? new Date(expiresAt) : null,
+          },
+          select: { id: true, type: true },
+        });
+    if (rejectedDocument) await deleteObject(rejectedDocument.fileUrl).catch(() => {});
 
-    await logAudit({ actorId: user.id, action: "create", entityType: "Document", entityId: doc.id, after: { type: doc.type } });
+    await logAudit({ actorId: user.id, action: rejectedDocument ? "update" : "create", entityType: "Document", entityId: doc.id, after: { type: doc.type, status: "PENDING", replaced: Boolean(rejectedDocument) } });
+
+    const support = await getStudentSupportRecipients(user.id);
+    if (support) {
+      await Promise.all(support.recipients.map(async (recipient) => {
+        await createNotification({
+          userId: recipient.id,
+          type: "document",
+          title: "Student uploaded a document",
+          body: `${support.studentName} uploaded ${doc.type} for verification.`,
+          data: { documentId: doc.id, studentId: user.id, ...(applicationId ? { applicationId } : {}) },
+        });
+        return sendStaffDocumentUploadedEmail(recipient.email, {
+          studentName: support.studentName,
+          documentType: doc.type.replace(/_/g, " ").toLowerCase(),
+          documentId: doc.id,
+          programName: applicationProgramName,
+        });
+      }));
+    }
 
     return ok({ id: doc.id }, { status: 201 });
   } catch (e) {

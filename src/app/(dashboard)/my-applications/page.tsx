@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, humanize } from "@/lib/utils";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
+import { ReuploadDocument } from "@/components/reupload-document";
 
 export const metadata = { title: "My Applications" };
 
@@ -41,6 +42,13 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
     ...application,
     docsOk: application.documents.length > 0 && application.documents.every((document) => document.status === ("VERIFIED" as DocumentStatus)),
   }));
+  const applicationOptions = rows.map((application) => ({
+    id: application.id,
+    label: `${application.program.university.name} — ${application.program.name} (${application.stage.replace(/_/g, " ").toLowerCase()})`,
+  }));
+  const rejectedDocuments = rows.flatMap((application) => application.documents
+    .filter((document) => document.status === "REJECTED")
+    .map((document) => ({ application, document })));
   const visible = rows.filter((application) => TABS.find((item) => item.key === tab)!.matches(application.stage, application.docsOk) && (!q || `${application.id} ${application.program.name} ${application.program.university.name} ${application.stage}`.toLowerCase().includes(q.toLowerCase())));
   const tabUrl = (key: string) => `/my-applications?${new URLSearchParams({ tab: key, ...(q ? { q } : {}) })}`;
 
@@ -49,6 +57,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
     <div className="grid gap-3 sm:grid-cols-3"><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">Total applications</p><p className="mt-1 text-2xl font-bold">{rows.length}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">In progress</p><p className="mt-1 text-2xl font-bold">{rows.filter((application) => ["SUBMITTED", "UNDER_REVIEW", "VISA"].includes(application.stage)).length}</p></CardContent></Card><Card><CardContent className="p-4"><p className="text-xs text-ink-muted">Offers</p><p className="mt-1 text-2xl font-bold">{rows.filter((application) => ["OFFER", "DEPOSIT_PAID", "ENROLLED"].includes(application.stage)).length}</p></CardContent></Card></div>
     {params.submitted && <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">Application submitted. You can track its progress below.</p>}
     {params.updated && <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">Application updated. Changes are saved and sent for review.</p>}
+    {rejectedDocuments.length > 0 && <section aria-label="Rejected application documents" className="space-y-3"><div><h2 className="text-lg font-semibold">Documents to replace</h2><p className="text-sm text-ink-muted">Review each rejection reason, upload a corrected file, and it will return to your counselor for review.</p></div><Card><CardContent className="divide-y divide-line p-0 dark:divide-navy-700">{rejectedDocuments.map(({ application, document }) => <div key={document.id} className="flex flex-wrap items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="font-semibold">{humanize(document.type)}</p><Link href={`#application-${application.id}`} className="mt-0.5 inline-flex min-h-6 text-sm text-brand-600 hover:underline">{application.program.university.name} · {application.program.name}</Link><p className="mt-1 text-sm text-red-700 dark:text-red-300"><span className="font-medium">Reason:</span> {document.rejectionReason || "Please upload a clearer or current copy."}</p></div><ReuploadDocument documentId={document.id} type={document.type} applicationId={application.id} applications={applicationOptions} /></div>)}</CardContent></Card></section>}
     <nav aria-label="Filter applications by stage" className="flex flex-wrap gap-2">{TABS.map((item) => <Link key={item.key} href={tabUrl(item.key)} aria-current={tab === item.key ? "page" : undefined} className={`inline-flex min-h-9 items-center rounded-full border px-3 text-sm font-medium ${tab === item.key ? "border-brand-500 bg-brand-50 text-brand-700" : "border-line-strong text-ink-muted hover:bg-canvas"}`}>{item.label}<span className="ml-1 opacity-70">({rows.filter((application) => item.matches(application.stage, application.docsOk)).length})</span></Link>)}</nav>
     <form action="/my-applications" method="get" role="search" className="flex gap-2 rounded-xl border border-line bg-white p-3 dark:border-navy-700 dark:bg-navy-900"><input type="hidden" name="tab" value={tab} /><label htmlFor="application-search" className="sr-only">Search by application ID, program, university, or stage</label><input id="application-search" name="q" type="search" defaultValue={q} placeholder="Search ID, program, university, or stage…" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-transparent px-3 text-sm" /><button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">Search</button></form>
     {visible.length === 0 ? <Card><CardContent className="py-12 text-center text-sm text-ink-muted">No applications match this view. <Link href="/apply" className="font-semibold text-brand-700 underline">Start an application</Link></CardContent></Card> : <div className="grid gap-4 sm:grid-cols-2">{visible.map((application) => {

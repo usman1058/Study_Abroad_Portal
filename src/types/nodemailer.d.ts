@@ -15,6 +15,7 @@ declare module "nodemailer" {
     replyTo?: string;
     subject: string;
     text: string;
+    html?: string;
   };
 
   type Transporter = {

@@ -6,6 +6,7 @@ import { canAccessStudent } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 import { APPLICATION_STAGE_ORDER } from "@/lib/constants";
 import { APPLICATION_STAGE_TRANSITIONS, DOC_GATED_APPLICATION_STAGES, hasVerifiedRequiredDocuments } from "@/lib/application-stages";
+import { sendApplicationStatusEmail } from "@/lib/mail";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -36,7 +37,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (error) return error;
     const application = await prisma.application.findUnique({
       where: { id },
-      include: { student: true, program: true, documents: true },
+      include: { student: true, program: { include: { university: true } }, documents: true },
     });
     if (!application) return fail("Application not found", 404);
 
@@ -119,6 +120,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
       body: `${application.program.name} moved to ${stage.replace(/_/g, " ").toLowerCase()}.`,
       data: { applicationId: id },
     }).catch(() => {});
+
+    if (stage !== before) {
+      const statusLabel = stage.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+      await sendApplicationStatusEmail(application.student.email, {
+        studentName: `${application.student.firstName} ${application.student.lastName}`.trim(),
+        applicationId: application.id,
+        programName: application.program.name,
+        universityName: application.program.university.name,
+        statusLabel,
+      });
+    }
 
     return ok({ id: updated.id });
   } catch (e) {

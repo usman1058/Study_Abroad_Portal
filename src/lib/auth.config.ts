@@ -54,6 +54,7 @@ export const authConfig = {
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           credentialVersion: credentialVersion(user.passwordHash),
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -64,6 +65,7 @@ export const authConfig = {
         token.id = user.id;
         token.role = user.role;
         token.credentialVersion = user.credentialVersion;
+        token.mustChangePassword = user.mustChangePassword;
       }
       return token;
     },
@@ -72,6 +74,7 @@ export const authConfig = {
         session.user.id = token.id as string;
         session.user.role = token.role as never;
         session.user.credentialVersion = token.credentialVersion as string;
+        session.user.mustChangePassword = Boolean(token.mustChangePassword);
       }
       return session;
     },

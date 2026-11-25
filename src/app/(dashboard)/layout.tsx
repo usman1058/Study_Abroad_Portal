@@ -20,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         role={user.role}
         userName={user.name}
         preferredCurrency={profile?.preferredCurrency ?? "MYR"}
+        mustChangePassword={user.mustChangePassword}
       >
         {children}
       </DashboardShell>

@@ -162,8 +162,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                         <a href={"/api/documents/" + document.id} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">
                           Open file
                         </a>
-                        {document.status !== "VERIFIED" && (
+                        {document.status === "REJECTED" && (
                           <ReuploadDocument
+                            documentId={document.id}
                             type={document.type}
                             applicationId={document.applicationId}
                             applications={applicationOptions}

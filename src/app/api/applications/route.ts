@@ -6,6 +6,8 @@ import { canAccessStudent, studentScopeWhere } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import { idField } from "@/lib/validation";
+import { sendStaffApplicationSubmittedEmail } from "@/lib/mail";
+import { getStudentSupportRecipients } from "@/lib/student-notifications";
 
 const createSchema = z.object({
   programId: idField(),
@@ -23,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
 
     const { programId } = parsed.data;
-    const program = await prisma.program.findUnique({ where: { id: programId } });
+    const program = await prisma.program.findUnique({ where: { id: programId }, include: { university: { select: { name: true } } } });
     if (!program) return fail("Program not found", 404);
 
     let studentId: string;
@@ -78,6 +80,18 @@ export async function POST(req: NextRequest) {
       body: "A new application was created for " + (studentContacts ? studentContacts.firstName + " " + studentContacts.lastName : "a student") + ".",
       data: { applicationId: application.id, studentId },
     })));
+
+    if (user.role === "STUDENT" && parsed.data.submit && program) {
+      const support = await getStudentSupportRecipients(studentId);
+      if (support) {
+        await Promise.all(support.recipients.map((recipient) => sendStaffApplicationSubmittedEmail(recipient.email, {
+          studentName: support.studentName,
+          applicationId: application.id,
+          programName: program.name,
+          universityName: program.university.name,
+        })));
+      }
+    }
 
 
     return ok({ id: application.id }, { status: 201 });

@@ -12,7 +12,7 @@ const passwordSchema = z.object({
 
 export async function PUT(req: NextRequest) {
   try {
-    const { error, user } = await requireUser();
+    const { error, user } = await requireUser({ allowPasswordChange: true });
     if (error) return error;
 
     const body = await req.json();
@@ -26,7 +26,7 @@ export async function PUT(req: NextRequest) {
     if (!valid) return fail("Current password is incorrect", 401);
 
     const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: false } });
 
     await logAudit({ actorId: user.id, action: "password_change", entityType: "User", entityId: user.id });
     return ok({ changed: true });

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { creatableRoles, studentScopeWhere } from "@/lib/permissions";
+import { creatableRoles } from "@/lib/permissions";
 import { ROLE_LABELS, roleOptionLabel } from "@/lib/constants";
 import { UserForm } from "@/components/user-form";
 import { InviteLinkForm } from "@/components/invite-link-form";
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName } from "@/lib/utils";
 import { UserRoleEditor } from "@/components/user-role-editor";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, Role } from "@/generated/prisma/client";
 import { CopyRecordId } from "@/components/copy-record-id";
 
 export const metadata = { title: "Users" };
@@ -22,7 +22,6 @@ const USER_PAGE_SIZE = 25;
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string; role?: string; status?: string; page?: string }> }) {
   const user = await currentUser();
   if (!user || user.role === "STUDENT") redirect("/");
-  if (user.role === "COUNSELOR") redirect("/home");
 
   const allowed = creatableRoles(user.role);
   const params = await searchParams;
@@ -34,18 +33,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const searchWhere = q ? { OR: [{ id: { contains: q, mode: "insensitive" as const } }, { firstName: { contains: q, mode: "insensitive" as const } }, { lastName: { contains: q, mode: "insensitive" as const } }, { email: { contains: q, mode: "insensitive" as const } }, { companyName: { contains: q, mode: "insensitive" as const } }] } : {};
   const listWhere = { AND: [visibleUserScope(user), searchWhere, ...(roleFilter ? [{ role: roleFilter as keyof typeof ROLE_LABELS }] : []), ...(statusFilter ? [{ status: statusFilter }] : [])] };
 
-  const [counselors, studentsForInvites, inviteLinks, inviteCount, userCount] = await Promise.all([
+  const [counselors, inviteLinks, inviteCount, userCount] = await Promise.all([
     user.role === "AGENCY"
       ? prisma.user.findMany({ where: { role: "COUNSELOR", createdById: user.id }, select: { id: true, firstName: true, lastName: true } })
       : ["SUPER_ADMIN", "MANAGER"].includes(user.role)
         ? prisma.user.findMany({ where: { role: "COUNSELOR" }, select: { id: true, firstName: true, lastName: true } })
         : Promise.resolve([]),
-    prisma.user.findMany({ where: studentScopeWhere(user), select: { id: true, firstName: true, lastName: true, email: true } }),
     prisma.inviteLink.findMany({
       where: { createdById: user.id },
       orderBy: { createdAt: "desc" },
       take: 10,
-      select: { id: true, token: true, expiresAt: true, revoked: true, student: { select: { firstName: true, lastName: true } } },
+      select: { id: true, token: true, expiresAt: true, revoked: true, permissionSet: true, student: { select: { firstName: true, lastName: true } } },
     }),
     prisma.inviteLink.count({ where: { createdById: user.id } }),
     prisma.user.count({ where: listWhere }),
@@ -90,7 +88,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         />
       )}
 
-      <InviteLinkForm students={studentsForInvites.map((s) => ({ id: s.id, label: `${s.firstName} ${s.lastName} (${s.email})` }))} />
+      <InviteLinkForm roles={allowed.filter((role) => role !== "AGENCY")} />
 
       <Card>
         <CardHeader>
@@ -168,7 +166,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
 
       <Card>
         <CardHeader>
-          <CardTitle>Guest invite links (latest 10 of {inviteCount})</CardTitle>
+          <CardTitle>Account invitations &amp; guest links (latest 10 of {inviteCount})</CardTitle>
         </CardHeader>
         <CardContent>
           {inviteLinks.length === 0 ? (
@@ -179,7 +177,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 <li key={l.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                   <div className="min-w-0">
                     <p className="truncate text-xs">
-                      {l.student ? `${l.student.firstName} ${l.student.lastName}` : "Any student"} · expires {formatDate(l.expiresAt)}
+                      {(() => {
+                        const details = l.permissionSet && typeof l.permissionSet === "object" ? l.permissionSet as { kind?: string; email?: string; role?: Role } : null;
+                        return details?.kind === "account_invitation" && details.email && details.role
+                          ? `${details.email} · ${roleOptionLabel(details.role)}`
+                          : l.student ? `Guest view · ${l.student.firstName} ${l.student.lastName}` : "Legacy guest link";
+                      })()} · expires {formatDate(l.expiresAt)}
                     </p>
                     <Link href={`/invite/${l.token}`} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Open invite</Link>
                   </div>

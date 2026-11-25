@@ -5,10 +5,12 @@ import { UploadDocument } from "@/components/upload-document";
 
 /** Inline replacement flow for a document staff rejected. */
 export function ReuploadDocument({
+  documentId,
   type,
   applicationId,
   applications,
 }: {
+  documentId: string;
   type: string;
   applicationId: string | null;
   applications: { id: string; label: string }[];
@@ -31,6 +33,7 @@ export function ReuploadDocument({
             applications={applications}
             defaultApplicationId={applicationId ?? ""}
             defaultType={type}
+            replaceDocumentId={documentId}
             submitLabel="Replace document"
           />
         </div>

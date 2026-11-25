@@ -92,7 +92,8 @@ model User {
   phone             String?
   country           String?
   gender            String?
-  status            String  @default("active") // active / inactive
+  status            String  @default("active") // active / pending / inactive
+  mustChangePassword Boolean @default(false)
   companyName       String? // agency extra field
   licenseNumber     String? // agency extra field
   preferredCurrency String  @default("MYR") // currency toggle, §6

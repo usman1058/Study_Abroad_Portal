@@ -8,7 +8,8 @@ import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
 import { requiredName, emailField, passwordField, optionalText } from "@/lib/validation";
-import { sendCredentialsEmail, sendOnboardingEmail } from "@/lib/mail";
+import { sendCredentialsEmail, sendOnboardingEmail, sendStaffNewStudentEmail } from "@/lib/mail";
+import { getStudentSupportRecipients } from "@/lib/student-notifications";
 
 const createSchema = z.object({
   role: z.enum(["MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]),
@@ -89,14 +90,24 @@ export async function POST(req: NextRequest) {
       select: { id: true, email: true, role: true },
     });
 
-    if (created.role === "STUDENT" && assignedCounselorId) {
-      await createNotification({
-        userId: assignedCounselorId,
-        type: "student",
-        title: "New student assigned",
-        body: `${data.firstName} ${data.lastName} was added to your student caseload.`,
-        data: { studentId: created.id },
-      });
+    if (created.role === "STUDENT") {
+      const support = await getStudentSupportRecipients(created.id);
+      if (support) {
+        await Promise.all(support.recipients.map(async (recipient) => {
+          await createNotification({
+            userId: recipient.id,
+            type: "student",
+            title: "New student account created",
+            body: `${support.studentName} was added by ${actor.firstName} ${actor.lastName}.`,
+            data: { studentId: created.id },
+          });
+          return sendStaffNewStudentEmail(recipient.email, {
+            studentName: support.studentName,
+            studentEmail: created.email,
+            studentId: created.id,
+          });
+        }));
+      }
     }
     await logAudit({
       actorId: actor.id,
@@ -112,7 +123,7 @@ export async function POST(req: NextRequest) {
     const roleLabel = created.role === "STUDENT" ? "student" : created.role === "AGENCY" ? "partner agency" : "team";
     await Promise.all([
       sendOnboardingEmail(created.email, { name, roleLabel }),
-      sendCredentialsEmail(created.email, { name, email: created.email, password: data.password, student: created.role === "STUDENT" }),
+      sendCredentialsEmail(created.email, { name, email: created.email, password: data.password, student: created.role === "STUDENT", temporary: false }),
     ]);
 
     return ok({ id: created.id }, { status: 201 });

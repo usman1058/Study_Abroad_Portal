@@ -6,7 +6,8 @@ import { ok, fail, serverError } from "@/lib/api";
 import { signupRateLimit } from "@/lib/rate-limit";
 import { createNotification } from "@/lib/audit";
 import { requiredName, emailField, phoneField, passwordField } from "@/lib/validation";
-import { sendSignupConfirmationEmail } from "@/lib/mail";
+import { sendSignupConfirmationEmail, sendStaffNewStudentEmail } from "@/lib/mail";
+import { getStudentSupportRecipients } from "@/lib/student-notifications";
 
 const signupSchema = z.object({
   firstName: requiredName(80),
@@ -52,14 +53,18 @@ export async function POST(req: NextRequest) {
       select: { id: true, email: true },
     });
 
-    if (admin) {
-      await createNotification({
-        userId: admin.id,
-        type: "student",
-        title: "New student arrived",
-        body: firstName + " " + lastName + " created a student account and is awaiting admissions support.",
-        data: { studentId: user.id },
-      });
+    const support = await getStudentSupportRecipients(user.id);
+    if (support) {
+      await Promise.all(support.recipients.map(async (recipient) => {
+        await createNotification({
+          userId: recipient.id,
+          type: "student",
+          title: "New student arrived",
+          body: `${firstName} ${lastName} created a student account and is awaiting admissions support.`,
+          data: { studentId: user.id },
+        });
+        return sendStaffNewStudentEmail(recipient.email, { studentName: support.studentName, studentEmail: user.email, studentId: user.id });
+      }));
     }
 
     await sendSignupConfirmationEmail(normalizedEmail, {

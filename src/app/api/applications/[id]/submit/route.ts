@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit, createNotification } from "@/lib/audit";
+import { getStudentSupportRecipients } from "@/lib/student-notifications";
+import { sendStaffApplicationSubmittedEmail } from "@/lib/mail";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -60,6 +62,15 @@ export async function POST(_req: NextRequest, { params }: Params) {
           body: `${program ? `${program.university.name} — ${program.name}` : "A program"} is awaiting review.`,
           data: { applicationId: id },
         }).catch(() => {});
+      }
+      const support = await getStudentSupportRecipients(user.id);
+      if (support && program) {
+        await Promise.all(support.recipients.map((recipient) => sendStaffApplicationSubmittedEmail(recipient.email, {
+          studentName: support.studentName,
+          applicationId: id,
+          programName: program.name,
+          universityName: program.university.name,
+        })));
       }
     }
 

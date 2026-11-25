@@ -1,12 +1,10 @@
 import { NextRequest } from "next/server";
-import { randomBytes } from "node:crypto";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { canManageExistingUser, creatableRoles } from "@/lib/permissions";
 import { logAudit, createNotification } from "@/lib/audit";
-import { sendCredentialsEmail, sendOnboardingEmail } from "@/lib/mail";
+import { sendOnboardingEmail } from "@/lib/mail";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,11 +12,6 @@ const statusSchema = z.object({
   status: z.enum(["active", "inactive"]).optional(),
   role: z.enum(["SUPER_ADMIN", "MANAGER", "COUNSELOR", "AGENCY", "STUDENT"]).optional(),
 });
-
-/** Readable but unguessable temporary password for a freshly approved account. */
-function temporaryPassword(): string {
-  return randomBytes(12).toString("base64url");
-}
 
 function accountRoleLabel(role: string): string {
   if (role === "STUDENT") return "student";
@@ -68,17 +61,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
     }
 
-    // Approving a pending account issues a fresh temporary password so the
-    // separate credentials email always has something valid to send.
-    const issuedPassword = activating ? temporaryPassword() : null;
-    const passwordHash = issuedPassword ? await bcrypt.hash(issuedPassword, 12) : undefined;
-
     const updated = await prisma.user.update({
       where: { id },
       data: {
         ...(parsed.data.status ? { status: parsed.data.status } : {}),
         ...(parsed.data.role ? { role: parsed.data.role } : {}),
-        ...(passwordHash ? { passwordHash } : {}),
       },
       select: { id: true, email: true, status: true, role: true },
     });
@@ -101,13 +88,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         title: "Account approved",
         body: `Your ${roleLabel} account has been approved. You can now sign in.`,
       });
-      if (issuedPassword) {
-        // Two separate messages: the welcome/onboarding note, then credentials.
-        await Promise.all([
-          sendOnboardingEmail(target.email, { name, roleLabel }),
-          sendCredentialsEmail(target.email, { name, email: target.email, password: issuedPassword, student: updated.role === "STUDENT" }),
-        ]);
-      }
+      // Applicants choose their password during signup. Approval changes only
+      // account status and must never replace that password with a temporary one.
+      await sendOnboardingEmail(target.email, { name, roleLabel });
     }
 
     return ok(updated);

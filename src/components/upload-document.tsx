@@ -17,11 +17,13 @@ export function UploadDocument({
   defaultApplicationId = "",
   defaultType = "PASSPORT",
   submitLabel = "Upload document",
+  replaceDocumentId,
 }: {
   applications: { id: string; label: string }[];
   defaultApplicationId?: string;
   defaultType?: string;
   submitLabel?: string;
+  replaceDocumentId?: string;
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -64,7 +66,7 @@ export function UploadDocument({
       const res = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, applicationId: applicationId || null, fileName: prepared.file.name, base64 }),
+        body: JSON.stringify({ type, applicationId: applicationId || null, fileName: prepared.file.name, base64, ...(replaceDocumentId ? { replaceDocumentId } : {}) }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -84,16 +86,16 @@ export function UploadDocument({
   return (
     <form onSubmit={submit} data-upload-form className="grid gap-4 sm:grid-cols-2">
       {error && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 sm:col-span-2">{error}</div>}
-      {done && <div role="status" className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800 sm:col-span-2">Upload received. It is now waiting for staff review.</div>}
+      {done && <div role="status" className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-800 sm:col-span-2">{replaceDocumentId ? "Replacement uploaded. It is waiting for staff review." : "Upload received. It is now waiting for staff review."}</div>}
       <Field label="Document type">
-        <Select value={type} onChange={(e) => setType(e.target.value)}>
+        <Select value={type} onChange={(e) => setType(e.target.value)} disabled={Boolean(replaceDocumentId)}>
           {DOCUMENT_TYPES.map((t) => (
             <option key={t} value={t}>{humanize(t)}</option>
           ))}
         </Select>
       </Field>
       <Field label="Application (optional)">
-        <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)}>
+        <Select value={applicationId} onChange={(e) => setApplicationId(e.target.value)} disabled={Boolean(replaceDocumentId)}>
           <option value="">General document</option>
           {applications.map((a) => (
             <option key={a.id} value={a.id}>{a.label}</option>

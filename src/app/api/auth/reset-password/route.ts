@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: false } });
 
     await logAudit({
       actorId: user.id,

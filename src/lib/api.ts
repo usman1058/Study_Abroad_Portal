@@ -9,10 +9,13 @@ export function fail(message: string, status = 400, extra?: Record<string, unkno
   return NextResponse.json({ success: false, error: message, ...extra }, { status });
 }
 
-export async function requireUser() {
+export async function requireUser({ allowPasswordChange = false }: { allowPasswordChange?: boolean } = {}) {
   const user = await currentUser();
   if (!user) {
     return { error: fail("Unauthorized", 401) as Response, user: null as null };
+  }
+  if (user.mustChangePassword && !allowPasswordChange) {
+    return { error: fail("Change your temporary password before continuing.", 403) as Response, user: null as null };
   }
   return { error: null, user };
 }

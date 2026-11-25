@@ -90,6 +90,10 @@ export async function proxy(request: NextRequest) {
     return redirectWithCsp(new URL("/", request.url));
   }
 
+  if (token?.mustChangePassword && pathname !== "/settings") {
+    return redirectWithCsp(new URL("/settings?passwordChange=required", request.url));
+  }
+
   if (role === "STUDENT") {
     if (matches(pathname, PARTNER_ONLY)) {
       return redirectWithCsp(new URL("/student-home", request.url));

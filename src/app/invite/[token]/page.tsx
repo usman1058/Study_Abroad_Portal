@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatCurrency, fullName } from "@/lib/utils";
+import { roleOptionLabel } from "@/lib/constants";
+import type { Role } from "@/generated/prisma/client";
 
 export const metadata = { title: "Guest Access", robots: { index: false, follow: false } };
 
@@ -24,6 +27,25 @@ export default async function InvitePage({ params }: PageProps) {
 
   if (!link || link.revoked || new Date(link.expiresAt) < new Date()) {
     notFound();
+  }
+
+  const inviteData = link.permissionSet && typeof link.permissionSet === "object" ? link.permissionSet as { kind?: string; email?: string; role?: Role } : null;
+  if (inviteData?.kind === "account_invitation" && inviteData.email && inviteData.role) {
+    const loginPath = inviteData.role === "STUDENT" ? "/student/login" : "/partner/login";
+    return (
+      <main className="mx-auto flex min-h-svh max-w-2xl items-center justify-center p-5 sm:p-8">
+        <section className="w-full rounded-3xl border border-line bg-white p-6 text-center shadow-xl shadow-navy-900/5 dark:border-navy-700 dark:bg-navy-900 sm:p-10">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/checkmyuni-full-logo.png" alt="CheckMyUni" className="mx-auto mb-7 h-auto w-52 max-w-full object-contain" />
+          <p className="text-sm font-semibold text-brand-600">CheckMyUni account invitation</p>
+          <h1 className="mt-2 text-2xl font-bold">Your account is ready</h1>
+          <p className="mt-3 text-sm leading-6 text-ink-muted">A team member created a {roleOptionLabel(inviteData.role).toLowerCase()} account for <strong className="break-all text-ink">{inviteData.email}</strong>. Your sign-in details were sent to this email address.</p>
+          <p className="mt-3 text-xs text-ink-muted">Invitation link expires {formatDate(link.expiresAt)}.</p>
+          <Link href={loginPath} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#315ebd] to-[#704cc8] px-6 text-sm font-semibold text-white shadow-md transition hover:brightness-110">Sign in to your account</Link>
+          <p className="mt-5 text-xs text-ink-muted">CheckMyUni · Study abroad guidance and student support</p>
+        </section>
+      </main>
+    );
   }
 
   const permissionSet = (link.permissionSet ?? { sections: [], access: {} }) as PermissionSet;
