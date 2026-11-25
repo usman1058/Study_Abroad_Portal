@@ -1,16 +1,16 @@
-# Study Abroad & Visa Agency Management System
+# CheckMyUni Study Abroad Portal
 
 **Private Project — Not Authorized for External Use**
 
-This repository contains the source code for the Study Abroad & Visa Agency Management System, a next-generation platform built with Next.js 16, React 19, Prisma ORM, and PostgreSQL. This system is designed for internal use by the agency only and is not authorized for external distribution, commercial use, or deployment without explicit permission.
+This repository contains the source code for the CheckMyUni study abroad portal and public website, built with Next.js 16, React 19, Prisma ORM, and PostgreSQL.
 
 ---
 
 ## 📋 Overview
 
-The Study Abroad & Visa Agency Management System is a comprehensive platform for managing study abroad applications, scholarships, student records, documents, payments, and communications. It features a full admin portal with role-based access control, CRUD operations for all entities, and a student-facing dashboard.
+CheckMyUni helps manage study programs, scholarships, student records, applications, documents, payments, and communications. It includes a role-based portal, public program website, and student dashboard.
 
-**Important:** This is a private project. Do not share, fork, or deploy without authorization.
+**Important:** This repository contains private project code. Do not share or redistribute it without authorization.
 
 ---
 
@@ -27,4 +27,4 @@ The Study Abroad & Visa Agency Management System is a comprehensive platform for
 - **Utilities**: Zod validation, date-fns, class-variance-authority
 
 ---
-*Engineered for agency workflow automation. Not for public consumption.*
+*CheckMyUni — study guidance and application management.*

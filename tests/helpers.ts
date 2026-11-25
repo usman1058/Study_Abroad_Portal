@@ -62,5 +62,5 @@ export async function login(
 
 export async function expectLanding(page: Page) {
   await page.waitForURL(/:\d+\/$|\/$/);
-  await expect(page.getByRole("heading", { name: "StudyAbroad Portal" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Welcome. Let’s get you to the right place." })).toBeVisible();
 }

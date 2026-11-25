@@ -1,4 +1,4 @@
-// Study Abroad & Visa Agency Management System
+// CheckMyUni — Study Abroad & Visa Agency Management System
 // Prisma 7 schema — prisma-client generator, output to ../src/generated/prisma
 
 generator client {

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Frequently asked questions", descrip
 
 const groups = [
   { title: "Programs and costs", questions: [
-    ["Where do program listings come from?", "Program information is shown from the catalog maintained in the StudyAbroad portal. Availability and details can change, so confirm current information with an advisor or the institution before making a decision."],
+    ["Where do program listings come from?", "Program information is shown from the catalog maintained in the CheckMyUni portal. Availability and details can change, so confirm current information with an advisor or the institution before making a decision."],
     ["What does the listed tuition include?", "The public listing displays the tuition amount stored for the program. It may not specify a billing period or include living costs, insurance, travel, or other fees. Ask an advisor to confirm the full and current cost."],
     ["How do I know which program is right for me?", "Compare study level, subject, location, fees, and entry information. If you are unsure how your background fits, send an enquiry so an advisor can discuss your situation."],
   ] },

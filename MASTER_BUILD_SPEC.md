@@ -1,4 +1,4 @@
-# Study Abroad & Visa Agency Management System
+# CheckMyUni — Study Abroad & Visa Agency Management System
 ## Master Build Specification — Final Consolidated Version
 ### Hand this single file to a coding agent to begin implementation. It supersedes all earlier drafts.
 

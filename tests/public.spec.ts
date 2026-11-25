@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Public pages (no auth)", () => {
   test("landing page shows both role cards", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "StudyAbroad Portal" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Welcome. Let’s get you to the right place." })).toBeVisible();
 
     const studentCard = page.getByRole("link", { name: /I am a Student/ });
     const partnerCard = page.getByRole("link", { name: /I am a Partner/ });

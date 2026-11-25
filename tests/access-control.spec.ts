@@ -110,7 +110,7 @@ test.describe("Unauthenticated access control", () => {
     test(`anonymous visit to ${route} is redirected to landing`, async ({ page }) => {
       await page.goto(route);
       await expect(page).toHaveURL(/\/$/);
-      await expect(page.getByRole("heading", { level: 1, name: "StudyAbroad Portal" })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1, name: "Welcome. Let’s get you to the right place." })).toBeVisible();
     });
   }
 

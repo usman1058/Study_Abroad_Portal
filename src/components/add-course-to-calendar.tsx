@@ -25,7 +25,7 @@ export function AddCourseToCalendar({
     const escape = (value: string) => value.replace(/([,;\\])/g, "\\$1").replace(/\r?\n/g, "\\n");
     const events = sessions.map((session) => [
       "BEGIN:VEVENT",
-      `UID:${session.id}@studyabroad`,
+      `UID:${session.id}@checkmyuni.com`,
       `DTSTAMP:${stamp(new Date().toISOString())}`,
       `DTSTART:${stamp(session.startsAt)}`,
       `DTEND:${stamp(session.endsAt)}`,
@@ -33,7 +33,7 @@ export function AddCourseToCalendar({
       `DESCRIPTION:${escape(`${provider} · ${session.timeZone}`)}`,
       "END:VEVENT",
     ].join("\r\n"));
-    const content = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//StudyAbroad Portal//EN", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR"].join("\r\n");
+    const content = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//CheckMyUni Portal//EN", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR"].join("\r\n");
     const url = URL.createObjectURL(new Blob([`${content}\r\n`], { type: "text/calendar;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;

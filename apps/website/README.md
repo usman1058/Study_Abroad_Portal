@@ -1,4 +1,4 @@
-# Public StudyAbroad Website
+# Public CheckMyUni Website
 
 This is the public marketing/catalog website. It runs separately from the portal and consumes only the portal's public program API. Contact form entries are created in the portal Visitor Form queue.
 

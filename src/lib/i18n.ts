@@ -30,7 +30,7 @@ const DICT: Record<string, Record<string, string>> = {
   "Agency": { en: "Agency", ar: "وكالة", zh: "代理机构", fr: "Agence" },
   "Counselor": { en: "Counselor", ar: "مستشار", zh: "顾问", fr: "Conseiller" },
   "Student": { en: "Student", ar: "طالب", zh: "学生", fr: "Étudiant" },
-  "StudyAbroad": { en: "StudyAbroad", ar: "الدراسة بالخارج", zh: "海外留学", fr: "StudyAbroad" },
+  "CheckMyUni": { en: "CheckMyUni", ar: "CheckMyUni", zh: "CheckMyUni", fr: "CheckMyUni" },
   "WhatsApp quick launch": { en: "WhatsApp quick launch", ar: "فتح واتساب", zh: "WhatsApp 快捷方式", fr: "Lancer WhatsApp" },
   "Sign out": { en: "Sign out", ar: "تسجيل الخروج", zh: "退出登录", fr: "Se déconnecter" },
   "Toggle theme": { en: "Toggle theme", ar: "تبديل السمة", zh: "切换主题", fr: "Changer de thème" },

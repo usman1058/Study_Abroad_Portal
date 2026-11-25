@@ -9,9 +9,22 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001"),
-  title: { default: "StudyAbroad — Find your next destination", template: "%s | StudyAbroad" },
-  description: "Explore study programs, compare your options, and get practical support with your study abroad journey.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://checkmyuni.com"),
+  applicationName: "CheckMyUni",
+  title: { default: "CheckMyUni — Find your next destination", template: "%s | CheckMyUni" },
+  description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+  openGraph: {
+    type: "website",
+    siteName: "CheckMyUni",
+    title: "CheckMyUni — Find your next destination",
+    description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+    url: "https://checkmyuni.com",
+  },
+  twitter: {
+    card: "summary",
+    title: "CheckMyUni — Find your next destination",
+    description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+  },
 };
 
 export default function WebsiteLayout({ children }: Readonly<{ children: React.ReactNode }>) {

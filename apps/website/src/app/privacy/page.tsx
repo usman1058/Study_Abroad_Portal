@@ -38,7 +38,7 @@ export default function PrivacyPage() {
     <div className="site-container max-w-4xl">
       <p className="eyebrow">Your information</p>
       <h1 className="mt-3 font-display text-4xl font-extrabold text-navy sm:text-5xl">Privacy notice</h1>
-      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">This notice explains what information is handled when you browse the CheckMyUni website, send an enquiry, or use the StudyAbroad portal.</p>
+      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">This notice explains what information is handled when you browse the CheckMyUni website, send an enquiry, or use the CheckMyUni portal.</p>
       <div className="surface-card mt-10 space-y-8 p-6 sm:p-10">
         {sections.map(({ title, body }) => <section key={title}><h2 className="font-display text-xl font-bold text-navy">{title}</h2><p className="prose-copy mt-2">{body}</p></section>)}
       </div>

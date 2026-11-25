@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ArrowUpRight, GraduationCap, Menu, UserRoundPlus } from "lucide-react";
+import { ArrowUpRight, Menu, UserRoundPlus } from "lucide-react";
 import { portalUrl } from "@/lib/portal";
 
 const navigation = [
@@ -20,10 +21,9 @@ export function SiteHeader() {
     if (menuRef.current) menuRef.current.open = false;
   }, [pathname]);
   return <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-    <div className="site-container flex h-[4.5rem] items-center justify-between gap-4">
-      <Link href="/" aria-label="StudyAbroad home" className="group inline-flex items-center gap-2.5">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-navy text-white shadow-sm transition group-hover:bg-blue"><GraduationCap aria-hidden="true" className="h-5 w-5" /></span>
-        <span className="font-display text-[1.12rem] font-extrabold tracking-tight text-navy">StudyAbroad<span className="text-blue">.</span></span>
+    <div className="site-container flex h-20 items-center justify-between gap-4">
+      <Link href="/" aria-label="CheckMyUni home" className="group inline-flex shrink-0 items-center">
+        <Image src="/checkmyuni-logo.png" alt="" aria-hidden="true" width={100} height={75} priority className="h-auto w-[6.25rem] rounded-md bg-white transition group-hover:shadow-md" />
       </Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
         {navigation.map((item) => {

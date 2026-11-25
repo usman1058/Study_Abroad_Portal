@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
  * actions, and message bodies are never written to application logs.
  */
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "StudyAbroad Portal";
+const APP_NAME = "CheckMyUni Portal";
 
 function appUrl(): string {
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";

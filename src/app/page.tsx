@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BriefcaseBusiness, GraduationCap, ShieldCheck } from "lucide-react";
 import { currentUser } from "@/lib/session";
@@ -41,8 +42,8 @@ export default async function LandingPage() {
           </Link>
         </div>
         <header className="portal-enter mx-auto max-w-3xl text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-600/20"><GraduationCap aria-hidden="true" className="h-7 w-7" /></span>
-          <p className="mt-5 text-xs font-extrabold uppercase tracking-[.18em] text-brand-700">StudyAbroad portal</p>
+          <Image src="/checkmyuni-logo.png" alt="CheckMyUni" width={176} height={132} priority className="mx-auto h-auto w-44 rounded-xl bg-white shadow-lg shadow-brand-600/20 ring-1 ring-black/5" />
+          <p className="mt-5 text-xs font-extrabold uppercase tracking-[.18em] text-brand-700">CheckMyUni Portal</p>
           <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-navy-950 sm:text-5xl">Welcome. Let’s get you to the right place.</h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-ink-muted sm:text-lg">Choose how you’ll use the portal. New users can create an account from the matching option.</p>
         </header>

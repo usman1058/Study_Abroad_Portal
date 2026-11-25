@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { signOut } from "next-auth/react";
 import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, Menu } from "lucide-react";
 import { useTheme, useLang } from "@/components/providers";
@@ -45,8 +46,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
           className="flex min-w-0 items-center gap-2.5"
           aria-label="Home"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">SA</span>
-          <span className="hidden truncate font-display text-base font-semibold text-navy-900 dark:text-white sm:block">{t("StudyAbroad")}</span>
+          <Image src="/checkmyuni-logo.png" alt="" aria-hidden="true" width={76} height={57} priority className="h-auto w-[4.75rem] shrink-0 rounded-md bg-white" />
         </Link></div>
 
       <div className="flex items-center gap-2">

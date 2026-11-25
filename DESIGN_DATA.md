@@ -1,4 +1,4 @@
-# StudyAbroad Portal — Design Data
+# CheckMyUni Portal — Design Data
 
 ## Overview
 
@@ -76,8 +76,8 @@ A Next.js application for managing study abroad applications. Two user types: **
 **File:** `src/app/page.tsx`
 
 **Sections:**
-- Hero with "SA" logo badge
-- "StudyAbroad Portal" heading
+- Hero with CheckMyUni logo
+- "Welcome. Let’s get you to the right place." heading
 - "Are you a student or a partner?" subtitle
 - Two cards side by side (Student / Partner)
 

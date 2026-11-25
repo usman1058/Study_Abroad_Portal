@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of use",
-  description: "Terms for using the CheckMyUni website and StudyAbroad portal.",
+  description: "Terms for using the CheckMyUni website and portal.",
 };
 
 const sections = [
@@ -38,7 +38,7 @@ export default function TermsPage() {
     <div className="site-container max-w-4xl">
       <p className="eyebrow">Legal information</p>
       <h1 className="mt-3 font-display text-4xl font-extrabold text-navy sm:text-5xl">Terms of use</h1>
-      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">These terms cover use of the CheckMyUni public website and its connected StudyAbroad portal.</p>
+      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">These terms cover use of the CheckMyUni public website and its connected portal.</p>
       <div className="surface-card mt-10 space-y-8 p-6 sm:p-10">
         {sections.map(({ title, body }) => <section key={title}><h2 className="font-display text-xl font-bold text-navy">{title}</h2><p className="prose-copy mt-2">{body}</p></section>)}
       </div>
