@@ -25,7 +25,7 @@ export function SiteHeader() {
       <Link href="/" aria-label="CheckMyUni home" className="group inline-flex shrink-0 items-center rounded-md focus-visible:outline-offset-4">
         <Image src="/checkmyuni-full-logo.png" alt="" aria-hidden="true" width={128} height={95} priority unoptimized className="block h-auto w-24 shrink-0 sm:w-28 lg:w-32" />
       </Link>
-      <nav aria-label="Main navigation" className="hidden items-center gap-5 xl:gap-7 lg:flex">
+      <nav aria-label="Main navigation" className="hidden items-center gap-3 xl:gap-5 lg:flex">
         {navigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`site-nav-link rounded-md px-1 ${active ? "is-active" : ""}`}>{item.label}</Link>;
@@ -40,9 +40,9 @@ export function SiteHeader() {
         <nav aria-label="Mobile navigation" className="site-nav-menu-panel absolute right-0 top-14 flex w-72 flex-col gap-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
           {navigation.map((item) => {
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center rounded-xl px-3 text-base font-semibold transition hover:bg-blue-soft hover:text-blue ${active ? "bg-blue-soft text-blue" : "text-slate-700"}`}>{item.label}</Link>;
+            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} className={`flex min-h-12 items-center rounded-xl px-3 text-[1.0625rem] font-bold transition hover:bg-blue-soft hover:text-blue ${active ? "bg-blue-soft text-blue" : "text-slate-700"}`}>{item.label}</Link>;
           })}
-          <Link href={portalUrl("/")} className="flex min-h-12 items-center rounded-xl px-3 text-base font-semibold text-slate-700 transition hover:bg-blue-soft">Access portal</Link>
+          <Link href={portalUrl("/")} className="flex min-h-12 items-center rounded-xl px-3 text-[1.0625rem] font-bold text-slate-700 transition hover:bg-blue-soft">Access portal</Link>
           <Link href="/get-started" className="btn-primary mt-2 min-h-12"><UserRoundPlus className="h-4 w-4" />Create account</Link>
           <Link href="/contact" className="btn-secondary mt-1 min-h-12">Talk to an advisor <ArrowUpRight className="h-4 w-4" /></Link>
         </nav>
