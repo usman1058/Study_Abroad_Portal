@@ -20,7 +20,7 @@ export function SiteHeader() {
   useEffect(() => {
     if (menuRef.current) menuRef.current.open = false;
   }, [pathname]);
-  return <header className="relative sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-[0_8px_28px_rgba(25,48,95,0.06)] backdrop-blur-xl after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-gradient-to-r after:from-[#315bd5] after:via-[#5960d1] after:to-[#7050c8] after:content-['']">
+  return <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-[0_8px_28px_rgba(25,48,95,0.06)] backdrop-blur-xl">
     <div className="site-container flex h-20 items-center justify-between gap-3 sm:h-24 lg:h-28">
       <Link href="/" aria-label="CheckMyUni home" className="group inline-flex shrink-0 items-center rounded-md focus-visible:outline-offset-4">
         <Image src="/checkmyuni-full-logo.png" alt="" aria-hidden="true" width={128} height={95} priority unoptimized className="block h-auto w-24 shrink-0 sm:w-28 lg:w-32" />
