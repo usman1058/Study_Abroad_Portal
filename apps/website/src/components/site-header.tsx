@@ -21,9 +21,9 @@ export function SiteHeader() {
     if (menuRef.current) menuRef.current.open = false;
   }, [pathname]);
   return <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-    <div className="site-container flex h-20 items-center justify-between gap-3 sm:h-24 lg:h-28">
+    <div className="site-container flex h-24 items-center justify-between gap-3 sm:h-28 lg:h-32">
       <Link href="/" aria-label="CheckMyUni home" className="group inline-flex shrink-0 items-center">
-        <Image src="/checkmyuni-logo.png" alt="" aria-hidden="true" width={144} height={107} priority className="h-auto w-24 shrink-0 transition sm:w-28 lg:w-36" />
+        <Image src="/checkmyuni-full-logo.png" alt="" aria-hidden="true" width={144} height={107} priority unoptimized className="block h-auto w-28 shrink-0 sm:w-32 lg:w-36" />
       </Link>
       <nav aria-label="Main navigation" className="hidden items-center gap-6 lg:flex">
         {navigation.map((item) => {

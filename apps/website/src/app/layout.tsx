@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 
 export default function WebsiteLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const structuredData = [
-    { "@context": "https://schema.org", "@type": "Organization", name: "CheckMyUni", url: "https://checkmyuni.com", logo: "https://checkmyuni.com/checkmyuni-logo.png" },
+    { "@context": "https://schema.org", "@type": "Organization", name: "CheckMyUni", url: "https://checkmyuni.com", logo: "https://checkmyuni.com/checkmyuni-full-logo.png" },
     { "@context": "https://schema.org", "@type": "WebSite", name: "CheckMyUni", url: "https://checkmyuni.com", potentialAction: { "@type": "SearchAction", target: "https://checkmyuni.com/applications?q={search_term_string}", "query-input": "required name=search_term_string" } },
   ];
   return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body>
