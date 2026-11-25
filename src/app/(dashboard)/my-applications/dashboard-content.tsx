@@ -49,7 +49,7 @@ export async function StudentDashboardContent() {
   const maxMonthly = Math.max(1, ...monthlyApplications);
 
   return <div className="space-y-6">
-    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 px-5 py-6 text-white shadow-lg sm:px-7 sm:py-8">
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#211744] via-[#37318c] to-[#315ebd] px-5 py-6 text-white shadow-lg sm:px-7 sm:py-8">
       <div aria-hidden="true" className="absolute right-0 top-0 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="flex items-center gap-2 text-sm font-semibold text-brand-200"><Sparkles className="h-4 w-4" /> Student workspace</p><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Welcome, {user.name.split(" ")[0]}</h1><p className="mt-2 max-w-xl text-sm leading-6 text-navy-100">Your courses, documents, announcements, and support in one place.</p></div><div className="flex flex-wrap gap-2"><Link href="/scholarships" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm hover:bg-brand-50"><GraduationCap className="h-4 w-4" /> Explore scholarships</Link><Link href="/messages" className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/20"><MessageSquare className="h-4 w-4" /> Contact support</Link></div></div>
     </section>

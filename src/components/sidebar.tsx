@@ -83,11 +83,11 @@ export function Sidebar({
   return (
     <>
       {mobileOpen && <button type="button" className="fixed inset-0 z-40 bg-navy-950/50 lg:hidden" onClick={onClose} aria-label="Close navigation" />}
-      <aside aria-label="Main navigation" className={cn("fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col border-r border-navy-800 bg-navy-900 transition-[transform,width] duration-200 lg:z-40 lg:translate-x-0", collapsed ? "lg:w-16" : "lg:w-60", mobileOpen && "translate-x-0")}>
-      <div className="relative flex h-16 items-center border-b border-navy-800"><Link href={role === "STUDENT" ? "/student-home" : "/home"} onClick={onClose} className={cn("flex h-full flex-1 items-center gap-3 px-4 transition hover:bg-white/5", collapsed && "lg:justify-center lg:px-0")}>
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-sm">SA</span>
-        <span className={cn("min-w-0", collapsed && "lg:hidden")}><span className="block truncate font-display text-sm font-bold text-white">{t("StudyAbroad")}</span><span className="block truncate text-[11px] font-medium text-navy-300">{isPartner ? "Partner workspace" : "Student workspace"}</span></span>
-      </Link>{onToggleCollapsed && <button type="button" onClick={onToggleCollapsed} className="absolute -right-3 top-5 hidden h-6 w-6 items-center justify-center rounded-full border border-navy-700 bg-navy-900 text-navy-300 shadow-sm hover:bg-navy-800 hover:text-white lg:flex" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}</button>}</div>
+      <aside aria-label="Main navigation" className={cn("fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col border-r border-line bg-gradient-to-b from-white via-[#f8f9ff] to-[#eaf0ff] transition-[transform,width] duration-200 dark:border-navy-800 dark:from-[#111429] dark:via-[#171c3b] dark:to-[#202a54] lg:z-40 lg:translate-x-0", collapsed ? "lg:w-16" : "lg:w-60", mobileOpen && "translate-x-0")}>
+      <div className="relative flex h-16 items-center border-b border-line dark:border-navy-800"><Link href={role === "STUDENT" ? "/student-home" : "/home"} onClick={onClose} className={cn("flex h-full flex-1 items-center gap-3 px-4 transition hover:bg-brand-50/80 dark:hover:bg-white/5", collapsed && "lg:justify-center lg:px-0")}>
+        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-700 to-blue-700 text-sm font-bold text-white shadow-sm">SA</span>
+        <span className={cn("min-w-0", collapsed && "lg:hidden")}><span className="block truncate font-display text-sm font-bold text-navy-900 dark:text-white">{t("StudyAbroad")}</span><span className="block truncate text-[11px] font-medium text-ink-muted dark:text-navy-200">{isPartner ? "Partner workspace" : "Student workspace"}</span></span>
+      </Link>{onToggleCollapsed && <button type="button" onClick={onToggleCollapsed} className="absolute -right-3 top-5 hidden h-6 w-6 items-center justify-center rounded-full border border-line-strong bg-white text-navy-700 shadow-sm hover:bg-brand-50 hover:text-brand-800 dark:border-navy-600 dark:bg-navy-800 dark:text-navy-200 dark:hover:bg-navy-700 dark:hover:text-white lg:flex" aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}>{collapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}</button>}</div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {sections.map((section) => {
@@ -104,8 +104,8 @@ export function Sidebar({
                 "flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition",
                 collapsed && "lg:justify-center lg:px-2",
                 active
-                  ? "bg-brand-600 text-white shadow-sm"
-                  : "text-navy-200 hover:bg-white/5 hover:text-white"
+                  ? "bg-gradient-to-r from-[#5b3aab] to-[#354dc3] text-white shadow-sm shadow-blue-950/15"
+                  : "text-navy-700 hover:bg-brand-50 hover:text-brand-900 dark:text-navy-200 dark:hover:bg-white/10 dark:hover:text-white"
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -115,24 +115,24 @@ export function Sidebar({
         })}
       </nav>
 
-      <div className={cn("border-t border-navy-800 p-3", collapsed && "lg:px-2")}>
+      <div className={cn("border-t border-line p-3 dark:border-navy-800", collapsed && "lg:px-2")}>
         {role !== "STUDENT" && whatsappNumber && (
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("StudyAbroad Portal")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={cn("mb-2 flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-white/5 hover:text-emerald-200", collapsed && "lg:justify-center lg:px-2")}
+            className={cn("mb-2 flex min-h-11 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 hover:text-emerald-950 dark:text-emerald-300 dark:hover:bg-white/5 dark:hover:text-emerald-200", collapsed && "lg:justify-center lg:px-2")}
             aria-label={t("WhatsApp quick launch")}
           >
             <MessageCircle className="h-4 w-4" />
             <span className={cn(collapsed && "lg:hidden")}>{t("WhatsApp quick launch")}</span>
           </a>
         )}
-        <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2", collapsed && "lg:justify-center lg:px-2")}>
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-navy-700 text-xs font-bold text-white">
+        <div className={cn("flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#17213e] to-[#314783] px-3 py-2.5 text-white shadow-sm dark:from-[#29214f] dark:to-[#263f80]", collapsed && "lg:justify-center lg:px-2")}>
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#8b6ce0] to-[#3d69d8] text-xs font-bold text-white ring-1 ring-white/30">
             {userName?.[0]?.toUpperCase() ?? "?"}
           </span>
-          <span className={cn("truncate text-xs text-navy-300", collapsed && "lg:hidden")}>
+          <span className={cn("truncate text-xs font-medium text-white/95", collapsed && "lg:hidden")}>
             {userName} · {t(ROLE_LABELS[role])}
           </span>
         </div>

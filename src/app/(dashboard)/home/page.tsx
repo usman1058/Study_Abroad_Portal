@@ -87,7 +87,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-navy-900 via-navy-800 to-brand-700 text-white shadow-lg shadow-navy-900/20">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#211744] via-[#37318c] to-[#315ebd] text-white shadow-lg shadow-navy-900/20">
         <div className="relative p-5 sm:p-7">
           <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
