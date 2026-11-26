@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatUploadSizeMB, UPLOAD_SIZE_OPTIONS_MB } from "@/lib/upload-limits";
 
 type Settings = { bankName: string; accountName: string; accountNumber: string; iban: string; bankInstructions: string; whatsappNumber: string; maxUploadSizeMB: number };
 const blank: Settings = { bankName: "", accountName: "", accountNumber: "", iban: "", bankInstructions: "", whatsappNumber: "", maxUploadSizeMB: 3 };
 
 export function PortalSettingsForm({ initial }: { initial: Settings }) {
+  const router = useRouter();
   const [form, setForm] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -20,6 +22,7 @@ export function PortalSettingsForm({ initial }: { initial: Settings }) {
       if (!response.ok) { setMessage(result.error ?? "Could not save settings."); return; }
       setForm(result.data); setMessage("Portal settings saved.");
       window.dispatchEvent(new Event("portal-contact-settings-updated"));
+      router.refresh();
     } catch { setMessage("Network error. Please retry."); } finally { setBusy(false); }
   }
   return <form onSubmit={save} className="space-y-4">

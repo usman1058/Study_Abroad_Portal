@@ -74,9 +74,23 @@ export function Sidebar({
   const { t } = useLang();
   const [whatsappNumber, setWhatsappNumber] = useState("");
   useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/portal-settings", { signal: controller.signal }).then((response) => response.json()).then((json) => setWhatsappNumber(json?.data?.whatsappNumber ?? "")).catch(() => {});
-    return () => controller.abort();
+    let active = true;
+    const refreshWhatsApp = () => {
+      fetch("/api/portal-settings", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((json) => {
+          if (active) setWhatsappNumber((json?.data?.whatsappNumber ?? "").replace(/\D/g, ""));
+        })
+        .catch(() => { if (active) setWhatsappNumber(""); });
+    };
+    refreshWhatsApp();
+    window.addEventListener("focus", refreshWhatsApp);
+    window.addEventListener("portal-contact-settings-updated", refreshWhatsApp);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshWhatsApp);
+      window.removeEventListener("portal-contact-settings-updated", refreshWhatsApp);
+    };
   }, []);
 
   const isPartner = role !== "STUDENT";

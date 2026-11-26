@@ -17,7 +17,7 @@ export async function GET() {
     }
     details.whatsappNumber = rows.find((row) => row.key === "whatsappNumber")?.value ?? "";
     details.maxUploadSizeMB = parseUploadSizeMB(rows.find((row) => row.key === "maxUploadSizeMB")?.value);
-    return ok(details);
+    return ok(details, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return serverError(error); }
 }
 
@@ -38,6 +38,9 @@ export async function PUT(request: NextRequest) {
       prisma.portalSetting.upsert({ where: { key: "whatsappNumber" }, create: { key: "whatsappNumber", value: whatsapp }, update: { value: whatsapp } }),
       prisma.portalSetting.upsert({ where: { key: "maxUploadSizeMB" }, create: { key: "maxUploadSizeMB", value: String(body.maxUploadSizeMB) }, update: { value: String(body.maxUploadSizeMB) } }),
     ]);
-    return ok({ ...payment, whatsappNumber: whatsapp, maxUploadSizeMB: body.maxUploadSizeMB });
+    const savedWhatsApp = await prisma.portalSetting.findUnique({ where: { key: "whatsappNumber" }, select: { value: true } });
+    const savedWhatsAppNumber = savedWhatsApp?.value ?? "";
+    if (savedWhatsAppNumber !== whatsapp) return fail("Settings could not be confirmed as saved. Please try again.", 500);
+    return ok({ ...payment, whatsappNumber: savedWhatsAppNumber, maxUploadSizeMB: body.maxUploadSizeMB }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return serverError(error); }
 }
