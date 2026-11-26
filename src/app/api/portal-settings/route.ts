@@ -26,21 +26,39 @@ export async function PUT(request: NextRequest) {
     const { error, user } = await requireUser();
     if (error) return error;
     if (user.role !== "SUPER_ADMIN") return fail("Only an administrator can update portal settings", 403);
-    const body = await request.json();
+    const body: unknown = await request.json();
     const allowed = ["bankName", "accountName", "accountNumber", "iban", "bankInstructions", "whatsappNumber"] as const;
-    if (!body || typeof body !== "object" || allowed.some((key) => typeof body[key] !== "string" || body[key].length > 500)) return fail("Settings contain invalid or overly long values", 422);
-    if (!UPLOAD_SIZE_OPTIONS_MB.includes(body.maxUploadSizeMB)) return fail("Choose a supported maximum upload size", 422);
-    const payment = Object.fromEntries(allowed.filter((key) => key !== "whatsappNumber").map((key) => [key, body[key].trim()]));
-    const whatsapp = body.whatsappNumber.trim().replace(/[\s()+-]/g, "");
+    if (!body || typeof body !== "object" || Array.isArray(body)) return fail("Settings payload is invalid.", 422);
+    const input = body as Record<string, unknown>;
+    const values: Record<(typeof allowed)[number], string> = {
+      bankName: "",
+      accountName: "",
+      accountNumber: "",
+      iban: "",
+      bankInstructions: "",
+      whatsappNumber: "",
+    };
+    for (const key of allowed) {
+      const value = input[key];
+      // Older saved settings may contain nulls. Treat those as empty so an
+      // unrelated optional field cannot prevent the WhatsApp number saving.
+      if (value == null) continue;
+      if (typeof value !== "string") return fail(`The ${key} setting must be text.`, 422);
+      if (value.length > 500) return fail(`The ${key} setting is too long.`, 422);
+      values[key] = value.trim();
+    }
+    if (typeof input.maxUploadSizeMB !== "number" || !UPLOAD_SIZE_OPTIONS_MB.some((value) => value === input.maxUploadSizeMB)) return fail("Choose a supported maximum upload size", 422);
+    const payment = Object.fromEntries(allowed.filter((key) => key !== "whatsappNumber").map((key) => [key, values[key]]));
+    const whatsapp = values.whatsappNumber.replace(/[\s()+-]/g, "");
     if (whatsapp && !/^\d{7,15}$/.test(whatsapp)) return fail("Enter a WhatsApp number with country code, using digits only", 422);
     await prisma.$transaction([
       prisma.portalSetting.upsert({ where: { key: "paymentDetails" }, create: { key: "paymentDetails", value: JSON.stringify(payment) }, update: { value: JSON.stringify(payment) } }),
       prisma.portalSetting.upsert({ where: { key: "whatsappNumber" }, create: { key: "whatsappNumber", value: whatsapp }, update: { value: whatsapp } }),
-      prisma.portalSetting.upsert({ where: { key: "maxUploadSizeMB" }, create: { key: "maxUploadSizeMB", value: String(body.maxUploadSizeMB) }, update: { value: String(body.maxUploadSizeMB) } }),
+      prisma.portalSetting.upsert({ where: { key: "maxUploadSizeMB" }, create: { key: "maxUploadSizeMB", value: String(input.maxUploadSizeMB) }, update: { value: String(input.maxUploadSizeMB) } }),
     ]);
     const savedWhatsApp = await prisma.portalSetting.findUnique({ where: { key: "whatsappNumber" }, select: { value: true } });
     const savedWhatsAppNumber = savedWhatsApp?.value ?? "";
     if (savedWhatsAppNumber !== whatsapp) return fail("Settings could not be confirmed as saved. Please try again.", 500);
-    return ok({ ...payment, whatsappNumber: savedWhatsAppNumber, maxUploadSizeMB: body.maxUploadSizeMB }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+    return ok({ ...payment, whatsappNumber: savedWhatsAppNumber, maxUploadSizeMB: input.maxUploadSizeMB }, { headers: { "Cache-Control": "no-store, max-age=0" } });
   } catch (error) { return serverError(error); }
 }

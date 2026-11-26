@@ -7,12 +7,24 @@ import { formatUploadSizeMB, UPLOAD_SIZE_OPTIONS_MB } from "@/lib/upload-limits"
 type Settings = { bankName: string; accountName: string; accountNumber: string; iban: string; bankInstructions: string; whatsappNumber: string; maxUploadSizeMB: number };
 const blank: Settings = { bankName: "", accountName: "", accountNumber: "", iban: "", bankInstructions: "", whatsappNumber: "", maxUploadSizeMB: 3 };
 
+function normalizeSettings(value: Partial<Settings> | null | undefined): Settings {
+  return {
+    bankName: typeof value?.bankName === "string" ? value.bankName : "",
+    accountName: typeof value?.accountName === "string" ? value.accountName : "",
+    accountNumber: typeof value?.accountNumber === "string" ? value.accountNumber : "",
+    iban: typeof value?.iban === "string" ? value.iban : "",
+    bankInstructions: typeof value?.bankInstructions === "string" ? value.bankInstructions : "",
+    whatsappNumber: typeof value?.whatsappNumber === "string" ? value.whatsappNumber : "",
+    maxUploadSizeMB: typeof value?.maxUploadSizeMB === "number" ? value.maxUploadSizeMB : blank.maxUploadSizeMB,
+  };
+}
+
 export function PortalSettingsForm({ initial }: { initial: Settings }) {
   const router = useRouter();
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState(() => normalizeSettings(initial));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  useEffect(() => setForm(initial), [initial]);
+  useEffect(() => setForm(normalizeSettings(initial)), [initial]);
   function change(key: keyof Settings, value: string | number) { setForm((current) => ({ ...current, [key]: value })); }
   async function save(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setMessage("");
@@ -20,7 +32,7 @@ export function PortalSettingsForm({ initial }: { initial: Settings }) {
       const response = await fetch("/api/portal-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) { setMessage(result.error ?? "Could not save settings."); return; }
-      setForm(result.data); setMessage("Portal settings saved.");
+      setForm(normalizeSettings(result.data)); setMessage("Portal settings saved.");
       window.dispatchEvent(new Event("portal-contact-settings-updated"));
       router.refresh();
     } catch { setMessage("Network error. Please retry."); } finally { setBusy(false); }
