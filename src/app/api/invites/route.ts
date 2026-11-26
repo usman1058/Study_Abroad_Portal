@@ -11,6 +11,7 @@ import { emailField, futureExpiry, requiredName } from "@/lib/validation";
 import { roleOptionLabel } from "@/lib/constants";
 import { sendAccountInvitationEmail, sendStaffNewStudentEmail } from "@/lib/mail";
 import { getStudentSupportRecipients } from "@/lib/student-notifications";
+import { portalBaseUrl } from "@/lib/portal-url";
 
 const accountInviteSchema = z.object({
   email: emailField(),
@@ -34,7 +35,7 @@ function allowedInviteRoles(role: Role): Role[] {
 }
 
 function baseUrl(): string {
-  return (process.env.NEXT_PUBLIC_BASE_URL ?? process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  return portalBaseUrl();
 }
 
 export async function POST(req: NextRequest) {

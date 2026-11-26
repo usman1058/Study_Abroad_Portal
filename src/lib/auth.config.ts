@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { credentialVersion } from "@/lib/session-version";
+import { portalBaseUrl } from "@/lib/portal-url";
 
 /** Distinguishes "password is fine but the account is not usable yet" from bad credentials. */
 class PendingApproval extends CredentialsSignin {
@@ -60,6 +61,22 @@ export const authConfig = {
     }),
   ],
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      const requestHostIsVercel = new URL(baseUrl).hostname.toLowerCase().endsWith(".vercel.app");
+      const canonicalBase = process.env.NODE_ENV === "production" || requestHostIsVercel ? portalBaseUrl() : baseUrl;
+      const allowedOrigins = new Set([
+        canonicalBase,
+        "https://portal.checkmyuni.com",
+        "https://checkmyuni.com",
+        "https://www.checkmyuni.com",
+      ]);
+      try {
+        const target = new URL(url, canonicalBase);
+        return allowedOrigins.has(target.origin) ? target.toString() : `${canonicalBase}/`;
+      } catch {
+        return `${canonicalBase}/`;
+      }
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

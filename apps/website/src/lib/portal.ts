@@ -30,11 +30,27 @@ export type ProgramListing = {
 };
 
 function apiBase() {
-  return (process.env.PORTAL_API_BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production") return "https://portal.checkmyuni.com";
+  const candidate = process.env.PORTAL_API_BASE_URL;
+  if (candidate) {
+    try {
+      const url = new URL(candidate);
+      if (!url.hostname.toLowerCase().endsWith(".vercel.app")) return url.origin;
+    } catch { /* use the local portal */ }
+  }
+  return "http://localhost:3000";
 }
 
 export function portalUrl(path = "") {
-  return `${(process.env.NEXT_PUBLIC_PORTAL_URL || "http://localhost:3000").replace(/\/$/, "")}${path}`;
+  let origin = "http://localhost:3000";
+  if (process.env.NODE_ENV === "production") origin = "https://portal.checkmyuni.com";
+  else if (process.env.NEXT_PUBLIC_PORTAL_URL) {
+    try {
+      const url = new URL(process.env.NEXT_PUBLIC_PORTAL_URL);
+      if (!url.hostname.toLowerCase().endsWith(".vercel.app")) origin = url.origin;
+    } catch { /* use the local portal */ }
+  }
+  return `${origin}${path}`;
 }
 
 export async function getWhatsAppNumber(): Promise<string> {

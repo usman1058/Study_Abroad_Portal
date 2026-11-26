@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { portalBaseUrl } from "@/lib/portal-url";
 
 /** Transactional email prefers the configured CheckMyUni mailbox via SMTP.
  * Resend remains an optional HTTPS fallback. Email failures never block account
@@ -7,11 +8,21 @@ import nodemailer from "nodemailer";
 
 const APP_NAME = "CheckMyUni Portal";
 const COMPANY_NAME = "CheckMyUni";
-const WEBSITE_URL = (process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://checkmyuni.com").replace(/\/+$/, "");
+const WEBSITE_URL = process.env.NODE_ENV === "production"
+  ? "https://checkmyuni.com"
+  : (() => {
+      const configured = process.env.NEXT_PUBLIC_WEBSITE_URL;
+      if (!configured) return "https://checkmyuni.com";
+      try {
+        const url = new URL(configured);
+        return url.hostname.toLowerCase().endsWith(".vercel.app") ? "https://checkmyuni.com" : url.origin;
+      } catch {
+        return "https://checkmyuni.com";
+      }
+    })();
 
 function appUrl(): string {
-  const base = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.AUTH_URL ?? "http://localhost:3000";
-  return base.replace(/\/+$/, "");
+  return portalBaseUrl();
 }
 
 async function sendMail(to: string, subject: string, text: string, html: string): Promise<"sent" | "logged"> {
