@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
 import { DocumentGroups } from "@/components/document-groups";
+import { DocumentThumbnail } from "@/components/document-thumbnail";
 
 export const metadata = { title: "Documents" };
 
@@ -38,6 +39,7 @@ const documentInclude = {
       rejectionReason: true,
       expiresAt: true,
       uploadedAt: true,
+      verifiedBy: { select: { firstName: true, lastName: true } },
       application: { include: { program: true } },
     },
     orderBy: { uploadedAt: "desc" as const },
@@ -259,14 +261,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
             }
           >
-            {status === "pending" ? "Pending" : status === "verified" ? "Verified" : "Rejected"}
+            {status === "pending" ? "Needs review" : status === "verified" ? "Approved history" : "Rejected"}
           </Link>
         ))}
       </div>
 
       {(user.role === "SUPER_ADMIN" || user.role === "MANAGER") && (
         <PartnerDocumentReview agencies={await prisma.user.findMany({
-          where: { role: "AGENCY", status: "pending", partnerDocuments: { some: {} } },
+          // Retain verified/rejected files in this review history after portal approval.
+          where: { role: "AGENCY", partnerDocuments: { some: {} } },
           orderBy: { createdAt: "asc" },
           select: {
             id: true,
@@ -276,7 +279,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             companyName: true,
             partnerDocuments: {
               orderBy: { uploadedAt: "asc" },
-              select: { id: true, type: true, originalName: true, status: true, uploadedAt: true },
+              select: { id: true, type: true, originalName: true, status: true, uploadedAt: true, verifiedBy: { select: { firstName: true, lastName: true } } },
             },
           },
         })} onlyStatus={docsFilter} />
@@ -321,6 +324,7 @@ function DocumentGroup({
       rejectionReason: string | null;
       expiresAt: Date | null;
       uploadedAt: Date;
+      verifiedBy: { firstName: string; lastName: string } | null;
       application: { program: { name: string } } | null;
     }>;
     assignedCounselor?: { firstName: string; lastName: string } | null;
@@ -406,6 +410,7 @@ function PartnerDocumentReview({
       originalName: string;
       status: "PENDING" | "VERIFIED" | "REJECTED";
       uploadedAt: Date;
+      verifiedBy: { firstName: string; lastName: string } | null;
     }>;
   }>;
   onlyStatus: string;
@@ -428,29 +433,35 @@ function PartnerDocumentReview({
       {filtered.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-sm text-ink-muted">No partner documents match this filter.</CardContent></Card>
       ) : filtered.map((agency) => (
-        <Card key={agency.id}>
+        <details key={agency.id} className="group rounded-xl border border-line bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
+          <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500">
+            <span className="min-w-0"><span className="block font-semibold">{agency.companyName || fullName(agency)}</span><span className="block truncate text-xs text-ink-muted">{agency.partnerDocuments.length} file{agency.partnerDocuments.length === 1 ? "" : "s"} · {agency.partnerDocuments.filter((document) => document.status === "PENDING").length} pending review</span></span>
+            <span aria-hidden="true" className="shrink-0 text-ink-muted transition group-open:rotate-180">⌄</span>
+          </summary>
+          <Card className="border-0 shadow-none">
           <CardHeader>
-            <CardTitle>{agency.companyName || fullName(agency)}<span className="ml-2 text-xs font-normal text-ink-muted">{agency.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{agency.partnerDocuments.length} verified</span></CardTitle>
+            <CardTitle>{agency.companyName || fullName(agency)}<span className="ml-2 text-xs font-normal text-ink-muted">{agency.partnerDocuments.filter((document) => document.status === "VERIFIED").length}/{agency.partnerDocuments.length} approved</span></CardTitle>
             <p className="text-xs text-ink-muted">{fullName(agency)} · {agency.email} · ID {agency.id}</p>
           </CardHeader>
           <CardContent>
             <ul className="divide-y divide-line dark:divide-navy-700">
               {agency.partnerDocuments.map((document) => (
-                <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{humanize(document.type)}</p>
-                    <p className="truncate text-xs text-ink-muted">{document.originalName} · uploaded {formatDate(document.uploadedAt)}</p>
-                    <a href={`/api/partner-documents/${document.id}`} target="_blank" rel="noreferrer" className="inline-flex min-h-6 items-center text-xs text-brand-600 hover:underline">Open file</a>
+                <li key={document.id} className="flex items-center gap-3 py-2.5">
+                  <DocumentThumbnail href={`/api/partner-documents/${document.id}`} label={document.originalName} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><p className="text-sm font-medium">{humanize(document.type)}</p><Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>{humanize(document.status)}</Badge></div>
+                    <p className="truncate text-xs text-ink-muted" title={document.originalName}>{document.originalName} · {formatDate(document.uploadedAt)}</p>
+                    {document.status === "VERIFIED" && document.verifiedBy && <p className="text-xs text-emerald-700 dark:text-emerald-300">Approved by {fullName(document.verifiedBy)}</p>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={document.status === "VERIFIED" ? "green" : document.status === "REJECTED" ? "red" : "amber"}>{humanize(document.status)}</Badge>
                     {document.status === "PENDING" && <VerifyPartnerDocument documentId={document.id} />}
                   </div>
                 </li>
               ))}
             </ul>
           </CardContent>
-        </Card>
+          </Card>
+        </details>
       ))}
     </section>
   );

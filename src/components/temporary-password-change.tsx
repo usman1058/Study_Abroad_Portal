@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,6 @@ import { PasswordChecklist, isStrongPassword } from "@/components/password-check
 import { Button } from "@/components/ui/button";
 
 export function TemporaryPasswordChange({ email, homeHref }: { email: string; homeHref: string }) {
-  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -44,12 +42,14 @@ export function TemporaryPasswordChange({ email, homeHref }: { email: string; ho
       }
 
       const login = await signIn("credentials", { email, password: newPassword, redirect: false });
-      if (login?.error) {
+      if (!login?.ok || login.error) {
         setError("Your password was changed. Sign in again with your new password to continue.");
         return;
       }
-      router.replace(homeHref);
-      router.refresh();
+      // The dashboard layout and forced-change modal can remain mounted across
+      // client navigation. Reload with the refreshed auth cookie so the server
+      // reads mustChangePassword=false and releases the protected routes.
+      window.location.replace(homeHref);
     } catch {
       setError("Network error. Please try again.");
     } finally {

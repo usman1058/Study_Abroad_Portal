@@ -14,7 +14,8 @@ export default async function PartnerLoginPage({ searchParams }: { searchParams:
   return (
     <AuthShell
       title="Partner Login"
-      subtitle="Agency staff and counselors. Sign in with your approved account."
+      subtitle="Sign in to your institution or partner workspace. Use an account approved by CheckMyUni."
+      wide
       footer={
         <>
           No account yet?{" "}
