@@ -19,6 +19,7 @@ export function PortalSettingsForm({ initial }: { initial: Settings }) {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) { setMessage(result.error ?? "Could not save settings."); return; }
       setForm(result.data); setMessage("Portal settings saved.");
+      window.dispatchEvent(new Event("portal-contact-settings-updated"));
     } catch { setMessage("Network error. Please retry."); } finally { setBusy(false); }
   }
   return <form onSubmit={save} className="space-y-4">

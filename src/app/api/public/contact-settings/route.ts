@@ -6,7 +6,7 @@ export async function GET() {
     const setting = await prisma.portalSetting.findUnique({ where: { key: "whatsappNumber" }, select: { value: true } });
     const whatsappNumber = (setting?.value ?? "").replace(/\D/g, "");
     return Response.json({ whatsappNumber: /^\d{7,15}$/.test(whatsappNumber) ? whatsappNumber : "" }, {
-      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" },
+      headers: { "Cache-Control": "no-store, max-age=0" },
     });
   } catch {
     return Response.json({ whatsappNumber: "" }, { status: 200, headers: { "Cache-Control": "no-store" } });
