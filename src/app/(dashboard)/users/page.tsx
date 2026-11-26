@@ -53,7 +53,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const visibleUsers = await prisma.user.findMany({ where: listWhere, include: { partnerDocuments: { select: { type: true, status: true } } }, orderBy: [{ role: "asc" }, { firstName: "asc" }, { lastName: "asc" }], skip: (requestedPage - 1) * USER_PAGE_SIZE, take: USER_PAGE_SIZE });
   // Only students, super admins and managers have a detail page for non-student
   // accounts (for example an agency's application officer).
-  const canOpenDetail = (role: string) => role === "STUDENT" || user.role === "SUPER_ADMIN" || user.role === "MANAGER";
+  const canOpenDetail = (role: string) => role === "STUDENT" || user.role === "SUPER_ADMIN" || user.role === "MANAGER" || (user.role === "AGENCY" && role === "COUNSELOR");
   const query = (page?: number) => {
     const next = new URLSearchParams();
     if (q) next.set("q", q);

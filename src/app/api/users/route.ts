@@ -8,7 +8,7 @@ import { logAudit, createNotification } from "@/lib/audit";
 import { parsePaginationParams, buildPaginatedQuery, paginateResults } from "@/lib/pagination";
 import type { Role } from "@/generated/prisma/client";
 import { requiredName, emailField, passwordField, optionalText } from "@/lib/validation";
-import { sendCredentialsEmail, sendOnboardingEmail, sendStaffNewStudentEmail } from "@/lib/mail";
+import { sendCredentialsEmail, sendStaffNewStudentEmail } from "@/lib/mail";
 import { getStudentSupportRecipients } from "@/lib/student-notifications";
 
 const createSchema = z.object({
@@ -120,11 +120,7 @@ export async function POST(req: NextRequest) {
     // The account is active immediately, so send the welcome and the sign-in
     // details straight away. Mail failures are logged and never block creation.
     const name = `${data.firstName} ${data.lastName}`.trim();
-    const roleLabel = created.role === "STUDENT" ? "student" : created.role === "AGENCY" ? "partner agency" : "team";
-    await Promise.all([
-      sendOnboardingEmail(created.email, { name, roleLabel }),
-      sendCredentialsEmail(created.email, { name, email: created.email, password: data.password, student: created.role === "STUDENT", temporary: false }),
-    ]);
+    await sendCredentialsEmail(created.email, { name, email: created.email, password: data.password, student: created.role === "STUDENT", temporary: false });
 
     return ok({ id: created.id }, { status: 201 });
   } catch (e) {

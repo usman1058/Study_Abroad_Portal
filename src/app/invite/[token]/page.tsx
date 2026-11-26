@@ -40,6 +40,13 @@ export default async function InvitePage({ params }: PageProps) {
           <p className="text-sm font-semibold text-brand-600">CheckMyUni account invitation</p>
           <h1 className="mt-2 text-2xl font-bold">Your account is ready</h1>
           <p className="mt-3 text-sm leading-6 text-ink-muted">A team member created a {roleOptionLabel(inviteData.role).toLowerCase()} account for <strong className="break-all text-ink">{inviteData.email}</strong>. Your sign-in details were sent to this email address.</p>
+          <aside aria-label="Required first steps" className="mt-5 rounded-2xl border border-brand-200 bg-gradient-to-r from-blue-50 to-violet-50 p-4 text-left dark:border-brand-700/60 dark:from-blue-950/40 dark:to-violet-950/40">
+            <h2 className="text-sm font-semibold text-ink">Before you continue</h2>
+            <ol className="mt-2 list-inside list-decimal space-y-1.5 text-sm leading-6 text-ink-muted">
+              <li>Sign in with the temporary password from your email. The portal will require you to set a private password first.</li>
+              <li>Complete your profile so your consultant can prepare your applications accurately.</li>
+            </ol>
+          </aside>
           <p className="mt-3 text-xs text-ink-muted">Invitation link expires {formatDate(link.expiresAt)}.</p>
           <Link href={loginPath} className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-gradient-to-r from-[#315ebd] to-[#704cc8] px-6 text-sm font-semibold text-white shadow-md transition hover:brightness-110">Sign in to your account</Link>
           <p className="mt-5 text-xs text-ink-muted">CheckMyUni · Study abroad guidance and student support</p>

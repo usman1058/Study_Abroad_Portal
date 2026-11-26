@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       after: { status: updated.status, role: updated.role },
     });
 
-    if (activating) {
+    if (activating && updated.role === "AGENCY") {
       const name = `${target.firstName} ${target.lastName}`.trim();
       const roleLabel = accountRoleLabel(updated.role);
       await createNotification({
