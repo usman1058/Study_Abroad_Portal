@@ -266,3 +266,14 @@ export async function sendApplicationStatusEmail(to: string, { studentName, appl
     emailHtml({ heading: rejected ? "Your application was rejected" : "Your application has been updated", preheader: `${programName} at ${universityName}: ${statusLabel}.`, body: `<p>Hi ${escapeHtml(studentName)},</p><p>Your application for <strong>${escapeHtml(programName)}</strong> at <strong>${escapeHtml(universityName)}</strong> is now <strong>${escapeHtml(statusLabel.toLowerCase())}</strong>.</p>${rejected ? "<p>Open your application to review its status and contact your counselor or admin for guidance about next steps.</p>" : "<p>Open your application to see the latest status and continue your study-abroad journey.</p>"}<p style="font-size:13px;color:#62647b">Application ID: <strong>${escapeHtml(applicationId)}</strong></p>`, buttonLabel: "View my application", buttonUrl: url }),
   );
 }
+
+export async function sendCountryRequestEmail(to: string, { requesterName, country, reason, requestId }: { requesterName: string; country: string; reason?: string; requestId: string }): Promise<"sent" | "logged"> {
+  const url = `${appUrl()}/settings#country-requests`;
+  return sendMail(to, `Country request for review · ${country}`, [`${requesterName} requested adding ${country} to the working destinations.`, ...(reason ? [`Reason: ${reason}`] : []), `Review: ${url}`, `Request ID: ${requestId}`, `— ${COMPANY_NAME}`].join("\n"), emailHtml({ heading: "A destination country needs review", preheader: `${requesterName} requested ${country}.`, body: `<p><strong>${escapeHtml(requesterName)}</strong> requested adding <strong>${escapeHtml(country)}</strong> to the working destinations.</p>${reason ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>` : ""}<p>Review the request in portal settings. Approval will make the country available in university and destination selectors.</p>`, buttonLabel: "Review request", buttonUrl: url }));
+}
+
+export async function sendCountryRequestDecisionEmail(to: string, { country, status, note }: { country: string; status: "APPROVED" | "REJECTED"; note?: string }): Promise<"sent" | "logged"> {
+  const url = `${appUrl()}/settings#country-requests`;
+  const approved = status === "APPROVED";
+  return sendMail(to, `Country request ${approved ? "approved" : "declined"} · ${country}`, [`Your request to add ${country} was ${approved ? "approved" : "declined"}.`, ...(note ? [`Admin note: ${note}`] : []), `Open settings: ${url}`, `— ${COMPANY_NAME}`].join("\n"), emailHtml({ heading: `Country request ${approved ? "approved" : "declined"}`, preheader: `${country} was ${approved ? "added to" : "not added to"} working destinations.`, body: `<p>Your request to add <strong>${escapeHtml(country)}</strong> was ${approved ? "approved and the destination is now available" : "declined"}.</p>${note ? `<p><strong>Admin note:</strong> ${escapeHtml(note)}</p>` : ""}`, buttonLabel: "Open settings", buttonUrl: url }));
+}

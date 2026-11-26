@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Download, MessageCircle, ExternalLink } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { CompareCourses } from "@/components/compare-courses";
 import { ShortlistRowActions } from "@/components/shortlist-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
+import { ShortlistShareButton } from "@/components/shortlist-share-button";
 
 export const metadata = { title: "My shortlist" };
 
@@ -39,15 +40,6 @@ export default async function MyShortlistPage() {
   const items = shortlist?.items ?? [];
   // Sharing the authenticated /my-shortlist URL only ever shows the recipient a
   // login screen, so share the courses themselves instead.
-  const shareText = [
-    "My study-abroad shortlist",
-    ...items.map((it, index) => {
-      const p = it.program;
-      const university = p.university?.name ?? "Unknown university";
-      return `${index + 1}. ${university} — ${p.name} (${formatCurrency(p.tuitionFee)})`;
-    }),
-  ].join("\n");
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -67,14 +59,7 @@ export default async function MyShortlistPage() {
             >
               <Download className="h-4 w-4" aria-hidden="true" /> Download shortlist PDF
             </a>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden="true" /> Share on WhatsApp
-            </a>
+            <ShortlistShareButton items={items.map((item) => ({ university: item.program.university?.name ?? "Unknown university", name: item.program.name, tuitionMYR: Number(item.program.tuitionFee) }))} />
           </div>
         )}
       </div>

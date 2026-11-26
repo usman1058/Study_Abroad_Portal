@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/lib/utils";
+import { FeeDisplay } from "@/components/currency";
 
 type CompareItem = {
   id: string;
@@ -140,11 +140,11 @@ export function CompareCourses({ items }: { items: CompareItem[] }) {
                 <tbody className="divide-y divide-line dark:divide-navy-700">
                   <tr>
                     <th scope="row" className="p-2 text-left font-normal text-ink-muted">Tuition</th>
-                    {chosen.map((c) => <td key={c.id} className="p-2">{formatCurrency(c.tuition)}</td>)}
+                    {chosen.map((c) => <td key={c.id} className="p-2"><FeeDisplay amount={c.tuition} /></td>)}
                   </tr>
                   <tr>
                     <th scope="row" className="p-2 text-left font-normal text-ink-muted">Application fee</th>
-                    {chosen.map((c) => <td key={c.id} className="p-2">{c.applicationFee != null ? formatCurrency(c.applicationFee) : "—"}</td>)}
+                    {chosen.map((c) => <td key={c.id} className="p-2">{c.applicationFee != null ? <FeeDisplay amount={c.applicationFee} /> : "—"}</td>)}
                   </tr>
                   <tr>
                     <th scope="row" className="p-2 text-left font-normal text-ink-muted">Duration</th>

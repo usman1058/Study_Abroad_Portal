@@ -11,6 +11,7 @@ import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PROGRAM_LEVELS, programLevelLabel } from "@/lib/constants";
+import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Search" };
 
@@ -49,11 +50,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
       orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
       take: RESULT_LIMIT,
     }),
-    prisma.university.findMany({
-      select: { country: true },
-      distinct: ["country"],
-      orderBy: { country: "asc" },
-    }),
+    getWorkingCountries(),
   ]);
 
   const hasFilters = Boolean(q || country || level);
@@ -91,7 +88,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
           <Select id="search-country" name="country" defaultValue={country}>
             <option value="">All countries</option>
             {countries.map((c) => (
-              <option key={c.country} value={c.country}>{c.country}</option>
+              <option key={c} value={c}>{c}</option>
             ))}
           </Select>
         </div>

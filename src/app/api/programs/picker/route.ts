@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { fail, ok, requireUser, serverError } from "@/lib/api";
+import { getWorkingCountries } from "@/lib/working-countries";
 
 /** Hard render cap. The client states it instead of silently truncating. */
 const PICKER_LIMIT = 40;
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
         },
       }),
       prisma.program.count({ where }),
-      prisma.university.findMany({ distinct: ["country"], select: { country: true }, orderBy: { country: "asc" } }),
+      getWorkingCountries(),
       prisma.university.findMany({
         where: { city: { not: null } },
         distinct: ["city"],
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest) {
       total,
       truncated: total > PICKER_LIMIT,
       facets: {
-        countries: countryRows.map((row) => row.country).filter(Boolean),
+        countries: countryRows,
         cities: cityRows.map((row) => row.city).filter(Boolean) as string[],
         levels: levelRows.map((row) => row.level).filter(Boolean),
         fields: fieldRows.map((row) => row.field).filter(Boolean),

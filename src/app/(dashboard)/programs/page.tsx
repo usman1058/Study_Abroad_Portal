@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { profileCompleteness } from "@/lib/queries";
@@ -7,6 +8,7 @@ import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/pagination";
 import { ProgramForm } from "@/components/program-form";
+import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Programs" };
 
@@ -48,12 +50,11 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
     take: PAGE_SIZE,
   });
 
-  const universities = await prisma.university.findMany({
+  const [universities, countries] = await Promise.all([prisma.university.findMany({
     orderBy: [{ country: "asc" }, { name: "asc" }],
     include: { _count: { select: { programs: true } } },
-  });
+  }), getWorkingCountries()]);
 
-  const countries = [...new Set(universities.map((u) => u.country).filter((c): c is string => !!c))].sort();
   const cities = [...new Set(universities.map((u) => u.city).filter((c): c is string => !!c))].sort();
 
   const grouped = universities
@@ -154,7 +155,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             ? "No programs match your filters."
             : `${total} program${total === 1 ? "" : "s"}${q || country || city ? " match your filters" : " in the catalog"}`}
         </p></div>
-        {isSuperAdmin && <ProgramForm universities={universityOptions} />}
+        {isSuperAdmin && <div className="flex flex-wrap items-center gap-2"><Link href="/universities" className="inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-white px-3 text-sm font-semibold text-ink hover:bg-canvas-subtle dark:border-navy-700 dark:bg-navy-900 dark:text-slate-100">Manage universities</Link><ProgramForm universities={universityOptions} /></div>}
       </div>
 
       <ProgramsFilter

@@ -1,47 +1,13 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { CURRENCIES, CURRENCY_RATES_TO_MYR, convertAmount } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { Select } from "@/components/ui/select";
-
-// Module-level pub-sub so every FeeDisplay re-renders when CurrencySwitcher changes.
-const currencyListeners = new Set<() => void>();
-const isSupportedCurrency = (value: string | null | undefined): value is string =>
-  Boolean(value && CURRENCIES.includes(value));
-
-function useCurrency(defaultCurrency = "MYR") {
-  const [currency, setCurrency] = useState("MYR");
-  useEffect(() => {
-    const stored = localStorage.getItem("currency");
-    if (isSupportedCurrency(stored)) setCurrency(stored);
-    else if (isSupportedCurrency(defaultCurrency)) setCurrency(defaultCurrency);
-
-    const sync = () => {
-      const storedCurrency = localStorage.getItem("currency");
-      const next = isSupportedCurrency(storedCurrency)
-        ? storedCurrency
-        : isSupportedCurrency(defaultCurrency) ? defaultCurrency : "MYR";
-      setCurrency(next);
-    };
-    currencyListeners.add(sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      currencyListeners.delete(sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, [defaultCurrency]);
-  const apply = (c: string) => {
-    if (!isSupportedCurrency(c)) return;
-    localStorage.setItem("currency", c);
-    setCurrency(c);
-    currencyListeners.forEach((fn) => fn());
-  };
-  return { currency, apply };
-}
+import { usePortalCurrency } from "@/components/currency-provider";
 
 export function FeeDisplay({ amount, baseCurrency = "MYR" }: { amount: number; baseCurrency?: string }) {
-  const { currency } = useCurrency();
+  const { currency } = usePortalCurrency();
   const displayCurrency = CURRENCY_RATES_TO_MYR[baseCurrency] ? currency : baseCurrency;
   const converted = convertAmount(amount, baseCurrency, displayCurrency);
   return (
@@ -52,12 +18,12 @@ export function FeeDisplay({ amount, baseCurrency = "MYR" }: { amount: number; b
 }
 
 export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?: string }) {
-  const { currency, apply } = useCurrency(defaultCurrency);
+  const { currency, setCurrency } = usePortalCurrency(defaultCurrency);
   const [error, setError] = useState<string | null>(null);
   const id = useId();
 
   async function changeCurrency(next: string) {
-    apply(next);
+    setCurrency(next);
     setError(null);
     try {
       const response = await fetch("/api/profile", {

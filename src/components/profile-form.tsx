@@ -98,6 +98,7 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
       }
       if (payload.preferredCurrency) {
         localStorage.setItem("currency", payload.preferredCurrency);
+        localStorage.setItem("currency-source", "manual");
         window.dispatchEvent(new StorageEvent("storage", { key: "currency" }));
       }
       setSaved(true);

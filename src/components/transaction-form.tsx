@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { TRANSACTION_TYPES, CURRENCIES } from "@/lib/constants";
 import { humanize } from "@/lib/utils";
+import { usePortalCurrency } from "@/components/currency-provider";
 
 export function TransactionForm({
   students,
@@ -17,13 +18,14 @@ export function TransactionForm({
   agencies: { id: string; label: string }[];
 }) {
   const router = useRouter();
+  const { currency } = usePortalCurrency();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     type: "SERVICE_FEE",
     amount: "",
-    currency: "MYR",
+    currency,
     relatedStudentId: "",
     relatedAgencyId: "",
     method: "bank_transfer",
@@ -75,7 +77,7 @@ export function TransactionForm({
     }
   }
 
-  if (!open) return <Button onClick={() => setOpen(true)}>+ Add transaction</Button>;
+  if (!open) return <Button onClick={() => { setForm((previous) => ({ ...previous, currency })); setOpen(true); }}>+ Add transaction</Button>;
 
   return (
     <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { serverError } from "@/lib/api";
+import { getWorkingCountries } from "@/lib/working-countries";
 
 const PAGE_SIZE = 12;
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
     const total = await prisma.program.count({ where });
     const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const currentPage = Math.min(page, pageCount);
-    const [programs, universities, levels, fields] = await Promise.all([
+    const [programs, countries, levels, fields] = await Promise.all([
       prisma.program.findMany({
         where,
         orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
           university: { select: { name: true, country: true, city: true, logoUrl: true } },
         },
       }),
-      prisma.university.findMany({ distinct: ["country"], orderBy: { country: "asc" }, select: { country: true } }),
+      getWorkingCountries(),
       prisma.program.findMany({ distinct: ["level"], orderBy: { level: "asc" }, select: { level: true } }),
       prisma.program.findMany({ distinct: ["field"], orderBy: { field: "asc" }, select: { field: true } }),
     ]);
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
     return Response.json({
       programs,
       pagination: { page: currentPage, pageSize: PAGE_SIZE, total, pageCount },
-      filters: { countries: universities.map((item) => item.country), levels: levels.map((item) => item.level), fields: fields.map((item) => item.field) },
+      filters: { countries, levels: levels.map((item) => item.level), fields: fields.map((item) => item.field) },
     }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
   } catch (error) {
     return serverError(error);

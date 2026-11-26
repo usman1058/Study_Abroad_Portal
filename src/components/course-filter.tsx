@@ -11,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
 import { programLevelLabel } from "@/lib/constants";
+import { convertAmount } from "@/lib/constants";
+import { usePortalCurrency } from "@/components/currency-provider";
 
 export type CourseFilters = {
   q?: string;
@@ -32,6 +34,7 @@ export function CourseFilter({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currency } = usePortalCurrency();
   const [isOpen, setIsOpen] = useState(false);
   const [filters, setFilters] = useState<CourseFilters>({
     q: initialFilters.q || "",
@@ -52,8 +55,8 @@ export function CourseFilter({
     if (filters.country && p.country !== filters.country) return false;
     if (filters.level && p.level !== filters.level) return false;
     if (filters.field && p.field !== filters.field) return false;
-    if (filters.minFee && (p.fee || 0) < parseFloat(filters.minFee)) return false;
-    if (filters.maxFee && (p.fee || 0) > parseFloat(filters.maxFee)) return false;
+    if (filters.minFee && (p.fee || 0) < convertAmount(parseFloat(filters.minFee), currency, "MYR")) return false;
+    if (filters.maxFee && (p.fee || 0) > convertAmount(parseFloat(filters.maxFee), currency, "MYR")) return false;
     return true;
   });
 
@@ -136,11 +139,11 @@ export function CourseFilter({
                   </Select>
                 </div>
                 <div>
-                  <Label>Min Fee (MYR)</Label>
+                  <Label>Min Fee ({currency})</Label>
                   <Input type="number" placeholder="Min" value={filters.minFee} onChange={(e) => handleFilterChange("minFee", e.target.value)} />
                 </div>
                 <div>
-                  <Label>Max Fee (MYR)</Label>
+                  <Label>Max Fee ({currency})</Label>
                   <Input type="number" placeholder="Max" value={filters.maxFee} onChange={(e) => handleFilterChange("maxFee", e.target.value)} />
                 </div>
               </div>

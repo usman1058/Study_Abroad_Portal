@@ -81,6 +81,12 @@ enum VisitorLeadStatus {
   CLOSED
 }
 
+enum CountryRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id                String  @id @default(cuid())
   role              Role
@@ -101,6 +107,8 @@ model User {
   createdById  String?
   createdBy    User?   @relation("CreatedUsers", fields: [createdById], references: [id], onDelete: SetNull)
   createdUsers User[]  @relation("CreatedUsers")
+  requestedCountryRequests CountryRequest[] @relation("RequestedCountryRequests")
+  reviewedCountryRequests CountryRequest[] @relation("ReviewedCountryRequests")
 
   // Student-specific fields
   passportNumber     String?
@@ -168,6 +176,23 @@ model University {
   programs Program[]
 
   @@index([country])
+}
+
+model CountryRequest {
+  id           String @id @default(cuid())
+  country      String
+  reason       String?
+  status       CountryRequestStatus @default(PENDING)
+  requesterId  String
+  requester    User @relation("RequestedCountryRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  reviewedById String?
+  reviewedBy   User? @relation("ReviewedCountryRequests", fields: [reviewedById], references: [id], onDelete: SetNull)
+  decisionNote String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requesterId, status])
 }
 
 model Program {

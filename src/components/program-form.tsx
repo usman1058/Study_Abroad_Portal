@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { SearchableSelect } from "@/components/searchable-select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PROGRAM_LEVELS, programLevelLabel } from "@/lib/constants";
+import { convertAmount } from "@/lib/constants";
+import { usePortalCurrency } from "@/components/currency-provider";
 
 type Props = {
   universities: { id: string; name: string; country: string }[];
@@ -37,17 +39,14 @@ type Props = {
 
 export function ProgramForm({ universities, initial }: Props) {
   const router = useRouter();
+  const { currency } = usePortalCurrency();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  // With no university to choose from, the only workable path is the inline
-  // "new university" fields; starting there avoids a submit that cannot pass.
-  const [newUniversity, setNewUniversity] = useState(universities.length === 0);
+  const [feeCurrency, setFeeCurrency] = useState("MYR");
   const [form, setForm] = useState({
     universityId: initial?.universityId ?? universities[0]?.id ?? "",
-    newUniversityName: "",
-    newUniversityCountry: "",
     name: initial?.name ?? "",
     level: initial?.level ?? "undergrad",
     field: initial?.field ?? "",
@@ -67,6 +66,18 @@ export function ProgramForm({ universities, initial }: Props) {
     universityLogoUrl: initial?.universityLogoUrl ?? "",
   });
 
+  useEffect(() => {
+    if (feeCurrency === currency) return;
+    setForm((previous) => {
+      const convertField = (value: string) => {
+        const amount = Number(value);
+        return value && Number.isFinite(amount) ? convertAmount(amount, feeCurrency, currency).toFixed(2) : value;
+      };
+      return { ...previous, tuitionFee: convertField(previous.tuitionFee), applicationFee: convertField(previous.applicationFee) };
+    });
+    setFeeCurrency(currency);
+  }, [currency, feeCurrency]);
+
   function set<K extends keyof typeof form>(k: K, v: string | boolean) {
     setForm((prev) => ({ ...prev, [k]: v }));
   }
@@ -82,7 +93,7 @@ export function ProgramForm({ universities, initial }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const num = parseFloat(form.tuitionFee);
+      const num = convertAmount(parseFloat(form.tuitionFee), feeCurrency, "MYR");
       if (!form.tuitionFee || Number.isNaN(num) || num < 0 || num > 1_000_000_000) {
         setError("Enter a valid tuition fee.");
         return;
@@ -118,8 +129,8 @@ export function ProgramForm({ universities, initial }: Props) {
       }
       const payload = {
         ...form,
-        tuitionFee: parseFloat(form.tuitionFee || "0"),
-        applicationFee: form.applicationFee ? parseFloat(form.applicationFee) : null,
+        tuitionFee: num,
+        applicationFee: form.applicationFee ? convertAmount(parseFloat(form.applicationFee), feeCurrency, "MYR") : null,
         minGpa: form.minGpa ? parseFloat(form.minGpa) : null,
         commissionRate: parseFloat(form.commissionRate || "0"),
         offerTurnaroundDays: form.offerTurnaroundDays ? parseInt(form.offerTurnaroundDays) : null,
@@ -137,7 +148,6 @@ export function ProgramForm({ universities, initial }: Props) {
           .split("\n")
           .map((s) => s.trim())
           .filter(Boolean),
-        newUniversity,
       };
 
       const res = await fetch(initial?.id ? `/api/scholarships/${initial.id}` : "/api/scholarships", {
@@ -189,17 +199,8 @@ export function ProgramForm({ universities, initial }: Props) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label htmlFor={newUniversity ? fieldId("university-name") : fieldId("university")}>University</Label>
-          {newUniversity ? (
-            <div className="space-y-2">
-              <Input id={fieldId("university-name")} placeholder="New university name" value={form.newUniversityName} onChange={(e) => set("newUniversityName", e.target.value)} />
-              <Label htmlFor={fieldId("university-country")}>Country</Label>
-              <Input id={fieldId("university-country")} placeholder="Country" value={form.newUniversityCountry} onChange={(e) => set("newUniversityCountry", e.target.value)} />
-              <button type="button" className="text-xs text-brand-600 hover:underline" onClick={() => setNewUniversity(false)}>
-                Choose existing instead
-              </button>
-            </div>
-          ) : (
+          <Label htmlFor={fieldId("university")}>University</Label>
+          {universities.length ? (
             <SearchableSelect
               options={universities.map((u) => ({ id: u.id, label: `${u.name} (${u.country})` }))}
               value={form.universityId}
@@ -207,12 +208,7 @@ export function ProgramForm({ universities, initial }: Props) {
               placeholder="Search universities…"
               id={fieldId("university")}
             />
-          )}
-          {!newUniversity && (
-            <button type="button" className="mt-1 text-xs text-brand-600 hover:underline" onClick={() => setNewUniversity(true)}>
-              + Add new university
-            </button>
-          )}
+          ) : <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">Add a university in the Universities section before creating a program.</p>}
         </div>
         <div>
           <Label htmlFor={fieldId("university-logo")}>University Logo URL</Label>
@@ -246,11 +242,11 @@ export function ProgramForm({ universities, initial }: Props) {
           <Input id={fieldId("location")} maxLength={160} value={form.location} onChange={(e) => set("location", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor={fieldId("tuition-fee")}>Tuition fee (MYR)</Label>
+          <Label htmlFor={fieldId("tuition-fee")}>Tuition fee ({feeCurrency})</Label>
           <Input id={fieldId("tuition-fee")} type="number" step="0.01" required value={form.tuitionFee} onChange={(e) => set("tuitionFee", e.target.value)} />
         </div>
         <div>
-          <Label htmlFor={fieldId("application-fee")}>Application fee (MYR)</Label>
+          <Label htmlFor={fieldId("application-fee")}>Application fee ({feeCurrency})</Label>
           <Input id={fieldId("application-fee")} type="number" step="0.01" value={form.applicationFee} onChange={(e) => set("applicationFee", e.target.value)} />
         </div>
         <div>

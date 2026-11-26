@@ -8,10 +8,11 @@ import { VerifyDocument } from "@/components/verify-document";
 import { MessageForm } from "@/components/message-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatCurrency, toNum, fullName, humanize } from "@/lib/utils";
+import { formatDate, toNum, fullName, humanize } from "@/lib/utils";
 import { APPLICATION_STAGES, DOCUMENT_STATUS_LABELS, programLevelLabel } from "@/lib/constants";
 import type { ApplicationStage, DocumentStatus } from "@/generated/prisma/client";
 import { hasVerifiedRequiredDocuments } from "@/lib/application-stages";
+import { FeeDisplay } from "@/components/currency";
 
 export const metadata = { title: "Application Detail" };
 
@@ -183,7 +184,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-muted">Tuition</dt>
-                  <dd className="text-right">{formatCurrency(toNum(application.program.tuitionFee))}</dd>
+                  <dd className="text-right"><FeeDisplay amount={toNum(application.program.tuitionFee)} /></dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-muted">Visa required</dt>

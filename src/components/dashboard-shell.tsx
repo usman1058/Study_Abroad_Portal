@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import { TemporaryPasswordChange } from "@/components/temporary-password-change";
 import { PortalFooter } from "@/components/portal-footer";
+import { PortalCurrencyProvider } from "@/components/currency-provider";
 
 export function DashboardShell({ children, sections, role, userName, userEmail, preferredCurrency, mustChangePassword = false }: {
   children: ReactNode;
@@ -21,6 +22,7 @@ export function DashboardShell({ children, sections, role, userName, userEmail, 
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   return (
+    <PortalCurrencyProvider initialCurrency={preferredCurrency}>
     <div className="min-h-svh bg-canvas dark:bg-navy-950">
       <Sidebar sections={sections} role={role} userName={userName} mobileOpen={navigationOpen} onClose={() => setNavigationOpen(false)} collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)} />
       <div className={cn("flex min-h-svh min-w-0 flex-col transition-[padding] duration-200", sidebarCollapsed ? "lg:pl-16" : "lg:pl-60")}>
@@ -30,5 +32,6 @@ export function DashboardShell({ children, sections, role, userName, userEmail, 
       </div>
       {mustChangePassword && <TemporaryPasswordChange email={userEmail} homeHref={role === "STUDENT" ? "/student-home" : "/home"} />}
     </div>
+    </PortalCurrencyProvider>
   );
 }

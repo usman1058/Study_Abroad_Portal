@@ -5,6 +5,7 @@ import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Scholarships" };
 
@@ -24,7 +25,7 @@ export default async function ScholarshipsPage({ searchParams }: { searchParams:
     orderBy: [{ university: { name: "asc" } }, { name: "asc" }],
     take: 100,
   });
-  const countries = [...new Set(programs.map((p) => p.university.country))].sort();
+  const countries = await getWorkingCountries();
   return <div className="space-y-6">
     <header className="rounded-2xl bg-gradient-to-r from-navy-900 to-brand-700 p-6 text-white shadow-sm">
       <div className="flex items-center gap-3"><GraduationCap className="h-8 w-8" /><div><h1 className="text-2xl font-bold">Scholarships & study opportunities</h1><p className="mt-1 text-sm text-blue-100">Search funding and study options by course, field, or university. Open an offer to see the university and application details.</p></div></div>

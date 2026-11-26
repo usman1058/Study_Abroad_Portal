@@ -9,7 +9,9 @@ import { ProgramPicker } from "@/components/program-picker";
 import { Field } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
+import { convertAmount } from "@/lib/constants";
 import { humanize } from "@/lib/utils";
+import { usePortalCurrency } from "@/components/currency-provider";
 
 type Props = {
   initial?: {
@@ -35,6 +37,7 @@ type Props = {
 
 export function ShortCourseForm({ initial }: Props) {
   const router = useRouter();
+  const { currency } = usePortalCurrency();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const wasOpen = useRef(false);
@@ -42,6 +45,7 @@ export function ShortCourseForm({ initial }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [feeCurrency, setFeeCurrency] = useState("MYR");
   const [form, setForm] = useState({
     title: initial?.title ?? "",
     provider: initial?.provider ?? "",
@@ -59,6 +63,20 @@ export function ShortCourseForm({ initial }: Props) {
     bankDetails: initial?.bankDetails ?? "",
     status: initial?.status ?? "draft",
   });
+
+  useEffect(() => {
+    if (feeCurrency === currency) return;
+    setForm((previous) => {
+      const amount = Number(previous.fee);
+      return {
+        ...previous,
+        fee: previous.fee && Number.isFinite(amount)
+          ? convertAmount(amount, feeCurrency, currency).toFixed(2)
+          : previous.fee,
+      };
+    });
+    setFeeCurrency(currency);
+  }, [currency, feeCurrency]);
 
   useEffect(() => {
     if (open) {
@@ -82,7 +100,8 @@ export function ShortCourseForm({ initial }: Props) {
     setLoading(true);
     try {
       const feeNum = parseFloat(form.fee || "0");
-      if (Number.isNaN(feeNum) || feeNum < 0 || feeNum > 10_000_000) {
+      const feeInMYR = convertAmount(feeNum, feeCurrency, "MYR");
+      if (Number.isNaN(feeInMYR) || feeInMYR < 0 || feeInMYR > 10_000_000) {
         setError("Enter a valid course fee.");
         return;
       }
@@ -102,7 +121,7 @@ export function ShortCourseForm({ initial }: Props) {
         classSchedule: form.classSchedule.trim() || null,
         prerequisites: form.prerequisites.trim() || null,
         description: form.description.trim() || null,
-        fee: feeNum,
+        fee: feeInMYR,
         startDates: form.startDates
           .split(",")
           .map((s) => s.trim())
@@ -164,7 +183,7 @@ export function ShortCourseForm({ initial }: Props) {
         <Field label="Duration">
           <Input maxLength={80} value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="6 weeks" />
         </Field>
-        <Field label="Fee (MYR)" hint="MYR is the stored payment amount. Other currencies are indicative display conversions.">
+        <Field label={`Fee (${feeCurrency})`} hint="Enter this fee in your selected currency. It is converted to MYR for consistent storage and payment records.">
           <Input type="number" min="0" step="0.01" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </Field>
         <Field label="Payment Type">

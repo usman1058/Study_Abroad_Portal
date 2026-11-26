@@ -26,6 +26,7 @@ import {
   User,
   Settings,
   Globe, PanelLeftClose, PanelLeftOpen,
+  Building2,
   MessageCircle,
   Megaphone,
   type LucideIcon,
@@ -59,6 +60,7 @@ const ICONS: Record<string, LucideIcon> = {
   user: User,
   settings: Settings,
   globe: Globe,
+  building: Building2,
 };
 
 export function Sidebar({

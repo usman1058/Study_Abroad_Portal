@@ -10,10 +10,7 @@ const idFieldMax = z.string().trim().min(1).max(64);
 const tagList = z.array(z.string().trim().min(1).max(40)).max(10).default([]);
 
 const programSchema = z.object({
-  universityId: idFieldMax.optional(),
-  newUniversity: z.boolean().optional(),
-  newUniversityName: optionalText(160),
-  newUniversityCountry: optionalText(80),
+  universityId: idFieldMax,
   name: requiredName(200),
   level: requiredName(50),
   field: z.string().trim().max(120).default(""),
@@ -33,21 +30,6 @@ const programSchema = z.object({
   universityLogoUrl: optionalText(500),
 });
 
-async function resolveUniversity(data: z.infer<typeof programSchema>) {
-  if (data.newUniversity && data.newUniversityName) {
-    const u = await prisma.university.create({
-      data: { name: data.newUniversityName, country: data.newUniversityCountry || "Unknown" },
-    });
-    return u.id;
-  }
-  if (data.universityId) {
-    const university = await prisma.university.findUnique({ where: { id: data.universityId }, select: { id: true } });
-    if (university) return university.id;
-    return null;
-  }
-  return null;
-}
-
 export async function POST(req: NextRequest) {
   try {
     const { error, user } = await requireUser();
@@ -56,16 +38,18 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const parsed = programSchema.safeParse(body);
-    if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input", 422);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      const field = issue?.path.join(".");
+      return fail(issue ? `${field ? `${field}: ` : ""}${issue.message}` : "Program details are invalid.", 422);
+    }
 
     const data = parsed.data;
-    const universityId = await resolveUniversity(data);
-    if (!universityId) return fail("A valid university is required", 422);
+    const university = await prisma.university.findUnique({ where: { id: data.universityId }, select: { id: true, name: true } });
+    if (!university) return fail("Choose an existing university before creating the program.", 422);
+    const universityId = university.id;
 
-    const universityName =
-      data.newUniversity && data.newUniversityName
-        ? data.newUniversityName
-        : ((await prisma.university.findUnique({ where: { id: universityId }, select: { name: true } }))?.name ?? "University");
+    const universityName = university.name;
     const slug = await makeProgramSlug(universityName, data.name);
 
     const program = await prisma.program.create({
