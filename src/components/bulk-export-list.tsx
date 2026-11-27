@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, FileDown, Plus } from "lucide-react";
+import { ExternalLink, FileDown, Plus, ChartNoAxesColumnIncreasing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FeeDisplay } from "@/components/currency";
 import { ApplyButton } from "@/components/apply-button";
-import { ProgramDetailDialog } from "@/components/program-detail-dialog";
+import { FallbackLogo } from "@/components/fallback-logo";
 import { ProgramForm } from "@/components/program-form";
 import { DeleteButton } from "@/components/delete-button";
 import { formatDate } from "@/lib/utils";
 import { programLevelLabel } from "@/lib/constants";
 
-/** Everything `ProgramDetailDialog` and `ProgramForm` need for one row. */
+/** Everything the program list and editor need for one row. */
 export type BulkProgramDetail = {
   id: string;
   slug: string | null;
@@ -191,9 +191,7 @@ export function BulkExportList({
           <CardContent className="p-0">
             <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4 dark:border-navy-700">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-lg font-bold text-brand-700 dark:bg-brand-900/40 dark:text-brand-200">
-                  {universityName[0]}
-                </span>
+                <FallbackLogo src={programs[0]?.detail?.universityLogoUrl ?? programs[0]?.detail?.university?.logoUrl} alt={`${universityName} logo`} className="h-11 w-11 shrink-0 rounded-lg border border-line bg-white object-contain p-1 dark:border-navy-700" />
                 <div className="min-w-0">
                   <h2 className="truncate font-semibold">{universityName}</h2>
                   <p className="truncate text-xs text-ink-muted">{city}, {country}</p>
@@ -220,17 +218,9 @@ export function BulkExportList({
                     />
                   </label>
                   <div className="min-w-0 flex-1">
-                    {viewer === "student" ? (
-                      <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:text-brand-600 hover:underline">
-                        {p.name}
-                      </Link>
-                    ) : canViewAnalytics ? (
-                      <Link href={`/programs/${p.id}/analytics`} className="inline-flex min-h-6 items-center font-medium hover:text-brand-600 hover:underline">
-                        {p.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium">{p.name}</span>
-                    )}
+                    <Link href={`/programs/${p.id}`} className="inline-flex min-h-9 items-center font-semibold text-ink hover:text-brand-700 hover:underline dark:text-slate-100 dark:hover:text-brand-300">
+                      {p.name}
+                    </Link>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                       <Badge tone="slate">{programLevelLabel(p.level)}</Badge>
                       <span>{p.field}</span>
@@ -247,14 +237,17 @@ export function BulkExportList({
                         <Link
                           href={`/scholarships/${p.slug ?? p.id}`}
                           aria-label={`View ${p.name}`}
-                          className="inline-flex min-h-6 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/40"
+                          className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300 dark:hover:bg-brand-900/40"
                         >
                           <ExternalLink aria-hidden className="h-3 w-3" /> View
                         </Link>
                       </>
                     ) : (
                       <>
-                        {p.detail && <ProgramDetailDialog program={p.detail} />}
+                        <Link href={`/programs/${p.id}`} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-line-strong px-3 py-1.5 text-sm font-semibold hover:bg-canvas-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-navy-700 dark:hover:bg-navy-800">
+                          <ExternalLink aria-hidden className="h-4 w-4" /> Details
+                        </Link>
+                        {canViewAnalytics && <Link href={`/programs/${p.id}/analytics`} aria-label={`View analytics for ${p.name}`} className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300 dark:hover:bg-brand-900/30"><ChartNoAxesColumnIncreasing aria-hidden className="h-4 w-4" /> Analytics</Link>}
                         {canManage && p.detail && (
                           <>
                             <ProgramForm

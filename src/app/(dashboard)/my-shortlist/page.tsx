@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { ShortlistShareButton } from "@/components/shortlist-share-button";
+import { FallbackLogo } from "@/components/fallback-logo";
 
 export const metadata = { title: "My shortlist" };
 
@@ -176,13 +177,7 @@ export default async function MyShortlistPage() {
                           <td className="p-4 text-ink-muted">{idx + 1}</td>
                           <td className="p-4">
                             <div className="flex items-center gap-3">
-                              {p.universityLogoUrl && (
-                                <img
-                                  src={p.universityLogoUrl}
-                                  alt={`${university} logo`}
-                                  className="h-9 w-9 shrink-0 rounded-lg object-cover bg-canvas-subtle dark:bg-navy-800"
-                                />
-                              )}
+                              <FallbackLogo src={p.universityLogoUrl ?? p.university?.logoUrl} alt={`${university} logo`} className="h-9 w-9 shrink-0 rounded-lg border border-line bg-white object-contain p-1 dark:border-navy-700" />
                               <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                                 {university}
                               </Link>

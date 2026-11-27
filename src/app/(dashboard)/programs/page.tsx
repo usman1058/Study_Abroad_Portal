@@ -12,7 +12,7 @@ import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Programs" };
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 6;
 const MAX_PAGE = 1000;
 
 type SearchParams = Promise<{ q?: string; country?: string; city?: string; page?: string }>;
@@ -145,7 +145,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h1 className="text-2xl font-bold">Programs</h1>
         <p className="text-sm text-ink-muted">
-          Browse every program, grouped by university and city.
+          Browse programs grouped by university and city. Six programs are shown at a time; use pagination to continue.
           {isStudent
             ? " Tick courses to build a shareable PDF shortlist, or apply directly."
             : " Tick programs to download their details together in one PDF."}
