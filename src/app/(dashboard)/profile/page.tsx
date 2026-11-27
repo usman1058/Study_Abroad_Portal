@@ -44,17 +44,18 @@ export default async function ProfilePage() {
   });
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Profile</h1>
-        <p className="text-sm text-ink-muted">
+    <div className="mx-auto w-full max-w-6xl space-y-7">
+      <header className="rounded-2xl border border-line bg-gradient-to-br from-white via-white to-blue-50/70 p-6 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:via-navy-900 dark:to-indigo-950/40 sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700 dark:text-blue-300">Account workspace</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Profile</h1>
+        <p className="mt-2 text-sm text-ink-muted sm:text-base">
           Manage your details. {me.firstName} {me.lastName} · {me.email}
         </p>
-      </div>
+      </header>
 
       {user.role === "STUDENT" && (
         <Card>
-          <CardContent className="p-5">
+          <CardContent className="p-6 sm:p-7">
             <div className="mb-2 flex items-center justify-between gap-2 text-sm">
               <span id="completeness-label" className="font-medium">
                 Profile completeness
@@ -87,10 +88,11 @@ export default async function ProfilePage() {
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Edit profile</CardTitle>
+        <CardHeader className="p-6 pb-0 sm:p-7 sm:pb-0">
+          <CardTitle className="text-xl">Your information</CardTitle>
+          <p className="mt-1 text-sm text-ink-muted">Keep these details current so your applications and account records stay accurate.</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6 sm:p-7">
           <ProfileForm role={user.role} initial={fieldToInput(me as unknown as Record<string, unknown>)} />
         </CardContent>
       </Card>

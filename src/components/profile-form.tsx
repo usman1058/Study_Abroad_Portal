@@ -114,7 +114,7 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
   const errorSummary = Object.values(errors);
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-6">
+    <form onSubmit={submit} noValidate className="space-y-6 sm:space-y-7">
       {errorSummary.length > 0 && (
         <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">
           <p className="font-medium">Please fix {errorSummary.length === 1 ? "this field" : "these fields"}:</p>
@@ -136,9 +136,9 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
         </p>
       )}
 
-      <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold">Personal details</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <fieldset className="rounded-2xl border border-line bg-gradient-to-br from-white to-slate-50/70 p-5 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:to-navy-800/70 sm:p-6">
+        <legend className="px-2 text-base font-semibold">Personal details</legend>
+        <div className="grid gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
           <Field label="Title">
             <Select value={form.userTitle ?? ""} onChange={(e) => set("userTitle", e.target.value)} autoComplete="honorific-prefix">
               <option value="">None</option>
@@ -192,9 +192,9 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
         </div>
       </fieldset>
 
-      <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold">Contact details</legend>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <fieldset className="rounded-2xl border border-line bg-gradient-to-br from-white to-blue-50/60 p-5 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:to-blue-950/30 sm:p-6">
+        <legend className="px-2 text-base font-semibold">Contact details</legend>
+        <div className="grid gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
           <Field label="Phone" error={errors.phone} hint="Include the country code, for example +60 12 345 6789.">
             <Input
               id="phone"
@@ -233,9 +233,9 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
 
       {student && (
         <>
-          <fieldset className="space-y-4">
-            <legend className="text-sm font-semibold">Study documents</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <fieldset className="rounded-2xl border border-line bg-gradient-to-br from-white to-violet-50/50 p-5 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:to-violet-950/20 sm:p-6">
+            <legend className="px-2 text-base font-semibold">Study details</legend>
+            <div className="grid gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
               <Field label="Passport number">
                 <Input
                   value={form.passportNumber ?? ""}
@@ -278,9 +278,9 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
             </div>
           </fieldset>
 
-          <fieldset className="space-y-4">
-            <legend className="text-sm font-semibold">Family</legend>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <fieldset className="rounded-2xl border border-line bg-gradient-to-br from-white to-slate-50/70 p-5 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:to-navy-800/70 sm:p-6">
+            <legend className="px-2 text-base font-semibold">Family</legend>
+            <div className="grid gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
               <Field label="Mother’s name">
                 <Input value={form.motherName ?? ""} onChange={(e) => set("motherName", e.target.value)} maxLength={80} />
               </Field>
@@ -293,9 +293,9 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
       )}
 
       {!student && (
-        <fieldset className="space-y-4">
-          <legend className="text-sm font-semibold">Agency details</legend>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset className="rounded-2xl border border-line bg-gradient-to-br from-white to-violet-50/50 p-5 shadow-sm dark:border-navy-700 dark:from-navy-900 dark:to-violet-950/20 sm:p-6">
+          <legend className="px-2 text-base font-semibold">Agency details</legend>
+          <div className="grid gap-x-6 gap-y-5 pt-2 sm:grid-cols-2">
             <Field label="Company name">
               <Input
                 value={form.companyName ?? ""}
@@ -315,7 +315,7 @@ export function ProfileForm({ role, initial }: { role: Role; initial: Record<str
         </fieldset>
       )}
 
-      <div className="flex items-center gap-3">
+      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:px-4 dark:border-navy-700 dark:bg-navy-900/95">
         <Button type="submit" disabled={busy}>
           {busy ? "Saving…" : "Save profile"}
         </Button>

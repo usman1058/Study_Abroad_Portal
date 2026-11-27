@@ -81,11 +81,7 @@ export default async function HomePage() {
     { href: "/short-courses", label: "Short courses", detail: "Course catalog", icon: BookOpen },
   ];
 
-  // Keep a rail only when there is something to show. Admins can manage an
-  // empty announcement area below the dashboard without squeezing the panels.
-  const showAdRail = advertisements.some((ad) =>
-    ad.active && (!ad.startsAt || ad.startsAt <= now) && (!ad.endsAt || ad.endsAt >= now),
-  );
+  const showUpdatesPanel = user.role === "SUPER_ADMIN" || advertisements.length > 0;
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -106,15 +102,23 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <MetricCard label="Applications in progress" value={appsInProgress} hint="Across your accessible students" icon={ClipboardList} tone="brand" href="/application" />
-        <MetricCard label="Pending documents" value={pendingDocs} hint="Needs verification" icon={FileCheck2} tone="amber" href="/documents" />
-        <MetricCard label="New leads" value={leadsThisWeek} hint="Created in the last 7 days" icon={Users} tone="indigo" href={canManageUsers ? "/users" : null} />
-        <MetricCard label="Visa-stage cases" value={visaApps} hint="Ready for attention" icon={GraduationCap} tone="violet" href="/application" />
+      <section aria-label="Dashboard overview" className={`grid grid-cols-1 items-start gap-5 xl:gap-6 ${showUpdatesPanel ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}`}>
+        <div className="min-w-0 space-y-5">
+          <section aria-labelledby="dashboard-metrics-heading" className="space-y-3">
+            <h2 id="dashboard-metrics-heading" className="text-lg font-bold tracking-tight">At a glance</h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <MetricCard label="Applications in progress" value={appsInProgress} hint="Across your accessible students" icon={ClipboardList} tone="brand" href="/application" />
+              <MetricCard label="Pending documents" value={pendingDocs} hint="Needs verification" icon={FileCheck2} tone="amber" href="/documents" />
+              <MetricCard label="New leads" value={leadsThisWeek} hint="Created in the last 7 days" icon={Users} tone="indigo" href={canManageUsers ? "/users" : null} />
+              <MetricCard label="Visa-stage cases" value={visaApps} hint="Ready for attention" icon={GraduationCap} tone="violet" href="/application" />
+            </div>
+          </section>
+          {user.role === "SUPER_ADMIN" && <section aria-labelledby="admin-metrics-heading" className="space-y-3"><h2 id="admin-metrics-heading" className="text-lg font-bold tracking-tight">Administration snapshot</h2><div className="grid grid-cols-2 gap-3 sm:gap-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="indigo" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></div></section>}
+        </div>
+        {showUpdatesPanel && <aside aria-label="Featured updates" className="min-w-0 xl:sticky xl:top-20"><DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></aside>}
       </section>
 
-      <div className={`grid grid-cols-1 gap-6 ${showAdRail ? "2xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}`}>
-        <div className="min-w-0 space-y-7">
+      <div className="space-y-7">
           <section aria-labelledby="admissions-overview-heading" className="space-y-3">
           <h2 id="admissions-overview-heading" className="text-lg font-bold tracking-tight">Admissions overview</h2>
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
@@ -143,12 +147,7 @@ export default async function HomePage() {
           </div>
           </section>
 
-          {user.role === "SUPER_ADMIN" && <section aria-labelledby="admin-metrics-heading" className="space-y-3"><h2 id="admin-metrics-heading" className="text-lg font-bold tracking-tight">Administration snapshot</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="indigo" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></div></section>}
-        </div>
-        <aside className="hidden 2xl:block">{showAdRail && <DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} />}</aside>
       </div>
-
-      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className={showAdRail ? "2xl:hidden" : ""}><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
     </div>
   );
 }
