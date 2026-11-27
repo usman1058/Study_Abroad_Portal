@@ -52,24 +52,6 @@ export function EnrollButton({
   const canWithdraw = state !== "none" && state !== "completed";
   const detailsId = `enroll-details-${shortCourseId}`;
 
-  async function enroll() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/short-courses/${shortCourseId}/enroll`, { method: "POST" });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error ?? "Could not enrol in this course.");
-        return;
-      }
-      router.refresh();
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function withdraw() {
     setBusy(true);
     setError(null);
@@ -112,7 +94,7 @@ export function EnrollButton({
     if (state === "pending_payment") {
       return (
         <Link
-          href={`/short-courses/${shortCourseId}`}
+          href={`/short-courses/${shortCourseId}/enroll/confirmation`}
           className="inline-flex min-h-8 items-center text-xs font-medium text-brand-700 underline dark:text-brand-300"
         >
           Pay and upload your receipt
@@ -125,7 +107,7 @@ export function EnrollButton({
     if (state === "rejected") {
       return (
         <Link
-          href={`/short-courses/${shortCourseId}`}
+          href={`/short-courses/${shortCourseId}/enroll/confirmation`}
           className="inline-flex min-h-8 items-center text-xs font-medium text-red-700 underline dark:text-red-300"
         >
           Receipt rejected — upload a new one
@@ -149,11 +131,7 @@ export function EnrollButton({
     <div className="flex min-w-0 flex-col items-start gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {statusBadge}
-        {state === "none" && (
-          <Button size="sm" variant="primary" onClick={enroll} disabled={busy}>
-            {busy ? "Working…" : enrollLabel}
-          </Button>
-        )}
+        {state === "none" && <Link href={`/short-courses/${shortCourseId}/enroll`} className="inline-flex h-9 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white shadow-sm transition hover:brightness-110">{enrollLabel}</Link>}
         {hasAccess && (
           <Link
             href={`/short-courses/${shortCourseId}`}

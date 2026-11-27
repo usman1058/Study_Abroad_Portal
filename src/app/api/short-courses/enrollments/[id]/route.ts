@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { canAccessStudent } from "@/lib/permissions";
+import { sendShortCourseDecisionEmail } from "@/lib/mail";
 
 const approveSchema = z.object({
   status: z.enum(["enrolled", "rejected"]),
@@ -22,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const enrollment = await prisma.shortCourseEnrollment.findUnique({
       where: { id },
-      include: { student: true },
+      include: { student: true, shortCourse: { select: { title: true } } },
     });
 
     if (!enrollment) return fail("Enrollment not found", 404);
@@ -41,6 +42,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     await logAudit({ actorId: user.id, action: "update", entityType: "ShortCourseEnrollment", entityId: id, after: { status: newStatus } });
+
+    await sendShortCourseDecisionEmail(enrollment.student.email, {
+      studentName: `${enrollment.student.firstName} ${enrollment.student.lastName}`.trim(),
+      courseTitle: enrollment.shortCourse.title,
+      courseId: updated.shortCourseId,
+      approved: newStatus === "enrolled",
+    });
 
     return ok({ id: updated.id, status: updated.status });
   } catch (e) {

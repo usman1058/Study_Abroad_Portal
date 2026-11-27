@@ -15,6 +15,8 @@ import {
 } from "@/lib/storage";
 import { getMaxUploadSizeBytes } from "@/lib/upload-limit-server";
 import { formatUploadSizeMB } from "@/lib/upload-limits";
+import { sendShortCourseReceiptReceivedEmail } from "@/lib/mail";
+import { notifyShortCourseStaff } from "@/lib/short-course-notifications";
 
 const uploadSchema = z.object({
   fileName: z.string().min(1).max(255),
@@ -155,6 +157,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       entityId: updated.id,
       after: { fileName, bytes: dataUrlByteLength(base64), mime },
     });
+
+    const course = await prisma.shortCourse.findUnique({ where: { id }, select: { title: true } });
+    if (course) {
+      await Promise.allSettled([
+        sendShortCourseReceiptReceivedEmail(user.email, { studentName: user.name, courseTitle: course.title, courseId: id, enrollmentId: updated.id }),
+        notifyShortCourseStaff({ studentId: user.id, studentName: user.name, studentEmail: user.email, courseTitle: course.title, courseId: id, enrollmentId: updated.id, receiptUploaded: true }),
+      ]);
+    }
 
     return ok({ id: updated.id }, { status: 201 });
   } catch (e) {

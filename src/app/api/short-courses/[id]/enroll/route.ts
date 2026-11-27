@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { ok, fail, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
 import { deleteObject } from "@/lib/storage";
+import { sendShortCourseEnrollmentEmail } from "@/lib/mail";
+import { notifyShortCourseStaff } from "@/lib/short-course-notifications";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -39,6 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     await logAudit({ actorId: user.id, action: "create", entityType: "ShortCourseEnrollment", entityId: enrollment.id, after: { shortCourseId: id, status: enrollment.status } });
+
+    await Promise.allSettled([
+      sendShortCourseEnrollmentEmail(user.email, { studentName: user.name, courseTitle: course.title, courseId: id, enrollmentId: enrollment.id, status }),
+      notifyShortCourseStaff({ studentId: user.id, studentName: user.name, studentEmail: user.email, courseTitle: course.title, courseId: id, enrollmentId: enrollment.id }),
+    ]);
 
     return ok(enrollment, { status: 201 });
   } catch (e) {

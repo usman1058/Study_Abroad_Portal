@@ -10,9 +10,11 @@ import { Select } from "@/components/ui/select";
 export function ProgramsFilter({
   countries,
   cities,
+  universities,
 }: {
   countries: { value: string; label: string }[];
   cities: { value: string; label: string }[];
+  universities: { value: string; label: string }[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -36,7 +38,7 @@ export function ProgramsFilter({
     apply(next);
   }
 
-  const hasFilters = Boolean(params.get("q") || params.get("country") || params.get("city"));
+  const hasFilters = Boolean(params.get("q") || params.get("country") || params.get("city") || params.get("universityId"));
 
   return (
     <div className="space-y-2">
@@ -45,11 +47,11 @@ export function ProgramsFilter({
           e.preventDefault();
           setParam("q", q.trim());
         }}
-        className="grid gap-3 sm:grid-cols-12"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(14,minmax(0,1fr))]"
         role="search"
         aria-label="Filter programs"
       >
-        <div className="relative sm:col-span-4">
+        <div className="relative sm:col-span-2 lg:col-span-3">
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             name="q"
@@ -62,22 +64,26 @@ export function ProgramsFilter({
             aria-label="Search programs"
           />
         </div>
-        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-2" aria-label="Filter by country">
+        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-1 lg:col-span-2" aria-label="Filter by country">
           <option value="">All countries</option>
           {countries.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </Select>
-        <Select value={params.get("city") ?? ""} onChange={(e) => setParam("city", e.target.value)} className="sm:col-span-2" aria-label="Filter by city">
+        <Select value={params.get("city") ?? ""} onChange={(e) => setParam("city", e.target.value)} className="sm:col-span-1 lg:col-span-2" aria-label="Filter by city">
           <option value="">All cities</option>
           {cities.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </Select>
-        <Select value={params.get("perPage") ?? "6"} onChange={(e) => setParam("perPage", e.target.value)} className="sm:col-span-2" aria-label="Programs per page">
+        <Select value={params.get("universityId") ?? ""} onChange={(e) => setParam("universityId", e.target.value)} className="sm:col-span-2 lg:col-span-3" aria-label="Choose a university">
+          <option value="">All universities</option>
+          {universities.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+        </Select>
+        <Select value={params.get("perPage") ?? "6"} onChange={(e) => setParam("perPage", e.target.value)} className="sm:col-span-1 lg:col-span-2" aria-label="Programs per page">
           {[6, 12, 24, 48].map((size) => <option key={size} value={size}>{size} per page</option>)}
         </Select>
-        <Button type="submit" className="h-10 sm:col-span-2">
+        <Button type="submit" className="h-10 sm:col-span-1 lg:col-span-2">
           Search
         </Button>
       </form>

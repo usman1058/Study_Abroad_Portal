@@ -115,6 +115,14 @@ h2, h3 { line-height: 1.2; }
 
 .portal-enter-delay-1 { animation-delay: .1s; }
 .portal-enter-delay-2 { animation-delay: .2s; }
+.detail-panel {
+  animation: portal-enter .55s cubic-bezier(.2,.75,.25,1) both;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.detail-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(49, 54, 109, .10);
+}
 .portal-main > * { animation: portal-enter .48s cubic-bezier(.2,.75,.25,1) both; }
 .portal-main > * > section { animation: portal-enter .48s cubic-bezier(.2,.75,.25,1) both; }
 .portal-main :where(a, button, input, select, textarea, summary) { scroll-margin-block: 6rem; }
@@ -126,4 +134,6 @@ h2, h3 { line-height: 1.2; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+  .detail-panel { transition: none !important; }
+  .detail-panel:hover { transform: none; }
 }
