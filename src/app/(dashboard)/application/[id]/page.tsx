@@ -90,7 +90,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="min-w-0 space-y-6 lg:col-span-2">
-          <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/80 via-indigo-50/75 to-violet-100/70 shadow-sm dark:border-indigo-800/70 dark:from-indigo-950/60 dark:via-navy-900 dark:to-violet-950/50">
+          <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
             <CardHeader>
               <CardTitle>Pipeline</CardTitle>
             </CardHeader>
@@ -105,7 +105,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          <Card className="detail-panel border-violet-200 bg-gradient-to-br from-violet-100/80 via-white/90 to-indigo-100/75 shadow-sm dark:border-violet-800/70 dark:from-violet-950/50 dark:via-navy-900 dark:to-indigo-950/50">
+          <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
             <CardHeader>
               <CardTitle>
                 Documents
@@ -164,7 +164,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
         </div>
 
         <div className="min-w-0 space-y-6">
-          <Card className="detail-panel border-sky-200 bg-gradient-to-br from-sky-100/80 via-blue-50/80 to-indigo-100/75 shadow-sm dark:border-sky-900/70 dark:from-sky-950/45 dark:via-navy-900 dark:to-indigo-950/50">
+          <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
             <CardHeader>
               <CardTitle>Program details</CardTitle>
             </CardHeader>
@@ -194,7 +194,7 @@ export default async function ApplicationDetailPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/75 via-white/90 to-blue-100/70 shadow-sm dark:border-indigo-800/70 dark:from-indigo-950/50 dark:via-navy-900 dark:to-blue-950/45">
+          <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
             <CardHeader>
               <CardTitle>Message student</CardTitle>
             </CardHeader>

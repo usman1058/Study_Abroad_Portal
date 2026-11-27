@@ -101,7 +101,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-8">
       <nav aria-label="Breadcrumb" className="text-sm text-ink-muted"><Link href="/programs" className="rounded-sm hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Programs</Link><span aria-hidden="true" className="px-2">/</span><span aria-current="page" className="font-medium text-ink dark:text-slate-100">{program.name}</span></nav>
-      <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/75 via-blue-50/80 to-violet-100/70 dark:border-indigo-800/70 dark:from-indigo-950/55 dark:via-navy-900 dark:to-violet-950/45">
+      <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
         <CardContent className="p-5 sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
@@ -159,7 +159,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
 
       {tags.length > 0 && <section aria-label="Program highlights" className="flex flex-wrap gap-2">{tags.map((t) => <Badge key={t} tone={t === "High Placement Rate" ? "green" : t === "Scholarship Available" ? "brand" : t === "MOI Accepted" ? "amber" : "slate"}>{t}</Badge>)}</section>}
 
-      {why.length > 0 && <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/75 via-white/90 to-violet-100/70 dark:border-indigo-800/70 dark:from-indigo-950/55 dark:via-navy-900 dark:to-violet-950/45">
+      {why.length > 0 && <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
         <CardHeader>
           <CardTitle className="text-xl sm:text-2xl">Why {program.university?.name ?? "this university"}?</CardTitle>
         </CardHeader>
@@ -183,7 +183,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
       </Card>}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/75 via-blue-50/80 to-violet-100/70 dark:border-indigo-800/70 dark:from-indigo-950/55 dark:via-navy-900 dark:to-violet-950/45">
+        <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">Course details</CardTitle>
           </CardHeader>
@@ -203,7 +203,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
           </CardContent>
         </Card>
 
-        {(criteria.length > 0 || requiredDocuments.length > 0) && <Card className="detail-panel border-violet-200 bg-gradient-to-br from-violet-100/75 via-indigo-50/80 to-blue-100/70 dark:border-violet-800/70 dark:from-violet-950/50 dark:via-navy-900 dark:to-indigo-950/45">
+        {(criteria.length > 0 || requiredDocuments.length > 0) && <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">Admission requirements</CardTitle>
           </CardHeader>
@@ -228,7 +228,7 @@ export default async function ProgramDetailPage({ params }: PageProps) {
       {scholarshipOffers.length > 0 && <section aria-labelledby="program-scholarships-heading" className="space-y-3"><div><h2 id="program-scholarships-heading" className="text-2xl font-bold">Scholarships for this program</h2><p className="mt-1 text-sm text-ink-muted">Funding opportunities linked to this specific course.</p></div><ul className="grid gap-3 sm:grid-cols-2">{scholarshipOffers.map(({ scholarship }) => <li key={scholarship.slug}><Link href={`/scholarships/${scholarship.slug}`} className="block rounded-xl border border-line p-5 transition hover:border-brand-400 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-navy-700 dark:hover:bg-navy-800"><p className="text-base font-semibold">{scholarship.name}</p><p className="mt-2 text-sm text-ink-muted">{scholarship.awardType === "PERCENTAGE" && scholarship.awardValue != null ? `${scholarship.awardValue.toString()}% tuition award` : scholarship.awardType === "FIXED_AMOUNT" && scholarship.awardValue != null ? `${scholarship.awardCurrency} ${scholarship.awardValue.toString()}` : scholarship.awardType === "FULL_TUITION" ? "Full tuition" : "Scholarship award"}</p>{scholarship.deadline && <p className="mt-2 text-sm text-ink-muted">Deadline {formatDate(scholarship.deadline)}</p>}</Link></li>)}</ul></section>}
 
       {similar.length > 0 && (
-        <Card className="detail-panel border-indigo-200 bg-gradient-to-br from-indigo-100/75 via-white/90 to-violet-100/70 dark:border-indigo-800/70 dark:from-indigo-950/55 dark:via-navy-900 dark:to-violet-950/45">
+        <Card className="detail-panel border-line-strong bg-white shadow-sm dark:border-navy-700 dark:bg-navy-900">
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">Similar courses</CardTitle>
           </CardHeader>
