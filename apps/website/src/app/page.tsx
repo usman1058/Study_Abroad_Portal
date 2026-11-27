@@ -6,7 +6,7 @@ import { ProgramCard } from "@/components/program-card";
 import { AnimatedCount } from "@/components/animated-count";
 import { getPrograms, portalUrl } from "@/lib/portal";
 
-export const metadata = pageMetadata({ title: "Study Abroad Programs", description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.", path: "/", keywords: "study abroad programs, study in Malaysia, university courses" });
+export const metadata = pageMetadata({ title: "CheckMyUni | Study Abroad Programs", description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.", path: "/", keywords: "study abroad programs, study in Malaysia, university courses" });
 
 const steps = [
   { number: "01", title: "Explore your options", body: "Browse real study programs and compare locations, levels, fees, and entry requirements." },
