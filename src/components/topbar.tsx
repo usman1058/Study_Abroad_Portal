@@ -46,7 +46,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
           aria-label="Home"
         >
           <span className="truncate text-xs font-semibold text-navy-800 dark:text-white sm:text-sm">{role === "STUDENT" ? "Student workspace" : "Partner workspace"}</span>
-        </Link><a href="https://checkmyuni.com" title="Go to CheckMyUni home page" aria-label="Go to CheckMyUni home page" className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-line-strong bg-white text-ink-muted transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 sm:w-auto sm:px-3 dark:border-navy-700 dark:bg-navy-900 dark:text-slate-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-white"><House className="h-4 w-4" aria-hidden="true" /><span className="hidden text-xs font-semibold sm:inline">Main website</span></a></div>
+        </Link></div>
 
       <div className="flex items-center gap-2">
         <div className="hidden h-10 items-center xl:flex"><CurrencySwitcher defaultCurrency={preferredCurrency} /></div>
@@ -112,6 +112,9 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
                 <Link href="/settings" onClick={() => setOpenMenu(false)} className="block rounded-md px-3 py-2 text-sm hover:bg-canvas dark:hover:bg-navy-800">
                   {t("Settings")}
                 </Link>
+                <a href="https://checkmyuni.com" onClick={() => setOpenMenu(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-canvas dark:hover:bg-navy-800">
+                  <House className="h-4 w-4 text-ink-muted" aria-hidden="true" /> Main website
+                </a>
                 <button
                   onClick={() => signOut({ redirectTo: "/" })}
                   className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"

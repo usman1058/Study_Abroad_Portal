@@ -81,12 +81,14 @@ export default async function HomePage() {
     { href: "/short-courses", label: "Short courses", detail: "Course catalog", icon: BookOpen },
   ];
 
-  // Non-admins have no way to create an announcement, so an empty rail would
-  // just be a dead card taking up a 20rem column.
-  const showAdRail = advertisements.length > 0 || user.role === "SUPER_ADMIN";
+  // Keep a rail only when there is something to show. Admins can manage an
+  // empty announcement area below the dashboard without squeezing the panels.
+  const showAdRail = advertisements.some((ad) =>
+    ad.active && (!ad.startsAt || ad.startsAt <= now) && (!ad.endsAt || ad.endsAt >= now),
+  );
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#211744] via-[#37318c] to-[#315ebd] text-white shadow-lg shadow-navy-900/20">
         <div className="relative p-5 sm:p-7">
           <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
@@ -104,16 +106,18 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section aria-label="Dashboard metrics" className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <section aria-label="Dashboard metrics" className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard label="Applications in progress" value={appsInProgress} hint="Across your accessible students" icon={ClipboardList} tone="brand" href="/application" />
         <MetricCard label="Pending documents" value={pendingDocs} hint="Needs verification" icon={FileCheck2} tone="amber" href="/documents" />
         <MetricCard label="New leads" value={leadsThisWeek} hint="Created in the last 7 days" icon={Users} tone="indigo" href={canManageUsers ? "/users" : null} />
         <MetricCard label="Visa-stage cases" value={visaApps} hint="Ready for attention" icon={GraduationCap} tone="violet" href="/application" />
       </section>
 
-      <div className={`grid grid-cols-1 gap-5 ${showAdRail ? "xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}`}>
-        <div className="min-w-0 space-y-5">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+      <div className={`grid grid-cols-1 gap-6 ${showAdRail ? "2xl:grid-cols-[minmax(0,1fr)_20rem]" : ""}`}>
+        <div className="min-w-0 space-y-7">
+          <section aria-labelledby="admissions-overview-heading" className="space-y-3">
+          <h2 id="admissions-overview-heading" className="text-lg font-bold tracking-tight">Admissions overview</h2>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-start justify-between gap-3"><div><CardTitle>Application activity</CardTitle><CardDescription>New applications over the last six months</CardDescription></div><span className="rounded-lg bg-brand-50 p-2 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><TrendingUp className="h-4 w-4" /></span></CardHeader>
               <CardContent><TrendChart points={trend} /><Link href="/application" className="mt-4 inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">View application pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
@@ -123,24 +127,28 @@ export default async function HomePage() {
               <CardContent className="space-y-3">{pipeline.map((stage) => <PipelineRow key={stage} label={stage.replace(/_/g, " ")} value={stageCount.get(stage) ?? 0} max={pipelineMax} />)}<Link href="/application" className="mt-2 inline-flex min-h-6 items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">Manage pipeline <ArrowRight className="h-4 w-4" /></Link></CardContent>
             </Card>
           </div>
+          </section>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <section aria-labelledby="portfolio-activity-heading" className="space-y-3">
+          <h2 id="portfolio-activity-heading" className="text-lg font-bold tracking-tight">Portfolio activity</h2>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between"><div><CardTitle>Recent application activity</CardTitle><CardDescription>Latest updates across your portfolio</CardDescription></div><Link href="/application" className="inline-flex min-h-6 items-center text-sm font-semibold text-brand-600 hover:underline">View all</Link></CardHeader>
               <CardContent>{recentApps.length === 0 ? <EmptyState text="Applications will appear here as soon as students start applying." href="/application" label="Open applications" /> : <ul className="divide-y divide-line dark:divide-navy-700">{recentApps.map((application) => <li key={application.id} className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-200"><GraduationCap className="h-4 w-4" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{application.student.firstName} {application.student.lastName}</p><p className="truncate text-xs text-ink-muted">{application.program.name} · {application.program.university.name}</p></div><div className="shrink-0 text-right"><Badge tone={application.stage === "REJECTED" ? "red" : application.stage === "OFFER" || application.stage === "ENROLLED" ? "green" : "brand"}>{application.stage.replace(/_/g, " ")}</Badge><p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{formatDate(application.updatedAt)}</p></div></li>)}</ul>}</CardContent>
             </Card>
             <Card>
               <CardHeader><CardTitle>Workspace tools</CardTitle><CardDescription>Common actions for today</CardDescription></CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-1 sm:gap-2">{quickActions.map((action) => <Link key={action.href} href={action.href} className="group flex min-h-[5.25rem] min-w-0 items-center gap-2 rounded-xl border border-line p-2 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15 sm:min-h-0 sm:gap-3 sm:p-3"><span className="shrink-0 rounded-lg bg-canvas-subtle p-1.5 text-ink-muted transition group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200 sm:p-2"><action.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-[13px] font-semibold leading-4 sm:text-sm sm:leading-normal">{action.label}</span><span className="hidden truncate text-xs text-ink-muted min-[390px]:block sm:block">{action.detail}</span></span><ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-brand-600 sm:h-4 sm:w-4" /></Link>)}</CardContent>
+              <CardContent className="grid grid-cols-1 gap-2">{quickActions.map((action) => <Link key={action.href} href={action.href} className="group flex min-h-14 min-w-0 items-center gap-3 rounded-xl border border-line p-3 transition hover:border-brand-300 hover:bg-brand-50/50 dark:border-navy-700 dark:hover:border-brand-700 dark:hover:bg-brand-900/15"><span className="shrink-0 rounded-lg bg-canvas-subtle p-2 text-ink-muted transition group-hover:bg-brand-100 group-hover:text-brand-700 dark:bg-navy-800 dark:text-slate-300 dark:group-hover:bg-brand-900/40 dark:group-hover:text-brand-200"><action.icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold leading-5">{action.label}</span><span className="block truncate text-xs text-ink-muted">{action.detail}</span></span><ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-brand-600" /></Link>)}</CardContent>
             </Card>
           </div>
+          </section>
 
-          {user.role === "SUPER_ADMIN" && <section aria-label="Administration metrics" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="indigo" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></section>}
+          {user.role === "SUPER_ADMIN" && <section aria-labelledby="admin-metrics-heading" className="space-y-3"><h2 id="admin-metrics-heading" className="text-lg font-bold tracking-tight">Administration snapshot</h2><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total students" value={totalStudents} hint="All active records" icon={Users} tone="brand" href="/users" /><MetricCard label="Active programs" value={activePrograms} hint="Catalog availability" icon={GraduationCap} tone="indigo" href="/programs" /><MetricCard label="Course enrollments" value={courseEnrollments} hint="Enrolled or completed" icon={BookOpen} tone="violet" href="/short-courses" /><MetricCard label="Recorded revenue" value={revenueSummary} hint="Excluding refunds" icon={WalletCards} tone="amber" href="/transaction" /></div></section>}
         </div>
-        <aside className="hidden xl:block">{showAdRail && <DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} />}</aside>
+        <aside className="hidden 2xl:block">{showAdRail && <DashboardAdRail id="dashboard-advertisements" ads={advertisements} canManage={user.role === "SUPER_ADMIN"} />}</aside>
       </div>
 
-      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className="xl:hidden"><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
+      {(user.role === "SUPER_ADMIN" || advertisements.length > 0) && <div className={showAdRail ? "2xl:hidden" : ""}><DashboardAdRail ads={advertisements} canManage={user.role === "SUPER_ADMIN"} variant="hero" /></div>}
     </div>
   );
 }
