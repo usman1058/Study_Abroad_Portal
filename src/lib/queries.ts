@@ -97,18 +97,26 @@ export async function listUniversities() {
   return prisma.university.findMany({ orderBy: { name: "asc" } });
 }
 
-export async function listShortCourses(options: { category?: string; take?: number; includeInactive?: boolean } = {}) {
+export async function listShortCourses(options: { category?: string; take?: number; skip?: number; q?: string; deliveryMode?: string; paymentType?: "FREE" | "PAID" | "OTHER"; status?: "draft" | "active"; includeInactive?: boolean } = {}) {
   const take = options.take ?? 60;
   const where = {
-    ...(options.includeInactive ? {} : { status: "active" }),
+    ...(options.includeInactive ? (options.status ? { status: options.status } : {}) : { status: "active" }),
     ...(options.category ? { category: options.category as ShortCourseCategory } : {}),
+    ...(options.deliveryMode ? { deliveryMode: options.deliveryMode } : {}),
+    ...(options.paymentType ? { paymentType: options.paymentType } : {}),
+    ...(options.q ? { OR: [
+      { title: { contains: options.q, mode: "insensitive" as const } },
+      { provider: { contains: options.q, mode: "insensitive" as const } },
+      { description: { contains: options.q, mode: "insensitive" as const } },
+    ] } : {}),
   };
   const [rows, total] = await Promise.all([
     prisma.shortCourse.findMany({
       where,
       include: { linkedProgram: { include: { university: true } } },
       orderBy: { createdAt: "desc" },
-      take: take + 1,
+      skip: options.skip ?? 0,
+      take,
     }),
     prisma.shortCourse.count({ where }),
   ]);
@@ -132,7 +140,7 @@ export async function listShortCourses(options: { category?: string; take?: numb
       linkedProgram: c.linkedProgram ? serializeProgram(c.linkedProgram) : null,
     })),
     total,
-    truncated: total > take,
+    truncated: (options.skip ?? 0) + take < total,
   };
 }
 

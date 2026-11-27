@@ -4,7 +4,7 @@ import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { listShortCourses } from "@/lib/queries";
 import { studentScopeWhere } from "@/lib/permissions";
-import { ShortCourseForm } from "@/components/short-course-form";
+import { Pagination } from "@/components/pagination";
 import { EnrollButton } from "@/components/enroll-button";
 import { DeleteButton } from "@/components/delete-button";
 import { ReceiptReview } from "@/components/receipt-review";
@@ -16,20 +16,29 @@ import { formatDate, fullName, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Short courses" };
 
-type SearchParams = Promise<{ category?: string }>;
+type SearchParams = Promise<{ category?: string; q?: string; delivery?: string; payment?: string; status?: string; page?: string; perPage?: string }>;
+const PAGE_SIZES = [6, 12, 24, 48] as const;
+function isValidStatus(value: string): value is "draft" | "active" {
+  return value === "draft" || value === "active";
+}
 
 export default async function ShortCoursesPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
 
-  const { category: categoryParam } = await searchParams;
+  const { category: categoryParam, q: rawQ = "", delivery = "", payment = "", status: rawStatus = "", page: rawPage = "1", perPage: rawPerPage = "6" } = await searchParams;
   const category = SHORT_COURSE_CATEGORIES.includes(categoryParam ?? "") ? categoryParam : undefined;
-
+  const q = rawQ.trim().slice(0, 120);
+  const deliveryMode = ["online", "in-person", "hybrid"].includes(delivery) ? delivery : undefined;
+  const paymentType = ["FREE", "PAID", "OTHER"].includes(payment) ? payment as "FREE" | "PAID" | "OTHER" : undefined;
   const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const selectedStatus = isValidStatus(rawStatus) ? rawStatus : undefined;
   const isStaff = user.role !== "STUDENT";
+  const pageSize = PAGE_SIZES.includes(Number(rawPerPage) as (typeof PAGE_SIZES)[number]) ? Number(rawPerPage) : 6;
+  const requestedPage = Math.max(1, Number.parseInt(rawPage, 10) || 1);
 
-  const [{ courses, total, truncated }, categoryRows, activeCourseCount, draftCourseCount] = await Promise.all([
-    listShortCourses({ category, includeInactive: isSuperAdmin }),
+  const [{ courses, total }, categoryRows, activeCourseCount, draftCourseCount] = await Promise.all([
+    listShortCourses({ category, q, deliveryMode, paymentType, status: isSuperAdmin ? selectedStatus : undefined, includeInactive: isSuperAdmin, take: pageSize, skip: (requestedPage - 1) * pageSize }),
     prisma.shortCourse.groupBy({
       by: ["category"],
       where: isSuperAdmin ? {} : { status: "active" },
@@ -38,6 +47,9 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
     prisma.shortCourse.count({ where: { status: "active" } }),
     prisma.shortCourse.count({ where: { status: "draft" } }),
   ]);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pageCount, requestedPage);
+  const pagedCourses = page === requestedPage ? courses : (await listShortCourses({ category, q, deliveryMode, paymentType, status: isSuperAdmin ? selectedStatus : undefined, includeInactive: isSuperAdmin, take: pageSize, skip: (page - 1) * pageSize })).courses;
 
   const myEnrollments =
     user.role === "STUDENT"
@@ -81,15 +93,16 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-navy-950 via-[#263b78] to-[#5b3aab] p-6 text-white shadow-sm sm:p-8">
         <div>
-          <h1 className="text-2xl font-bold">Short courses</h1>
-          <p className="text-sm text-ink-muted">
-            Language, test-prep, foundation and professional courses.
+          <p className="text-sm font-semibold text-blue-100">Learn new skills</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">Short courses</h1>
+          <p className="mt-2 max-w-2xl text-base leading-7 text-blue-50">
+            Browse language, test-prep, foundation and professional courses. Compare format, dates, fees and eligibility.
           </p>
         </div>
-      {isSuperAdmin && <ShortCourseForm />}
-      </div>
+        {isSuperAdmin && <Link href="/short-courses/new" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-brand-800 shadow-sm hover:bg-blue-50">+ Add short course</Link>}
+      </header>
 
       {isSuperAdmin && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -163,6 +176,17 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
         </nav>
       )}
 
+      <form action="/short-courses" method="get" role="search" aria-label="Filter short courses" className="grid gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-6 dark:border-navy-700 dark:bg-navy-900">
+        <label className="text-sm font-medium sm:col-span-2">Search courses<input name="q" type="search" maxLength={120} defaultValue={q} placeholder="Course, provider or topic" className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900" /></label>
+        <label className="text-sm font-medium">Category<select name="category" defaultValue={category ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900"><option value="">All categories</option>{SHORT_COURSE_CATEGORIES.map((item) => <option key={item} value={item}>{humanize(item)}</option>)}</select></label>
+        <label className="text-sm font-medium">Delivery<select name="delivery" defaultValue={deliveryMode ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900"><option value="">Any format</option><option value="online">Online</option><option value="in-person">In person</option><option value="hybrid">Hybrid</option></select></label>
+        <label className="text-sm font-medium">Payment<select name="payment" defaultValue={paymentType ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900"><option value="">Any fee</option><option value="FREE">Free</option><option value="PAID">Paid</option><option value="OTHER">Other</option></select></label>
+        {isSuperAdmin && <label className="text-sm font-medium">Visibility<select name="status" defaultValue={selectedStatus ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900"><option value="">All statuses</option><option value="active">Published</option><option value="draft">Draft</option></select></label>}
+        <label className="text-sm font-medium">Per page<select name="perPage" defaultValue={String(pageSize)} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900">{PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+        <div className="flex items-end gap-2"><button className="min-h-11 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Apply filters</button><Link href="/short-courses" className="inline-flex min-h-11 items-center rounded-lg border border-line-strong px-3 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700">Reset</Link></div>
+      </form>
+      <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} basePath="/short-courses" query={{ q, category, delivery: deliveryMode, payment: paymentType, status: isSuperAdmin ? selectedStatus : undefined, perPage: String(pageSize) }} label="Short course pages" />
+
       {courses.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -185,7 +209,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((c) => {
+            {pagedCourses.map((c) => {
               const status = enrolledMap.get(c.id);
               const hasAccess = status === "enrolled" || status === "completed";
               return (
@@ -194,7 +218,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                     <div className="mb-3 flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs text-ink-muted">{c.provider}</p>
-                        <h2 className="text-base font-semibold">{c.title}</h2>
+                        <h2 className="text-lg font-bold leading-snug"><Link href={`/short-courses/${c.id}`} className="hover:text-brand-700 hover:underline dark:hover:text-brand-300">{c.title}</Link></h2>
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-1">
                         {isSuperAdmin && <Badge tone={c.status === "active" ? "green" : "slate"}>{humanize(c.status)}</Badge>}
@@ -255,29 +279,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                       )}
                       {isSuperAdmin && (
                         <>
-                          <ShortCourseForm
-                            initial={{
-                              id: c.id,
-                              title: c.title,
-                              provider: c.provider,
-                              category: c.category,
-                              duration: c.duration,
-                              startDates: c.startDates,
-                              fee: String(c.fee),
-                              deliveryMode: c.deliveryMode,
-                              classSchedule: c.classSchedule,
-                              meetingLink: c.meetingLink,
-                              prerequisites: c.prerequisites,
-                              description: c.description,
-                              linkedProgramId: c.linkedProgram?.id,
-                              linkedProgramLabel: c.linkedProgram
-                                ? `${c.linkedProgram.university?.name ?? ""} — ${c.linkedProgram.name}`
-                                : undefined,
-                              paymentType: c.paymentType as "FREE" | "PAID" | "OTHER",
-                              bankDetails: c.bankDetails ?? "",
-                              status: c.status as "draft" | "active",
-                            }}
-                          />
+                          <Link href={`/short-courses/${c.id}/edit`} className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Edit</Link>
                           <DeleteButton endpoint={`/api/short-courses/${c.id}`} confirmText="Delete this short course?" label="Delete" />
                         </>
                       )}
@@ -287,11 +289,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
               );
             })}
           </div>
-          {truncated && (
-            <p className="text-xs text-ink-muted">
-              Showing the first {courses.length} of {total} short courses. Use the category filter to narrow the list.
-            </p>
-          )}
+          <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} basePath="/short-courses" query={{ q, category, delivery: deliveryMode, payment: paymentType, status: isSuperAdmin ? selectedStatus : undefined, perPage: String(pageSize) }} label="Short course pages (continued)" />
         </>
       )}
 

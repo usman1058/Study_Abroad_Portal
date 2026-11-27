@@ -11,7 +11,7 @@ import { Download, ExternalLink, FileText, MessageCircle } from "lucide-react";
 import { formatDate, humanize, toNum } from "@/lib/utils";
 import { FeeDisplay } from "@/components/currency";
 import { AddCourseToCalendar } from "@/components/add-course-to-calendar";
-import { ShortCourseForm } from "@/components/short-course-form";
+import Link from "next/link";
 import { ShortCourseStudio, type ShortCourseMaterialInfo, type ShortCourseSessionInfo } from "@/components/short-course-studio";
 import { formatInTimeZone } from "@/lib/time-zones";
 
@@ -111,25 +111,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {canManageClassroom && <ShortCourseForm initial={{
-                id: course.id,
-                title: course.title,
-                provider: course.provider,
-                category: course.category,
-                duration: course.duration,
-                startDates: course.startDates,
-                fee: String(course.fee),
-                deliveryMode: course.deliveryMode,
-                classSchedule: course.classSchedule,
-                meetingLink: course.meetingLink,
-                prerequisites: course.prerequisites,
-                description: course.description,
-                linkedProgramId: course.linkedProgram?.id,
-                linkedProgramLabel: course.linkedProgram ? `${course.linkedProgram.university?.name ?? ""} — ${course.linkedProgram.name}` : undefined,
-                paymentType: course.paymentType as "FREE" | "PAID" | "OTHER",
-                bankDetails: course.bankDetails ?? "",
-                status: course.status as "draft" | "active",
-              }} />}
+              {canManageClassroom && <Link href={`/short-courses/${course.id}/edit`} className="inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Edit course</Link>}
               <a
                 href={`/api/short-courses/${course.id}/pdf`}
                 target="_blank"

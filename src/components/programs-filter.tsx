@@ -49,7 +49,7 @@ export function ProgramsFilter({
         role="search"
         aria-label="Filter programs"
       >
-        <div className="relative sm:col-span-5">
+        <div className="relative sm:col-span-4">
           <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             name="q"
@@ -62,7 +62,7 @@ export function ProgramsFilter({
             aria-label="Search programs"
           />
         </div>
-        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-3" aria-label="Filter by country">
+        <Select value={params.get("country") ?? ""} onChange={(e) => setParam("country", e.target.value)} className="sm:col-span-2" aria-label="Filter by country">
           <option value="">All countries</option>
           {countries.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
@@ -73,6 +73,9 @@ export function ProgramsFilter({
           {cities.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
+        </Select>
+        <Select value={params.get("perPage") ?? "6"} onChange={(e) => setParam("perPage", e.target.value)} className="sm:col-span-2" aria-label="Programs per page">
+          {[6, 12, 24, 48].map((size) => <option key={size} value={size}>{size} per page</option>)}
         </Select>
         <Button type="submit" className="h-10 sm:col-span-2">
           Search

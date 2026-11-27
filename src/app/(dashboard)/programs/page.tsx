@@ -11,17 +11,18 @@ import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Programs" };
 
-const PAGE_SIZE = 6;
+const PAGE_SIZES = [6, 12, 24, 48] as const;
 const MAX_PAGE = 1000;
 
-type SearchParams = Promise<{ q?: string; country?: string; city?: string; page?: string }>;
+type SearchParams = Promise<{ q?: string; country?: string; city?: string; page?: string; perPage?: string }>;
 
 export default async function ProgramsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await currentUser();
   if (!user) redirect("/");
 
-  const { q: rawQ = "", country = "", city = "", page: rawPage = "1" } = await searchParams;
+  const { q: rawQ = "", country = "", city = "", page: rawPage = "1", perPage: rawPerPage = "6" } = await searchParams;
   const q = rawQ.slice(0, 200);
+  const PAGE_SIZE = PAGE_SIZES.includes(Number(rawPerPage) as (typeof PAGE_SIZES)[number]) ? Number(rawPerPage) : 6;
   const requestedPage = Math.min(MAX_PAGE, Math.max(1, Number.parseInt(rawPage, 10) || 1));
 
   // Country and city both constrain the same relation, so they must be merged
@@ -144,7 +145,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h1 className="text-2xl font-bold">Programs</h1>
         <p className="text-sm text-ink-muted">
-          Browse programs grouped by university and city. Six programs are shown at a time; use pagination to continue.
+          Browse programs grouped by university and city. Choose how many programs to show per page.
           {isStudent
             ? " Tick courses to build a shareable PDF shortlist, or apply directly."
             : " Tick programs to download their details together in one PDF."}
@@ -168,7 +169,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
         total={total}
         pageSize={PAGE_SIZE}
         basePath="/programs"
-        query={{ q, country, city }}
+        query={{ q, country, city, perPage: String(PAGE_SIZE) }}
         label="Program pages"
       />
 
@@ -196,7 +197,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
           total={total}
           pageSize={PAGE_SIZE}
           basePath="/programs"
-          query={{ q, country, city }}
+          query={{ q, country, city, perPage: String(PAGE_SIZE) }}
           label="Program pages (continued)"
         />
       )}

@@ -14,6 +14,7 @@ import { humanize } from "@/lib/utils";
 import { usePortalCurrency } from "@/components/currency-provider";
 
 type Props = {
+  standalone?: boolean;
   initial?: {
     id?: string;
     title?: string;
@@ -35,13 +36,13 @@ type Props = {
   };
 };
 
-export function ShortCourseForm({ initial }: Props) {
+export function ShortCourseForm({ initial, standalone = false }: Props) {
   const router = useRouter();
   const { currency } = usePortalCurrency();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const wasOpen = useRef(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(standalone);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -142,7 +143,8 @@ export function ShortCourseForm({ initial }: Props) {
         return;
       }
       setFeedback(initial?.id ? "Short course changes saved." : form.status === "active" ? "Short course published." : "Short course saved as a draft.");
-      setOpen(false);
+      if (standalone) router.push(`/short-courses/${initial?.id ?? json.id}`);
+      else setOpen(false);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -151,22 +153,23 @@ export function ShortCourseForm({ initial }: Props) {
     }
   }
 
-  if (!open) return <div className="flex flex-wrap items-center gap-3">
+  if (!open && !standalone) return <div className="flex flex-wrap items-center gap-3">
     <Button ref={triggerRef} onClick={() => { setError(null); setFeedback(null); setOpen(true); }}>{initial?.id ? "Edit" : "+ Add short course"}</Button>
     {feedback && <p role="status" aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">{feedback}</p>}
   </div>;
 
   return (
-    <form id="short-course-form" aria-labelledby="short-course-form-heading" aria-busy={loading} onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
-      <div className="flex items-start justify-between gap-3">
+    <form id="short-course-form" aria-labelledby="short-course-form-heading" aria-busy={loading} onSubmit={submit} className="space-y-6 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-7 dark:border-navy-700 dark:bg-navy-900">
+      <div className="flex items-start justify-between gap-3 border-b border-line pb-5 dark:border-navy-700">
         <div>
-          <h3 id="short-course-form-heading" className="font-semibold">{initial?.id ? "Edit short course" : "Create a short course"}</h3>
-          <p className="mt-1 text-sm text-ink-muted">Save as a draft while you prepare sessions and materials. Publish when students can enroll.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">Short course setup</p>
+          <h1 id="short-course-form-heading" className="mt-1 text-2xl font-bold">{initial?.id ? "Edit short course" : "Create a short course"}</h1>
+          <p className="mt-1 text-sm text-ink-muted">Organize course details, delivery, and enrollment before publishing.</p>
         </div>
-        <button type="button" onClick={() => { setError(null); setOpen(false); }} className="rounded-lg px-2 py-1 text-xl leading-none text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800" aria-label="Close short course form">×</button>
+        <button type="button" onClick={() => router.push("/short-courses")} className="inline-flex min-h-10 items-center rounded-lg border border-line-strong px-3 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Cancel</button>
       </div>
       {error && <div role="alert" aria-live="assertive" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</div>}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <fieldset className="rounded-xl border border-line p-4 sm:p-5 dark:border-navy-700"><legend className="px-2 text-base font-semibold">Course identity</legend><div className="grid gap-4 sm:grid-cols-2">
         <Field label="Title">
           <Input ref={titleRef} required maxLength={200} value={form.title} onChange={(e) => set("title", e.target.value)} />
         </Field>
@@ -183,6 +186,26 @@ export function ShortCourseForm({ initial }: Props) {
         <Field label="Duration">
           <Input maxLength={80} value={form.duration} onChange={(e) => set("duration", e.target.value)} placeholder="6 weeks" />
         </Field>
+      </div></fieldset>
+      <fieldset className="rounded-xl border border-line p-4 sm:p-5 dark:border-navy-700"><legend className="px-2 text-base font-semibold">Schedule and delivery</legend><div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Delivery mode">
+          <Select value={form.deliveryMode} onChange={(e) => set("deliveryMode", e.target.value)}>
+            <option value="online">Online</option>
+            <option value="in-person">In person</option>
+            <option value="hybrid">Hybrid</option>
+          </Select>
+        </Field>
+        <Field label="Class schedule overview" hint="Add exact class dates and times on the course page after saving.">
+          <Input maxLength={160} value={form.classSchedule} onChange={(e) => set("classSchedule", e.target.value)} placeholder="Weekly evening classes" />
+        </Field>
+        <Field label="Enrollment start dates (comma separated)">
+          <Input value={form.startDates} onChange={(e) => set("startDates", e.target.value)} placeholder="2026-10-01, 2027-01-15" />
+        </Field>
+        <Field label="Course meeting link (optional)">
+          <Input maxLength={300} value={form.meetingLink} onChange={(e) => set("meetingLink", e.target.value)} placeholder="https://meet.example.com/course" />
+        </Field>
+      </div></fieldset>
+      <fieldset className="rounded-xl border border-line p-4 sm:p-5 dark:border-navy-700"><legend className="px-2 text-base font-semibold">Pricing and enrollment</legend><div className="grid gap-4 sm:grid-cols-2">
         <Field label={`Fee (${feeCurrency})`} hint="Enter this fee in your selected currency. It is converted to MYR for consistent storage and payment records.">
           <Input type="number" min="0" step="0.01" value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </Field>
@@ -191,13 +214,6 @@ export function ShortCourseForm({ initial }: Props) {
             <option value="FREE">Free</option>
             <option value="PAID">Paid</option>
             <option value="OTHER">Other</option>
-          </Select>
-        </Field>
-        <Field label="Delivery mode">
-          <Select value={form.deliveryMode} onChange={(e) => set("deliveryMode", e.target.value)}>
-            <option value="online">Online</option>
-            <option value="in-person">In person</option>
-            <option value="hybrid">Hybrid</option>
           </Select>
         </Field>
         <Field label="Course visibility">
@@ -211,15 +227,8 @@ export function ShortCourseForm({ initial }: Props) {
             <Textarea rows={3} value={form.bankDetails} onChange={(e) => set("bankDetails", e.target.value)} placeholder="Bank name, account number, SWIFT code, etc." />
           </Field>
         )}
-        <Field label="Class schedule overview" hint="Add exact class dates and times on the course page after saving.">
-          <Input maxLength={160} value={form.classSchedule} onChange={(e) => set("classSchedule", e.target.value)} placeholder="Optional overview, e.g. weekly evening classes" />
-        </Field>
-        <Field label="Course meeting link (optional)">
-          <Input maxLength={300} value={form.meetingLink} onChange={(e) => set("meetingLink", e.target.value)} placeholder="https://meet.example.com/course" />
-        </Field>
-        <Field label="Enrollment start dates (comma separated)">
-          <Input value={form.startDates} onChange={(e) => set("startDates", e.target.value)} placeholder="2026-10-01, 2027-01-15" />
-        </Field>
+      </div></fieldset>
+      <fieldset className="rounded-xl border border-line p-4 sm:p-5 dark:border-navy-700"><legend className="px-2 text-base font-semibold">Program links and description</legend><div className="grid gap-4 sm:grid-cols-2">
         <Field label="Linked program (optional)">
           <ProgramPicker
             value={form.linkedProgramId}
@@ -243,10 +252,10 @@ export function ShortCourseForm({ initial }: Props) {
         <Field label="Description" className="sm:col-span-2">
           <Textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
         </Field>
-      </div>
+      </div></fieldset>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={loading}>{loading ? "Saving…" : form.status === "active" ? "Publish course" : "Save draft"}</Button>
-        <Button type="button" variant="outline" onClick={() => { setError(null); setOpen(false); }}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={() => router.push("/short-courses")}>Cancel</Button>
       </div>
     </form>
   );
