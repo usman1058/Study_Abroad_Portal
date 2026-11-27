@@ -6,7 +6,7 @@ import { ProgramCard } from "@/components/program-card";
 import { AnimatedCount } from "@/components/animated-count";
 import { getPrograms, portalUrl } from "@/lib/portal";
 
-export const metadata = pageMetadata({ title: "CheckMyUni — Explore study programs abroad", description: "Explore study programs and university options around the world. Compare destinations, levels, tuition, and entry requirements, then get practical guidance for your next step.", path: "/", keywords: "study abroad, study programs, universities, international education" });
+export const metadata = pageMetadata({ title: "Study Abroad Programs", description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.", path: "/", keywords: "study abroad programs, study in Malaysia, university courses" });
 
 const steps = [
   { number: "01", title: "Explore your options", body: "Browse real study programs and compare locations, levels, fees, and entry requirements." },
@@ -23,12 +23,12 @@ export default async function HomePage() {
       <div aria-hidden="true" className="pointer-events-none absolute -left-48 top-20 h-[30rem] w-[30rem] rounded-full bg-blue/5 blur-3xl" />
       <div className="site-container grid min-h-[38rem] items-center gap-8 py-14 md:grid-cols-[1.1fr_.9fr] md:py-20 lg:min-h-[43rem]">
         <div className="site-reveal relative z-10 max-w-[46rem]">
-          <p className="eyebrow inline-flex items-center gap-2 rounded-full border border-blue/15 bg-white px-3 py-2 shadow-sm"><Sparkles aria-hidden="true" className="h-4 w-4" /> Your future has more than one destination</p>
-          <h1 className="mt-6 max-w-[13ch] font-display text-[clamp(3rem,6.5vw,5.65rem)] font-extrabold leading-[1.01] text-navy">Make your next <span className="relative inline-block text-blue">move count.<span aria-hidden="true" className="absolute -bottom-1 left-0 -z-0 h-2 w-full rounded-full bg-amber/65" /></span></h1>
+          <p className="eyebrow inline-flex items-center gap-2 rounded-full border border-blue/15 bg-white px-3 py-2 shadow-sm"><Sparkles aria-hidden="true" className="h-4 w-4" /> Explore study programs in Malaysia</p>
+          <h1 className="mt-6 max-w-[13ch] font-display text-[clamp(3rem,6.5vw,5.65rem)] font-extrabold leading-[1.01] text-navy">Find a study program <span className="relative inline-block text-blue">abroad.<span aria-hidden="true" className="absolute -bottom-1 left-0 -z-0 h-2 w-full rounded-full bg-amber/65" /></span></h1>
           <p className="mt-6 max-w-[37rem] text-lg leading-8 text-slate-600">Find a study path that feels right for you. Explore real programs, understand what comes next, and get support along the way.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href="/get-started" className="btn-primary"><UserRoundPlus aria-hidden="true" className="h-4 w-4" />Create an account</Link><Link href="/applications" className="btn-secondary">Explore study programs <ArrowRight aria-hidden="true" className="h-4 w-4" /></Link></div>
           <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm"><Link href={portalUrl("/")} className="font-bold text-blue underline decoration-blue/30 underline-offset-4 hover:text-blue-dark">Already registered? Access the portal <ArrowUpRight aria-hidden="true" className="inline h-3.5 w-3.5" /></Link><Link href="/contact" className="font-semibold text-slate-600 underline decoration-slate-300 underline-offset-4 hover:text-blue">Talk to an advisor</Link></div>
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500"><span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-blue" /> Clear information</span><span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-blue" /> Human guidance</span><span className="inline-flex items-center gap-2"><Globe2 className="h-4 w-4 text-blue" /> Global choices</span></div>
+          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500"><span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-blue" /> Clear information</span><span className="inline-flex items-center gap-2"><HeartHandshake className="h-4 w-4 text-blue" /> Human guidance</span><span className="inline-flex items-center gap-2"><Globe2 className="h-4 w-4 text-blue" /> Malaysia programs</span></div>
         </div>
         <div className="site-reveal site-reveal-delay-2 relative"><HeroArt /></div>
       </div>

@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Search, SlidersHorizontal } from "lucide-react";
 import { ProgramCard } from "@/components/program-card";
 import { getPrograms } from "@/lib/portal";
 
-export const metadata = pageMetadata({ title: 'Study programs and universities', description: 'Search study abroad programs by destination, subject, and study level. Compare tuition, entry requirements, and university details in the CheckMyUni catalog.', path: '/applications', keywords: 'study abroad programs, university courses, international students' });
+export const metadata = pageMetadata({ title: 'Study programs and universities', description: 'Search study abroad programs by destination, program area, and study level. Compare tuition, entry requirements, and university details in the CheckMyUni catalog.', path: '/applications', keywords: 'study abroad programs, university courses, international students' });
 
 type SearchParams = Promise<{ q?: string; country?: string; level?: string; field?: string; page?: string }>;
 
@@ -29,7 +29,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         <div><label htmlFor="catalog-q" className="field-label">Search programs</label><div className="relative"><Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input id="catalog-q" className="field-control pl-10" name="q" type="search" defaultValue={filters.q} placeholder="Program, subject, university…" /></div></div>
         <div><label htmlFor="catalog-country" className="field-label">Destination</label><select id="catalog-country" name="country" defaultValue={filters.country} className="field-control"><option value="">All destinations</option>{catalog.filters.countries.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
         <div><label htmlFor="catalog-level" className="field-label">Study level</label><select id="catalog-level" name="level" defaultValue={filters.level} className="field-control"><option value="">All levels</option>{catalog.filters.levels.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
-        <div><label htmlFor="catalog-field" className="field-label">Subject area</label><select id="catalog-field" name="field" defaultValue={filters.field} className="field-control"><option value="">All subjects</option>{catalog.filters.fields.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
+        <div><label htmlFor="catalog-field" className="field-label">Program area or faculty</label><select id="catalog-field" name="field" defaultValue={filters.field} className="field-control"><option value="">All areas and faculties</option>{catalog.filters.fields.map((value) => <option key={value} value={value}>{value}</option>)}</select></div>
         <div className="flex gap-2 sm:col-span-2 xl:col-span-1"><button className="btn-primary w-full"><SlidersHorizontal aria-hidden="true" className="h-4 w-4" /> Apply filters</button>{Object.values(params).some(Boolean) && <Link href="/applications" className="btn-secondary">Reset</Link>}</div>
       </form>
 
