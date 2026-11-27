@@ -1,5 +1,5 @@
 {
-  "buildCommand": "node scripts/deploy-migrations.mjs",
+  "buildCommand": "sh -c 'if [ -f scripts/deploy-migrations.mjs ]; then node scripts/deploy-migrations.mjs; fi && pnpm build'",
   "crons": [
     {
       "path": "/api/cron/reminders",
