@@ -1,2 +1,6 @@
 packages:
   - apps/website
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
