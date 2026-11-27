@@ -1,2 +1,2 @@
 ALTER TABLE "User"
-ADD COLUMN "mustChangePassword" BOOLEAN NOT NULL DEFAULT false;
+ADD COLUMN IF NOT EXISTS "mustChangePassword" BOOLEAN NOT NULL DEFAULT false;
