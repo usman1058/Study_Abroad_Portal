@@ -38,17 +38,17 @@ export function CurrencySwitcher({ defaultCurrency = "MYR" }: { defaultCurrency?
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label htmlFor={id} className="text-xs text-ink-muted">Currency</label>
+    <div className="relative inline-flex h-10 flex-nowrap items-center gap-2 whitespace-nowrap">
+      <label htmlFor={id} className="inline-flex h-9 items-center text-xs leading-none text-ink-muted">Currency</label>
       <Select
         id={id}
         value={currency}
         onChange={(e) => changeCurrency(e.target.value)}
-        className="h-8 w-28 text-xs"
+        className="h-9 w-28 self-center py-0 text-sm leading-none"
       >
         {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
       </Select>
-      {error && <span role="alert" className="text-xs text-red-700">{error}</span>}
+      {error && <span role="alert" className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-64 rounded-lg border border-red-200 bg-white p-2 text-xs whitespace-normal text-red-700 shadow-lg dark:border-red-900 dark:bg-navy-900 dark:text-red-300">{error}</span>}
     </div>
   );
 }

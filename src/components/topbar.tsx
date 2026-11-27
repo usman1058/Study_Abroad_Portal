@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, Menu } from "lucide-react";
+import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, House, Menu } from "lucide-react";
 import { useTheme, useLang } from "@/components/providers";
 import { cn } from "@/lib/utils";
 import { ROLE_LABELS } from "@/lib/constants";
@@ -46,10 +46,10 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
           aria-label="Home"
         >
           <span className="truncate text-xs font-semibold text-navy-800 dark:text-white sm:text-sm">{role === "STUDENT" ? "Student workspace" : "Partner workspace"}</span>
-        </Link></div>
+        </Link><a href="https://checkmyuni.com" title="Go to CheckMyUni home page" aria-label="Go to CheckMyUni home page" className="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-line-strong bg-white text-ink-muted transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 sm:w-auto sm:px-3 dark:border-navy-700 dark:bg-navy-900 dark:text-slate-300 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-white"><House className="h-4 w-4" aria-hidden="true" /><span className="hidden text-xs font-semibold sm:inline">Main website</span></a></div>
 
       <div className="flex items-center gap-2">
-        <div className="hidden xl:block"><CurrencySwitcher defaultCurrency={preferredCurrency} /></div>
+        <div className="hidden h-10 items-center xl:flex"><CurrencySwitcher defaultCurrency={preferredCurrency} /></div>
         <button
           onClick={toggle}
           className="flex h-10 w-10 items-center justify-center rounded-lg text-ink-muted hover:bg-canvas-subtle dark:text-slate-300 dark:hover:bg-navy-800"
