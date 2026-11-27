@@ -9,6 +9,7 @@ import { APPLICATION_STAGES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StageFilter } from "@/components/stage-filter";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
 import { formatDate, humanize, shortRecordId } from "@/lib/utils";
 import type { ApplicationStage, Prisma } from "@/generated/prisma/client";
 import { CopyRecordId } from "@/components/copy-record-id";
@@ -159,6 +160,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
         }))}
       />
 
+      <ResponsiveFilterPanel title="Application stages & sorting" activeCount={(validStage ? 1 : 0) + (sortKey !== "updated_desc" ? 1 : 0)}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <StageFilter current={validStage ?? ""} sort={sortKey} query={q} counts={counts} total={allCount} />
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -180,6 +182,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
           ))}
         </div>
       </div>
+      </ResponsiveFilterPanel>
 
       <Card>
         <CardContent className="p-0">

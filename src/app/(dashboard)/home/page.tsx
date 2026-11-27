@@ -85,19 +85,18 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-[#211744] via-[#37318c] to-[#315ebd] text-white shadow-lg shadow-navy-900/20">
-        <div className="relative p-5 sm:p-7">
-          <div className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="text-sm font-medium text-brand-200">{ROLE_LABELS[user.role]} workspace</p>
-              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Good to see you, {user.name.split(" ")[0]}.</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-navy-100">{unreadNotifs ? `You have ${unreadNotifs} update${unreadNotifs === 1 ? "" : "s"} waiting. ` : "Everything is up to date. "}Here is your live admissions overview.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/application" className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50"><ClipboardList className="h-4 w-4" /> Applications</Link>
-              <Link href="/search" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"><Users className="h-4 w-4" /> Search programs</Link>
-            </div>
+      <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#15152f] via-[#302b72] to-[#315bd5] text-white shadow-xl shadow-indigo-950/20">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-28 h-80 w-80 rounded-full bg-violet-400/20 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-36 left-[38%] h-64 w-64 rounded-full bg-blue-300/15 blur-3xl" />
+        <div className="relative grid gap-7 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:p-10">
+          <div className="max-w-3xl">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold tracking-wide text-blue-100 backdrop-blur-sm"><span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_4px_rgba(110,231,183,0.12)]" />{ROLE_LABELS[user.role]} workspace</p>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">Good to see you, {user.name.split(" ")[0]}.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-blue-50/90 sm:text-base">{unreadNotifs ? `You have ${unreadNotifs} update${unreadNotifs === 1 ? "" : "s"} waiting. ` : "Everything is up to date. "}Here is your live admissions overview.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/application" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#315bd5] via-[#4b55d0] to-[#8058d6] px-5 text-sm font-bold text-white shadow-lg shadow-blue-950/25 transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-900"><ClipboardList className="h-4 w-4" /> Applications <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/search" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 text-sm font-bold text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-900"><Users className="h-4 w-4" /> Search programs</Link>
           </div>
         </div>
       </section>

@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
 import { formatDate, humanize } from "@/lib/utils";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
+import { ArrowRight, BookOpen, Clock3, MonitorPlay, Sparkles, Wallet } from "lucide-react";
 
 export const metadata = { title: "Short courses" };
 
@@ -121,12 +123,12 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
       )}
 
       {totalCourses > 0 && (
-        <nav aria-label="Filter short courses by category" className="flex flex-wrap gap-2">
+        <nav aria-label="Filter short courses by category" className="flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1">
           <Link
             href="/short-courses"
             aria-current={!category ? "page" : undefined}
             className={
-              "inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium " +
+              "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs font-medium " +
               (!category
                 ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
                 : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300")
@@ -144,7 +146,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                 href={`/short-courses?category=${value}`}
                 aria-current={active ? "page" : undefined}
                 className={
-                  "inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium " +
+                  "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs font-medium " +
                   (active
                     ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
                     : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300")
@@ -157,6 +159,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
         </nav>
       )}
 
+      <ResponsiveFilterPanel title="Course filters" activeCount={[q, category, deliveryMode, paymentType, selectedStatus].filter(Boolean).length}>
       <form action="/short-courses" method="get" role="search" aria-label="Filter short courses" className="grid gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-6 dark:border-navy-700 dark:bg-navy-900">
         <label className="text-sm font-medium sm:col-span-2">Search courses<input name="q" type="search" maxLength={120} defaultValue={q} placeholder="Course, provider or topic" className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900" /></label>
         <label className="text-sm font-medium">Category<select name="category" defaultValue={category ?? ""} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900"><option value="">All categories</option>{SHORT_COURSE_CATEGORIES.map((item) => <option key={item} value={item}>{humanize(item)}</option>)}</select></label>
@@ -166,6 +169,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
         <label className="text-sm font-medium">Per page<select name="perPage" defaultValue={String(pageSize)} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 dark:border-navy-700 dark:bg-navy-900">{PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
         <div className="flex items-end gap-2"><button className="min-h-11 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Apply filters</button><Link href="/short-courses" className="inline-flex min-h-11 items-center rounded-lg border border-line-strong px-3 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700">Reset</Link></div>
       </form>
+      </ResponsiveFilterPanel>
       <Pagination page={page} pageCount={pageCount} total={total} pageSize={pageSize} basePath="/short-courses" query={{ q, category, delivery: deliveryMode, payment: paymentType, status: isSuperAdmin ? selectedStatus : undefined, perPage: String(pageSize) }} label="Short course pages" />
 
       {courses.length === 0 ? (
@@ -194,24 +198,27 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
               const status = enrolledMap.get(c.id);
               const hasAccess = status === "enrolled" || status === "completed";
               return (
-                <Card key={c.id} data-short-course-id={c.id} className="group overflow-hidden border-line/80 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg dark:border-navy-700">
-                  <div aria-hidden="true" className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
-                  <CardContent className="flex h-full flex-col p-5 sm:p-6">
-                    <div className="mb-4 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">{c.provider}</p>
-                        <h2 className="mt-1 text-lg font-bold leading-snug tracking-tight"><Link href={`/short-courses/${c.id}`} className="transition group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{c.title}</Link></h2>
+                <Card key={c.id} data-short-course-id={c.id} className="group flex h-full flex-col overflow-hidden border-line/80 bg-gradient-to-b from-blue-50/50 via-white to-violet-50/40 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-950/10 dark:border-navy-700 dark:from-blue-950/20 dark:via-navy-900 dark:to-violet-950/20">
+                  <div className="relative isolate overflow-hidden bg-gradient-to-br from-[#142d67] via-[#3547a2] to-[#704cc8] px-5 py-5 text-white sm:px-6 sm:py-6">
+                    <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-12 -z-10 h-40 w-40 rounded-full bg-white/10 blur-2xl transition-transform duration-500 group-hover:scale-125" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white shadow-inner"><BookOpen aria-hidden className="h-5 w-5" /></span>
+                        <div className="min-w-0 pt-0.5"><p className="truncate text-xs font-bold uppercase tracking-[.12em] text-blue-100">{c.provider}</p><p className="mt-1 text-xs text-white/75">{humanize(c.category)} learning</p></div>
                       </div>
-                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
                         {isSuperAdmin && <Badge tone={c.status === "active" ? "green" : "slate"}>{humanize(c.status)}</Badge>}
-                        <Badge tone="brand">{humanize(c.category)}</Badge>
+                        <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">{humanize(c.paymentType)}</span>
                       </div>
                     </div>
+                    <h2 className="mt-5 line-clamp-2 min-h-[3.25rem] text-xl font-extrabold leading-snug tracking-tight sm:text-[1.35rem]"><Link href={`/short-courses/${c.id}`} className="rounded-sm transition hover:text-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">{c.title}</Link></h2>
+                  </div>
+                  <CardContent className="flex flex-1 flex-col p-5 sm:p-6">
                     <p className="mb-4 line-clamp-2 min-h-10 text-sm leading-5 text-ink-muted">{c.description || "Course details and enrollment information."}</p>
                     <dl className="mb-5 grid grid-cols-2 gap-2 text-sm">
-                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Duration</dt><dd className="mt-1 font-semibold">{c.duration}</dd></div>
-                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Delivery</dt><dd className="mt-1 font-semibold capitalize">{c.deliveryMode}</dd></div>
-                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Next start</dt><dd className="mt-1 font-semibold">
+                      <div className="rounded-xl border border-blue-100 bg-white/85 p-3 shadow-sm dark:border-navy-700 dark:bg-navy-800/80"><dt className="flex items-center gap-1.5 text-xs text-ink-muted"><Clock3 aria-hidden className="h-3.5 w-3.5" />Duration</dt><dd className="mt-1 font-semibold">{c.duration}</dd></div>
+                      <div className="rounded-xl border border-indigo-100 bg-white/85 p-3 shadow-sm dark:border-navy-700 dark:bg-navy-800/80"><dt className="flex items-center gap-1.5 text-xs text-ink-muted"><MonitorPlay aria-hidden className="h-3.5 w-3.5" />Delivery</dt><dd className="mt-1 font-semibold capitalize">{c.deliveryMode}</dd></div>
+                      <div className="rounded-xl border border-violet-100 bg-white/85 p-3 shadow-sm dark:border-navy-700 dark:bg-navy-800/80"><dt className="flex items-center gap-1.5 text-xs text-ink-muted"><Sparkles aria-hidden className="h-3.5 w-3.5" />Next start</dt><dd className="mt-1 font-semibold">
                           {(() => {
                             const nextStart = c.startDates
                               .map((d) => new Date(d))
@@ -220,14 +227,14 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                             return nextStart ? formatDate(nextStart) : "—";
                           })()}
                         </dd></div>
-                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Fee</dt><dd className="mt-1 font-bold"><FeeDisplay amount={c.fee} /></dd></div>
+                      <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-blue-50 to-violet-100/80 p-3 shadow-sm dark:border-violet-900/60 dark:from-blue-950/50 dark:to-violet-950/60"><dt className="flex items-center gap-1.5 text-xs text-brand-700 dark:text-brand-300"><Wallet aria-hidden className="h-3.5 w-3.5" />Course fee</dt><dd className="mt-1 font-extrabold text-navy-900 dark:text-white"><FeeDisplay amount={c.fee} /></dd></div>
                     </dl>
                     <div className="mt-auto flex flex-wrap items-start gap-2">
                       <Link
                         href={`/short-courses/${c.id}`}
-                        className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-navy-700 dark:text-brand-300 dark:hover:bg-brand-900/30"
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 text-xs font-semibold text-indigo-800 transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-indigo-900/60 dark:bg-navy-900 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
                       >
-                        More details
+                        More details <ArrowRight aria-hidden className="h-3.5 w-3.5" />
                       </Link>
                       {user.role === "STUDENT" && (
                         <EnrollButton
@@ -245,11 +252,11 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                           }}
                         />
                       )}
-                      {user.role === "STUDENT" && (status === "enrolled" || status === "completed") && <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex h-8 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Enter classroom</Link>}
+                      {user.role === "STUDENT" && (status === "enrolled" || status === "completed") && <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex min-h-10 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Enter classroom</Link>}
                       {isSuperAdmin && (
                         <>
-                          <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex h-8 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Classroom</Link>
-                          <Link href={`/short-courses/${c.id}/edit`} className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Edit</Link>
+                          <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex min-h-10 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Classroom</Link>
+                          <Link href={`/short-courses/${c.id}/edit`} className="inline-flex min-h-10 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Edit</Link>
                           <DeleteButton endpoint={`/api/short-courses/${c.id}`} confirmText="Delete this short course?" label="Delete" />
                         </>
                       )}

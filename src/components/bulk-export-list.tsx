@@ -227,7 +227,8 @@ export function BulkExportList({
                       {p.nextIntake && <span>Next intake {formatDate(p.nextIntake)}</span>}
                     </div>
                   </div>
-                  <div className="text-sm">
+                  <div className="flex w-full items-center justify-between rounded-xl border border-indigo-100 bg-gradient-to-r from-blue-50 to-violet-50 px-3 py-2 text-sm font-semibold dark:border-indigo-900/50 dark:from-blue-950/30 dark:to-violet-950/30 sm:w-auto sm:justify-start sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 dark:sm:bg-transparent">
+                    <span className="text-xs font-medium text-ink-muted sm:hidden">Tuition fee</span>
                     <FeeDisplay amount={p.tuitionFee} />
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">

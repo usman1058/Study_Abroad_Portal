@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { Bell, Sun, Moon, LogOut, CheckCheck, ExternalLink, House, Menu } from "lucide-react";
@@ -16,6 +16,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
   const [unread, setUnread] = useState(0);
   const [openMenu, setOpenMenu] = useState(false);
   const [openNotifications, setOpenNotifications] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const [notifications, setNotifications] = useState<{ id: string; title: string; body?: string | null; readAt?: string | null; createdAt: string; data?: { href?: string } | null }[]>([]);
 
   function notificationHref(n: (typeof notifications)[number]) {
@@ -37,6 +38,22 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
       .catch(() => {});
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    function dismissOnOutsidePointer(event: PointerEvent) {
+      if (!profileMenuRef.current?.contains(event.target as Node)) setOpenMenu(false);
+    }
+    function dismissOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMenu(false);
+    }
+    document.addEventListener("pointerdown", dismissOnOutsidePointer);
+    document.addEventListener("keydown", dismissOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnOutsidePointer);
+      document.removeEventListener("keydown", dismissOnEscape);
+    };
+  }, [openMenu]);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-line bg-white/90 px-4 backdrop-blur dark:border-navy-800 dark:bg-navy-900/90">
@@ -77,8 +94,11 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
         </>}
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={profileMenuRef}>
           <button
+            type="button"
+            aria-expanded={openMenu}
+            aria-controls="profile-menu"
             onClick={() => setOpenMenu((v) => !v)}
             className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-canvas-subtle dark:hover:bg-navy-800"
           >
@@ -91,9 +111,7 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
             </span>
           </button>
           {openMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(false)} />
-              <div className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-line bg-white p-2 shadow-lg dark:border-navy-700 dark:bg-navy-900">
+              <div id="profile-menu" className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-line bg-white p-2 shadow-lg dark:border-navy-700 dark:bg-navy-900">
                 <div className="mb-1 border-b border-line px-3 py-2 dark:border-navy-700">
                   <p className="text-sm font-semibold">{userName}</p>
                   <p className="truncate text-xs text-ink-muted">{userEmail}</p>
@@ -122,7 +140,6 @@ export function Topbar({ role, userName, userEmail, preferredCurrency = "MYR", o
                   <LogOut className="h-4 w-4" /> {t("Sign out")}
                 </button>
               </div>
-            </>
           )}
         </div>
       </div>

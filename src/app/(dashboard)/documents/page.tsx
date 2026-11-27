@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate, fullName, humanize } from "@/lib/utils";
 import { DocumentGroups } from "@/components/document-groups";
 import { DocumentThumbnail } from "@/components/document-thumbnail";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
 
 export const metadata = { title: "Documents" };
 
@@ -86,12 +87,17 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">My documents</h1>
-          <p className="text-sm text-ink-muted">
-            Upload passports, transcripts and test results here. {pending} pending · {rejected} rejected · {documents.length} total.
-          </p>
-        </div>
+        <header className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-[#142d67] via-[#3547a2] to-[#704cc8] p-5 text-white shadow-lg shadow-indigo-950/10 sm:p-7">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 -z-10 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-blue-100">Student workspace · Documents</p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">My documents</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-50">Upload passports, transcripts, and test results. Review decisions and replace rejected files here.</p>
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5">{documents.length} total</span>
+            <span className="rounded-full border border-amber-200/30 bg-amber-300/15 px-3 py-1.5">{pending} pending</span>
+            <span className="rounded-full border border-rose-200/30 bg-rose-300/15 px-3 py-1.5">{rejected} to replace</span>
+          </div>
+        </header>
 
         <Card>
           <CardHeader>
@@ -104,7 +110,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           </CardContent>
         </Card>
 
-        <nav aria-label="Filter my documents" className="flex flex-wrap gap-2">
+        <ResponsiveFilterPanel title="Document status" activeCount={docsFilter === "all" ? 0 : 1}>
+        <nav aria-label="Filter my documents" className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
           {[
             { value: "all", label: "All documents" },
             { value: "pending", label: "Pending" },
@@ -116,7 +123,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
               href={filter.value === "all" ? "/documents" : `/documents?docs=${filter.value}`}
               aria-current={docsFilter === filter.value ? "page" : undefined}
               className={
-                "inline-flex min-h-8 items-center rounded-full border px-3 text-sm font-medium " +
+                "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-sm font-medium " +
                 (docsFilter === filter.value
                   ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
                   : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:hover:bg-navy-800")
@@ -126,6 +133,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             </Link>
           ))}
         </nav>
+        </ResponsiveFilterPanel>
 
         <Card>
           <CardHeader>
@@ -142,6 +150,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   const expiry = daysUntil(document.expiresAt);
                   return (
                   <li key={document.id} id={`document-${document.id}`} className={`flex flex-wrap items-center justify-between gap-3 py-3 ${document.id === focusDocumentId ? "rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20" : ""}`}>
+                    <DocumentThumbnail href={`/api/documents/${document.id}`} label={humanize(document.type)} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{humanize(document.type)}</p>
                       <p className="truncate text-xs text-ink-muted">
@@ -229,19 +238,19 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Documents</h1>
-        <p className="text-sm text-ink-muted">
-          {scopeLabel}. {pendingCount} pending.
-        </p>
-      </div>
+      <header className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-[#142d67] via-[#3547a2] to-[#704cc8] p-5 text-white shadow-lg shadow-indigo-950/10 sm:p-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 -z-10 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+        <p className="text-xs font-bold uppercase tracking-[.16em] text-blue-100">Document center · {user.role === "SUPER_ADMIN" ? "Admin review" : user.role === "MANAGER" ? "Manager review" : user.role === "AGENCY" ? "Agency workspace" : "Consultant workspace"}</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">Documents</h1><p className="mt-2 text-sm leading-6 text-blue-50">{scopeLabel}. Review student and partner files in one organized workspace.</p></div><span className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold">{pendingCount} pending review</span></div>
+      </header>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Document filter">
+      <ResponsiveFilterPanel title="Document status" activeCount={docsFilter === "all" ? 0 : 1}>
+      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1" role="group" aria-label="Document filter">
         <Link
           href="/documents"
           aria-current={docsFilter === "all" ? "page" : undefined}
           className={
-            "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
+            "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 py-1 text-sm font-medium " +
             (docsFilter !== "pending"
               ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
               : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
@@ -255,7 +264,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             href={`/documents?docs=${status}`}
             aria-current={docsFilter === status ? "page" : undefined}
             className={
-              "inline-flex min-h-6 items-center rounded-full border px-3 py-1 text-sm font-medium " +
+              "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 py-1 text-sm font-medium " +
               (docsFilter === status
                 ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
                 : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300 dark:hover:bg-navy-800")
@@ -265,6 +274,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           </Link>
         ))}
       </div>
+      </ResponsiveFilterPanel>
 
       {(user.role === "SUPER_ADMIN" || user.role === "MANAGER") && (
         <PartnerDocumentReview agencies={await prisma.user.findMany({
@@ -353,8 +363,8 @@ function DocumentGroup({
   return (
     <div className="space-y-4">
       {filtered.map((student) => (
-        <Card key={student.id}>
-          <CardHeader>
+        <Card key={student.id} className="overflow-hidden border-line/90 shadow-sm transition hover:border-brand-200 hover:shadow-md dark:border-navy-700">
+          <CardHeader className="border-b border-line bg-gradient-to-r from-blue-50/80 via-white to-violet-50/70 py-4 dark:border-navy-700 dark:from-blue-950/30 dark:via-navy-900 dark:to-violet-950/30">
             <CardTitle>
               {fullName(student)}
               <span className="ml-2 text-xs font-normal text-ink-muted">
@@ -371,6 +381,7 @@ function DocumentGroup({
             <ul className="divide-y divide-line dark:divide-navy-700">
               {student.documents.map((document) => (
                 <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <DocumentThumbnail href={`/api/documents/${document.id}`} label={humanize(document.type)} />
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{humanize(document.type)}</p>
                     <p className="truncate text-xs text-ink-muted">

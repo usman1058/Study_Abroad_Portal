@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/delete-button";
 import { humanize } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
 
 export const metadata = { title: "Scholarships" };
 const PAGE_SIZE = 12;
@@ -54,6 +55,7 @@ export default async function ScholarshipsPage({ searchParams }: { searchParams:
   return <div className="mx-auto max-w-7xl space-y-6 pb-8">
     <header className="flex flex-col gap-4 rounded-2xl bg-gradient-to-br from-navy-950 via-[#263b78] to-[#5b3aab] p-6 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8"><div><p className="text-sm font-semibold text-blue-100">Funding opportunities</p><h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Scholarships</h1><p className="mt-2 max-w-2xl text-base leading-7 text-blue-50">Search awards by university, study level, subject, award basis, and eligibility.</p></div>{isAdmin && <Link href="/scholarships/new" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-brand-800 shadow-sm hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-700">+ Add scholarship</Link>}</header>
 
+    <ResponsiveFilterPanel title="Scholarship filters" activeCount={[q, country, applicantCountry, subject, level, category, award].filter(Boolean).length}>
     <form action="/scholarships" method="get" role="search" className="grid gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4 dark:border-navy-700 dark:bg-navy-900">
       <label className="text-sm font-medium sm:col-span-2 lg:col-span-4">Search scholarships<input name="q" type="search" maxLength={120} defaultValue={q} placeholder="Scholarship, sponsor, university, or program" className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-base dark:border-navy-700 dark:bg-navy-900" /></label>
       <label className="text-sm font-medium">Study destination<select name="country" defaultValue={country} className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-sm dark:border-navy-700 dark:bg-navy-900"><option value="">All destinations</option>{countries.map((item) => <option key={item}>{item}</option>)}</select></label>
@@ -64,6 +66,7 @@ export default async function ScholarshipsPage({ searchParams }: { searchParams:
       <label className="text-sm font-medium sm:col-span-2">Subject / field<input name="subject" defaultValue={subject} maxLength={120} placeholder="For example: Engineering" className="mt-1 min-h-11 w-full rounded-lg border border-line-strong bg-white px-3 text-sm dark:border-navy-700 dark:bg-navy-900" /></label>
       <button className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"><Search aria-hidden className="h-4 w-4" /> Apply filters</button>
     </form>
+    </ResponsiveFilterPanel>
 
     <div className="flex flex-wrap items-center justify-between gap-2"><p aria-live="polite" className="text-sm text-ink-muted">{total.toLocaleString()} scholarship{total === 1 ? "" : "s"}{q || country || applicantCountry || subject || level || category || award ? " match your filters" : " in the catalog"}</p><Pagination page={page} pageCount={pageCount} total={total} pageSize={PAGE_SIZE} basePath="/scholarships" query={{ q, country, applicantCountry, subject, level, category, award }} label="Scholarship pages" /></div>
 

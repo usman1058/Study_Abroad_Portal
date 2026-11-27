@@ -59,7 +59,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         </div>
         <Link
           href="/student/login?reset=1"
-          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand-600 px-5 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#315bd5] via-[#4b55d0] to-[#7050c8] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
           Go to sign in
         </Link>

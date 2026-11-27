@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
 
 export function ProgramsFilter({
   countries,
@@ -41,6 +42,7 @@ export function ProgramsFilter({
   const hasFilters = Boolean(params.get("q") || params.get("country") || params.get("city") || params.get("universityId"));
 
   return (
+    <ResponsiveFilterPanel title="Program filters" activeCount={[params.get("q"), params.get("country"), params.get("city"), params.get("universityId")].filter(Boolean).length}>
     <div className="space-y-2">
       <form
         onSubmit={(e) => {
@@ -97,5 +99,6 @@ export function ProgramsFilter({
         </button>
       )}
     </div>
+    </ResponsiveFilterPanel>
   );
 }

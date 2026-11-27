@@ -9,6 +9,7 @@ import { TRANSACTION_TYPES } from "@/lib/constants";
 import { formatDate, formatCurrency, fullName, humanize, toNum } from "@/lib/utils";
 import type { TransactionType } from "@/generated/prisma/client";
 import { ReceiptReview } from "@/components/receipt-review";
+import { ResponsiveFilterPanel } from "@/components/responsive-filter-panel";
 
 export const metadata = { title: "Payments" };
 
@@ -293,12 +294,13 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         </Card>
       </div>
 
-      <nav aria-label="Filter payments by type" className="flex flex-wrap gap-2">
+      <ResponsiveFilterPanel title="Payment type" activeCount={typeFilter ? 1 : 0}>
+      <nav aria-label="Filter payments by type" className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
         <Link
           href="/payments"
           aria-current={!typeFilter ? "page" : undefined}
           className={
-            "inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium " +
+            "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs font-medium " +
             (!typeFilter
               ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
               : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300")
@@ -315,7 +317,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
               href={`/payments?type=${type}`}
               aria-current={active ? "page" : undefined}
               className={
-                "inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-medium " +
+                "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs font-medium " +
                 (active
                   ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-600 dark:bg-brand-900/40 dark:text-brand-200"
                   : "border-line-strong text-ink-muted hover:bg-canvas dark:border-navy-700 dark:text-slate-300")
@@ -326,6 +328,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           );
         })}
       </nav>
+      </ResponsiveFilterPanel>
 
       <Card>
         <CardHeader>
