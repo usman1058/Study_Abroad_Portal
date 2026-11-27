@@ -17,6 +17,7 @@ export const metadata: Metadata = {
     template: "%s · CheckMyUni Portal",
   },
   description: "Manage study programs, applications, documents, payments, and student support with CheckMyUni.",
+  robots: { index: false, follow: false },
   openGraph: {
     type: "website",
     siteName: "CheckMyUni",

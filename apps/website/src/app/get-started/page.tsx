@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, BriefcaseBusiness, GraduationCap, UserRoundPlus } from "lucide-react";
 import { portalUrl } from "@/lib/portal";
 
-export const metadata = pageMetadata({ title: 'Create your account', description: 'Choose a student or education partner account to continue to the CheckMyUni portal.', path: '/get-started', keywords: 'student account, education partner account' });
+export const metadata = pageMetadata({ title: 'Create your account', description: 'Choose a student or education partner account to continue to the CheckMyUni portal.', path: '/get-started', keywords: 'student account, education partner account', noIndex: true });
 
 const accountTypes = [
   {

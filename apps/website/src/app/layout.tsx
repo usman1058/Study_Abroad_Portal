@@ -19,28 +19,28 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   icons: { icon: "/icon.png", shortcut: "/icon.png", apple: "/icon.png" },
-  title: { default: "CheckMyUni — Find your next destination", template: "%s | CheckMyUni" },
-  description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+  title: { default: "Study Abroad Programs | CheckMyUni", template: "%s | CheckMyUni" },
+  description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
   openGraph: {
     type: "website",
     siteName: "CheckMyUni",
-    title: "CheckMyUni — Find your next destination",
-    description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+    title: "Study Abroad Programs | CheckMyUni",
+    description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
     url: "https://checkmyuni.com",
     images: [{ url: "/checkmyuni-og.jpg", width: 1200, height: 630, alt: "CheckMyUni study program search and guidance" }],
   },
   twitter: {
     card: "summary_large_image",
     images: ["/checkmyuni-og.jpg"],
-    title: "CheckMyUni — Find your next destination",
-    description: "Explore study programs, compare your options, and get practical support with CheckMyUni.",
+    title: "Study Abroad Programs | CheckMyUni",
+    description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
   },
 };
 
 export default function WebsiteLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const structuredData = [
     { "@context": "https://schema.org", "@type": "Organization", name: "CheckMyUni", url: "https://checkmyuni.com", logo: "https://checkmyuni.com/checkmyuni-full-logo.png" },
-    { "@context": "https://schema.org", "@type": "WebSite", name: "CheckMyUni", url: "https://checkmyuni.com", potentialAction: { "@type": "SearchAction", target: "https://checkmyuni.com/applications?q={search_term_string}", "query-input": "required name=search_term_string" } },
+    { "@context": "https://schema.org", "@type": "WebSite", name: "CheckMyUni", url: "https://checkmyuni.com" },
   ];
   return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />

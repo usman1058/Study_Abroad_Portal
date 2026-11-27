@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Clock3, ExternalLink, FileCheck2, Globe2, MapPin } from "lucide-react";
 import { getProgram, formatDuration, formatMoney, portalUrl } from "@/lib/portal";
 
@@ -18,13 +18,25 @@ export default async function ApplicationDetailPage({ params }: { params: Params
   const { id } = await params;
   const program = await getProgram(id);
   if (!program) notFound();
+  if (program.slug && id !== program.slug) permanentRedirect(`/applications/${encodeURIComponent(program.slug)}`);
   const applyHref = portalUrl(`/student/signup?programId=${encodeURIComponent(program.id)}`);
   const highlights = Array.isArray(program.whyHighlights) ? program.whyHighlights.filter((item): item is string => typeof item === "string") : [];
   const intakes = program.intakeDates.map((date) => new Date(date)).filter((date) => !Number.isNaN(date.valueOf())).sort((a, b) => a.getTime() - b.getTime());
+  const canonicalUrl = `https://checkmyuni.com/applications/${encodeURIComponent(program.slug || program.id)}`;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://checkmyuni.com" },
+      { "@type": "ListItem", position: 2, name: "Study programs", item: "https://checkmyuni.com/applications" },
+      { "@type": "ListItem", position: 3, name: `${program.name} at ${program.university.name}`, item: canonicalUrl },
+    ],
+  };
 
   const universityWebsite = program.university.website && /^https?:\/\//i.test(program.university.website) ? program.university.website : null;
 
   return <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
     <section className="bg-ivory py-8 sm:py-12"><div className="site-container"><Link href="/applications" className="inline-flex min-h-9 items-center gap-2 text-sm font-bold text-blue hover:text-blue-dark"><ArrowLeft aria-hidden="true" className="h-4 w-4" />Back to programs</Link><div className="mt-7 grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-blue-soft px-3 py-1 text-xs font-bold text-blue">{program.level}</span><span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">{program.field}</span></div><h1 className="mt-4 max-w-4xl font-display text-4xl font-extrabold leading-tight text-navy sm:text-5xl">{program.name}</h1><p className="mt-3 text-lg font-semibold text-slate-700">{program.university.name}</p><p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600"><MapPin aria-hidden="true" className="h-4 w-4 text-blue" />{[program.university.city, program.university.country].filter(Boolean).join(", ")}</p></div><Link href={applyHref} className="btn-primary">Start your application <ArrowUpRight className="h-4 w-4" /></Link></div></div></section>
     <section className="section-space pt-10"><div className="site-container grid gap-8 lg:grid-cols-[1fr_21rem]">
       <div className="space-y-8">
