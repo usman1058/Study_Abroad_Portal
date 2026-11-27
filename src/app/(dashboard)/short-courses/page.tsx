@@ -7,12 +7,11 @@ import { studentScopeWhere } from "@/lib/permissions";
 import { Pagination } from "@/components/pagination";
 import { EnrollButton } from "@/components/enroll-button";
 import { DeleteButton } from "@/components/delete-button";
-import { ReceiptReview } from "@/components/receipt-review";
 import { FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SHORT_COURSE_CATEGORIES } from "@/lib/constants";
-import { formatDate, fullName, humanize } from "@/lib/utils";
+import { formatDate, humanize } from "@/lib/utils";
 
 export const metadata = { title: "Short courses" };
 
@@ -59,23 +58,9 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
         })
       : [];
 
-  // Oldest first so nothing waits forever; the 50-row bound is stated, never silent.
+  // Receipt actions live on a separate review page so the course catalog stays focused.
   const reviewWhere = { status: "pending_approval" as const, student: studentScopeWhere(user) };
-  const [pendingRows, pendingTotal] = isStaff
-    ? await Promise.all([
-        prisma.shortCourseEnrollment.findMany({
-          where: reviewWhere,
-          include: {
-            student: { select: { id: true, firstName: true, lastName: true } },
-            shortCourse: { select: { id: true, title: true } },
-          },
-          orderBy: { enrolledAt: "asc" },
-          take: 51,
-        }),
-        prisma.shortCourseEnrollment.count({ where: reviewWhere }),
-      ])
-    : [[], 0];
-  const pendingReviews = pendingRows.slice(0, 50);
+  const pendingReceiptCount = isStaff ? await prisma.shortCourseEnrollment.count({ where: reviewWhere }) : 0;
 
   const courseStats = isSuperAdmin
     ? await prisma.shortCourseEnrollment.groupBy({ by: ["status"], _count: { _all: true } })
@@ -93,15 +78,16 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-gradient-to-br from-navy-950 via-[#263b78] to-[#5b3aab] p-6 text-white shadow-sm sm:p-8">
+      <header className="relative isolate flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-3xl bg-gradient-to-br from-[#10254f] via-[#263c83] to-[#6546b8] p-6 text-white shadow-lg sm:p-8 lg:p-10">
+        <div aria-hidden="true" className="absolute -right-16 -top-24 -z-10 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div>
-          <p className="text-sm font-semibold text-blue-100">Learn new skills</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Short courses</h1>
-          <p className="mt-2 max-w-2xl text-base leading-7 text-blue-50">
-            Browse language, test-prep, foundation and professional courses. Compare format, dates, fees and eligibility.
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-100">Learning that fits your next step</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Short courses</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-50 sm:text-base sm:leading-7">
+            Explore focused learning, compare course formats and fees, then manage enrollment from one clear workspace.
           </p>
         </div>
-        {isSuperAdmin && <Link href="/short-courses/new" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-brand-800 shadow-sm hover:bg-blue-50">+ Add short course</Link>}
+        {isSuperAdmin && <Link href="/short-courses/new" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-bold text-indigo-900 shadow-md transition hover:-translate-y-0.5 hover:bg-blue-50">+ Create course</Link>}
       </header>
 
       {isSuperAdmin && (
@@ -128,12 +114,7 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
             <CardContent className="p-5">
               <p className="text-xs text-ink-muted">Pending applications/payments</p>
               <p className="mt-1 text-2xl font-bold">{pendingCount}</p>
-              <Link
-                href="#receipts"
-                className="mt-1 inline-flex min-h-6 items-center text-xs font-medium text-brand-700 underline dark:text-brand-300"
-              >
-                Review receipts
-              </Link>
+              <Link href="/short-courses/reviews" className="mt-1 inline-flex min-h-7 items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-300">Open review inbox ({pendingReceiptCount})</Link>
             </CardContent>
           </Card>
         </div>
@@ -213,31 +194,24 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
               const status = enrolledMap.get(c.id);
               const hasAccess = status === "enrolled" || status === "completed";
               return (
-                <Card key={c.id} data-short-course-id={c.id}>
-                  <CardContent className="flex h-full flex-col p-5">
-                    <div className="mb-3 flex items-start justify-between gap-2">
+                <Card key={c.id} data-short-course-id={c.id} className="group overflow-hidden border-line/80 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg dark:border-navy-700">
+                  <div aria-hidden="true" className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
+                  <CardContent className="flex h-full flex-col p-5 sm:p-6">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs text-ink-muted">{c.provider}</p>
-                        <h2 className="text-lg font-bold leading-snug"><Link href={`/short-courses/${c.id}`} className="hover:text-brand-700 hover:underline dark:hover:text-brand-300">{c.title}</Link></h2>
+                        <p className="truncate text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300">{c.provider}</p>
+                        <h2 className="mt-1 text-lg font-bold leading-snug tracking-tight"><Link href={`/short-courses/${c.id}`} className="transition group-hover:text-indigo-700 dark:group-hover:text-indigo-300">{c.title}</Link></h2>
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-1">
                         {isSuperAdmin && <Badge tone={c.status === "active" ? "green" : "slate"}>{humanize(c.status)}</Badge>}
                         <Badge tone="brand">{humanize(c.category)}</Badge>
                       </div>
                     </div>
-                    <p className="mb-3 line-clamp-2 text-sm text-ink-muted">{c.description || "No description."}</p>
-                    <dl className="mb-4 space-y-1 text-sm">
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-ink-muted">Duration</dt>
-                        <dd>{c.duration}</dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-ink-muted">Delivery</dt>
-                        <dd className="capitalize">{c.deliveryMode}</dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-ink-muted">Next start</dt>
-                        <dd>
+                    <p className="mb-4 line-clamp-2 min-h-10 text-sm leading-5 text-ink-muted">{c.description || "Course details and enrollment information."}</p>
+                    <dl className="mb-5 grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Duration</dt><dd className="mt-1 font-semibold">{c.duration}</dd></div>
+                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Delivery</dt><dd className="mt-1 font-semibold capitalize">{c.deliveryMode}</dd></div>
+                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Next start</dt><dd className="mt-1 font-semibold">
                           {(() => {
                             const nextStart = c.startDates
                               .map((d) => new Date(d))
@@ -245,14 +219,8 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                               .sort((a, b) => a.getTime() - b.getTime())[0];
                             return nextStart ? formatDate(nextStart) : "—";
                           })()}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-ink-muted">Fee</dt>
-                        <dd className="font-medium">
-                          <FeeDisplay amount={c.fee} />
-                        </dd>
-                      </div>
+                        </dd></div>
+                      <div className="rounded-xl bg-canvas-subtle p-3 dark:bg-navy-800"><dt className="text-xs text-ink-muted">Fee</dt><dd className="mt-1 font-bold"><FeeDisplay amount={c.fee} /></dd></div>
                     </dl>
                     <div className="mt-auto flex flex-wrap items-start gap-2">
                       <Link
@@ -277,8 +245,10 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
                           }}
                         />
                       )}
+                      {user.role === "STUDENT" && (status === "enrolled" || status === "completed") && <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex h-8 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Enter classroom</Link>}
                       {isSuperAdmin && (
                         <>
+                          <Link href={`/short-courses/${c.id}/classroom`} className="inline-flex h-8 items-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-3 text-xs font-bold text-white hover:brightness-110">Classroom</Link>
                           <Link href={`/short-courses/${c.id}/edit`} className="inline-flex h-8 items-center rounded-lg border border-line-strong px-3 text-xs font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Edit</Link>
                           <DeleteButton endpoint={`/api/short-courses/${c.id}`} confirmText="Delete this short course?" label="Delete" />
                         </>
@@ -293,73 +263,6 @@ export default async function ShortCoursesPage({ searchParams }: { searchParams:
         </>
       )}
 
-      {isStaff && (
-        <Card id="receipts">
-          <CardHeader>
-            <CardTitle>Receipts awaiting review</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pendingReviews.length === 0 ? (
-              <p className="py-6 text-center text-sm text-ink-muted">No receipts are waiting for review.</p>
-            ) : (
-              <div
-                role="region"
-                tabIndex={0}
-                aria-label="Receipts awaiting review, scrollable"
-                className="overflow-x-auto rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                <table className="w-full text-sm">
-                  <caption className="sr-only">Paid-course receipts waiting for a decision</caption>
-                  <thead>
-                    <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
-                      <th scope="col" className="p-4">Student</th>
-                      <th scope="col" className="p-4">Course</th>
-                      <th scope="col" className="p-4">Enrolled</th>
-                      <th scope="col" className="p-4">Receipt</th>
-                      <th scope="col" className="p-4 text-right">Decision</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line dark:divide-navy-700">
-                    {pendingReviews.map((review) => {
-                      const name = fullName(review.student);
-                      return (
-                        <tr key={review.id}>
-                          <td className="p-4 font-medium">{name}</td>
-                          <td className="p-4">
-                            <Link href={`/short-courses/${review.shortCourse.id}`} className="hover:underline">
-                              {review.shortCourse.title}
-                            </Link>
-                          </td>
-                          <td className="p-4 text-ink-muted">{formatDate(review.enrolledAt)}</td>
-                          <td className="p-4">
-                            <a
-                              href={`/api/short-courses/${review.shortCourse.id}/receipt?studentId=${review.student.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              aria-label={`Open ${name}'s receipt`}
-                              className="inline-flex min-h-8 items-center font-medium text-brand-700 underline dark:text-brand-300"
-                            >
-                              Open receipt
-                            </a>
-                          </td>
-                          <td className="p-4">
-                            <ReceiptReview enrollmentId={review.id} studentName={name} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {pendingReviews.length > 0 && pendingTotal > 50 && (
-              <p className="mt-4 text-xs text-ink-muted">
-                Showing the 50 oldest of {pendingTotal} receipts. Approve or reject these to reveal the rest.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

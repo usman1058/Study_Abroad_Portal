@@ -56,10 +56,12 @@ export function ShortCourseStudio({
   courseId,
   sessions,
   materials,
+  view = "all",
 }: {
   courseId: string;
   sessions: ShortCourseSessionInfo[];
   materials: ShortCourseMaterialInfo[];
+  view?: "all" | "sessions" | "materials";
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -186,15 +188,16 @@ export function ShortCourseStudio({
   return (
     <section aria-labelledby="course-studio-heading" className="space-y-5">
       <div>
-        <h2 id="course-studio-heading" className="text-xl font-bold">Course classroom setup</h2>
-        <p className="mt-1 text-sm text-ink-muted">Schedule live classes and publish study files. Published materials are available to enrolled students.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-700 dark:text-brand-300">Classroom management</p>
+        <h2 id="course-studio-heading" className="mt-1 text-2xl font-bold">{view === "sessions" ? "Class schedule" : view === "materials" ? "Learning materials" : "Course classroom setup"}</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">{view === "sessions" ? "Set clear class times and secure meeting links. Enrolled students see the link when access is confirmed." : view === "materials" ? "Organize files into a useful learning library. Published materials are available to enrolled students." : "Manage the learning schedule and resource library in dedicated classroom sections."}</p>
       </div>
       {error && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</p>}
       {uploadNotice && <p role="status" className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">{uploadNotice}</p>}
       {feedback && <p role="status" aria-live="polite" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">{feedback}</p>}
 
-      <div className="grid gap-5 xl:grid-cols-2">
-        <div className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
+      <div className={view === "all" ? "grid gap-5 xl:grid-cols-2" : "space-y-5"}>
+        {(view === "all" || view === "sessions") && <div className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-sm dark:border-navy-700 dark:bg-navy-900 sm:p-6">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-brand-600" aria-hidden="true" />
             <h3 className="font-semibold">Class schedule</h3>
@@ -221,9 +224,9 @@ export function ShortCourseStudio({
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
-        <div className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
+        {(view === "all" || view === "materials") && <div className="space-y-4 rounded-2xl border border-line bg-white p-5 shadow-sm dark:border-navy-700 dark:bg-navy-900 sm:p-6">
           <div className="flex items-center gap-2">
             <Upload className="h-5 w-5 text-brand-600" aria-hidden="true" />
             <h3 className="font-semibold">Study materials</h3>
@@ -262,7 +265,7 @@ export function ShortCourseStudio({
               </div>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
     </section>
   );
