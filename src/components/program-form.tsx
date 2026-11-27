@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -37,10 +38,10 @@ type Props = {
   };
 };
 
-export function ProgramForm({ universities, initial }: Props) {
+export function ProgramForm({ universities, initial, startOpen = false, standalone = false }: Props & { startOpen?: boolean; standalone?: boolean }) {
   const router = useRouter();
   const { currency } = usePortalCurrency();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(startOpen);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -150,7 +151,7 @@ export function ProgramForm({ universities, initial }: Props) {
           .filter(Boolean),
       };
 
-      const res = await fetch(initial?.id ? `/api/scholarships/${initial.id}` : "/api/scholarships", {
+      const res = await fetch(initial?.id ? `/api/programs/${initial.id}` : "/api/programs", {
         method: initial?.id ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -160,9 +161,13 @@ export function ProgramForm({ universities, initial }: Props) {
         setError(json.error ?? "Failed to save program");
         return;
       }
-      setOpen(false);
-      setSaved(initial?.id ? "Program updated." : "Program created.");
-      router.refresh();
+      if (standalone && !initial?.id) {
+        router.push(`/programs/${json.data.id}`);
+      } else {
+        setOpen(false);
+        setSaved(initial?.id ? "Program updated." : "Program created.");
+        router.refresh();
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -170,7 +175,7 @@ export function ProgramForm({ universities, initial }: Props) {
     }
   }
 
-  if (!open) {
+  if (!open && !standalone) {
     return (
       <span className="inline-flex flex-wrap items-center gap-2">
         <Button
@@ -193,11 +198,11 @@ export function ProgramForm({ universities, initial }: Props) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-white p-5 dark:border-navy-700 dark:bg-navy-900">
-      <div className="flex items-center justify-between"><h3 className="font-semibold">{initial?.id ? "Edit program" : "Add a new program"}</h3><button type="button" onClick={() => setOpen(false)} className="rounded-lg px-2 py-1 text-xl leading-none text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800" aria-label="Close program form">×</button></div>
+    <form onSubmit={submit} className="space-y-6 rounded-2xl border border-line bg-white p-5 shadow-sm dark:border-navy-700 dark:bg-navy-900 sm:p-7">
+      <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-brand-700 dark:text-brand-300">Program catalog</p><h2 className="mt-1 text-xl font-bold">{initial?.id ? "Edit program" : "Program information"}</h2><p className="mt-1 text-sm text-ink-muted">Add the course, fees, and admission information students need to compare options.</p></div>{!standalone && <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-2 py-1 text-xl leading-none text-ink-muted hover:bg-canvas-subtle dark:hover:bg-navy-800" aria-label="Close program form">×</button>}</div>
       {error && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-200">{error}</div>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <fieldset className="rounded-xl border border-line p-4 dark:border-navy-700 sm:p-5"><legend className="px-2 text-base font-semibold">University and program</legend><div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor={fieldId("university")}>University</Label>
           {universities.length ? (
@@ -207,8 +212,9 @@ export function ProgramForm({ universities, initial }: Props) {
               onChange={(v) => set("universityId", v)}
               placeholder="Search universities…"
               id={fieldId("university")}
+              required
             />
-          ) : <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">Add a university in the Universities section before creating a program.</p>}
+          ) : <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">Add a university in the <Link href="/universities" className="font-semibold underline">Universities section</Link> before creating a program.</p>}
         </div>
         <div>
           <Label htmlFor={fieldId("university-logo")}>University Logo URL</Label>
@@ -241,18 +247,24 @@ export function ProgramForm({ universities, initial }: Props) {
           <Label htmlFor={fieldId("location")}>Location</Label>
           <Input id={fieldId("location")} maxLength={160} value={form.location} onChange={(e) => set("location", e.target.value)} />
         </div>
+      </div></fieldset>
+
+      <fieldset className="rounded-xl border border-line p-4 dark:border-navy-700 sm:p-5"><legend className="px-2 text-base font-semibold">Fees and partnership</legend><div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor={fieldId("tuition-fee")}>Tuition fee ({feeCurrency})</Label>
-          <Input id={fieldId("tuition-fee")} type="number" step="0.01" required value={form.tuitionFee} onChange={(e) => set("tuitionFee", e.target.value)} />
+          <Input id={fieldId("tuition-fee")} type="number" min="0" step="0.01" required value={form.tuitionFee} onChange={(e) => set("tuitionFee", e.target.value)} />
         </div>
         <div>
           <Label htmlFor={fieldId("application-fee")}>Application fee ({feeCurrency})</Label>
-          <Input id={fieldId("application-fee")} type="number" step="0.01" value={form.applicationFee} onChange={(e) => set("applicationFee", e.target.value)} />
+          <Input id={fieldId("application-fee")} type="number" min="0" step="0.01" value={form.applicationFee} onChange={(e) => set("applicationFee", e.target.value)} />
         </div>
         <div>
           <Label htmlFor={fieldId("commission-rate")}>Commission rate (%)</Label>
-          <Input id={fieldId("commission-rate")} type="number" step="0.01" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} />
+          <Input id={fieldId("commission-rate")} type="number" min="0" max="100" step="0.01" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} />
         </div>
+      </div></fieldset>
+
+      <fieldset className="rounded-xl border border-line p-4 dark:border-navy-700 sm:p-5"><legend className="px-2 text-base font-semibold">Admissions and requirements</legend><div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor={fieldId("min-gpa")}>Min GPA</Label>
           <Input id={fieldId("min-gpa")} type="number" step="0.01" value={form.minGpa} onChange={(e) => set("minGpa", e.target.value)} />
@@ -289,14 +301,12 @@ export function ProgramForm({ universities, initial }: Props) {
           <input type="checkbox" checked={form.visaRequired} onChange={(e) => set("visaRequired", e.target.checked)} />
           Visa required (adds Visa stage to applications)
         </label>
-      </div>
+      </div></fieldset>
       <div className="flex gap-2">
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || universities.length === 0}>
           {loading ? "Saving…" : "Save program"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
+        {standalone ? <Link href="/programs" className="inline-flex min-h-10 items-center rounded-lg border border-line-strong px-4 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Cancel</Link> : <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>}
       </div>
     </form>
   );

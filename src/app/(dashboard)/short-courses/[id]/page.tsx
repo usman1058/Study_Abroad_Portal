@@ -439,7 +439,7 @@ export default async function ShortCourseDetailPage({ params }: PageProps) {
 
       {course.linkedProgram && (
         <a
-          href={`/scholarships/${course.linkedProgram.slug ?? course.linkedProgram.id}`}
+          href={`/programs/${course.linkedProgram.id}`}
           className="inline-flex min-h-8 items-center gap-1 text-sm font-medium text-brand-600 hover:underline"
         >
           <ExternalLink className="h-3 w-3" aria-hidden="true" /> View linked program

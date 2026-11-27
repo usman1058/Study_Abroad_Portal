@@ -21,7 +21,7 @@ export function CommissionRateEditor({ programId, programName, initialRate }: { 
     if (!Number.isFinite(value) || value < 0 || value > 100) { setError("Commission rate must be between 0 and 100."); return; }
     setSaving(true); setError(null);
     try {
-      const response = await fetch(`/api/scholarships/${programId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commissionRate: value }) });
+      const response = await fetch(`/api/programs/${programId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ commissionRate: value }) });
       const data = await response.json();
       if (!response.ok) { setError(data.error ?? "Could not save the commission rate."); return; }
       setOpen(false);

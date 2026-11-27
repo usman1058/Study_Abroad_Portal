@@ -168,7 +168,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Searc
                         <td className="p-4"><FeeDisplay amount={card.tuitionFee} /></td>
                         <td className="p-4 text-right">
                           <Link
-                            href={`/scholarships/${p.slug ?? p.id}`}
+                            href={`/programs/${p.id}`}
                             aria-label={`View ${p.name} at ${p.university.name}`}
                             className="inline-flex min-h-6 items-center justify-end rounded px-1 text-sm font-medium text-brand-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                           >

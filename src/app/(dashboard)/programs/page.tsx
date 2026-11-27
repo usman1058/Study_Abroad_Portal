@@ -7,7 +7,6 @@ import { ProgramsFilter } from "@/components/programs-filter";
 import { BulkExportList, type BulkGroup } from "@/components/bulk-export-list";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/pagination";
-import { ProgramForm } from "@/components/program-form";
 import { getWorkingCountries } from "@/lib/working-countries";
 
 export const metadata = { title: "Programs" };
@@ -155,7 +154,7 @@ export default async function ProgramsPage({ searchParams }: { searchParams: Sea
             ? "No programs match your filters."
             : `${total} program${total === 1 ? "" : "s"}${q || country || city ? " match your filters" : " in the catalog"}`}
         </p></div>
-        {isSuperAdmin && <div className="flex flex-wrap items-center gap-2"><Link href="/universities" className="inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-white px-3 text-sm font-semibold text-ink hover:bg-canvas-subtle dark:border-navy-700 dark:bg-navy-900 dark:text-slate-100">Manage universities</Link><ProgramForm universities={universityOptions} /></div>}
+        {isSuperAdmin && <div className="flex flex-wrap items-center gap-2"><Link href="/universities" className="inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-white px-3 text-sm font-semibold text-ink hover:bg-canvas-subtle dark:border-navy-700 dark:bg-navy-900 dark:text-slate-100">Manage universities</Link><Link href="/programs/new" className="inline-flex min-h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">+ Add program</Link></div>}
       </div>
 
       <ProgramsFilter

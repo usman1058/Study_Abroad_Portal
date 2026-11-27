@@ -62,7 +62,7 @@ export default async function PartnerCommissionsPage({ searchParams }: { searchP
         </CardHeader>
         <CardContent>
           <form method="get" className="mb-4 flex flex-wrap gap-2" role="search"><label htmlFor="commission-search" className="sr-only">Search program or university</label><input id="commission-search" name="q" defaultValue={q} placeholder="Search program or university" className="min-h-10 min-w-0 flex-1 rounded-lg border border-line-strong px-3 text-sm" /><button className="min-h-10 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white">Search</button></form>
-          <ul className="divide-y divide-line sm:hidden">{programs.map((p) => <li key={p.id} className="space-y-2 p-4"><Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 font-medium hover:underline">{p.name}</Link><p className="text-sm text-ink-muted">{p.university.name}</p><div className="flex justify-between gap-2 text-sm"><span>Tuition <FeeDisplay amount={serializeProgram(p).tuitionFee} /></span><Badge tone="green">{Number(p.commissionRate)}%</Badge></div>{user.role === "SUPER_ADMIN" && <CommissionRateEditor programId={p.id} programName={p.name} initialRate={Number(p.commissionRate)} />}</li>)}</ul>
+          <ul className="divide-y divide-line sm:hidden">{programs.map((p) => <li key={p.id} className="space-y-2 p-4"><Link href={`/programs/${p.id}`} className="inline-flex min-h-6 font-medium hover:underline">{p.name}</Link><p className="text-sm text-ink-muted">{p.university.name}</p><div className="flex justify-between gap-2 text-sm"><span>Tuition <FeeDisplay amount={serializeProgram(p).tuitionFee} /></span><Badge tone="green">{Number(p.commissionRate)}%</Badge></div>{user.role === "SUPER_ADMIN" && <CommissionRateEditor programId={p.id} programName={p.name} initialRate={Number(p.commissionRate)} />}</li>)}</ul>
             <div className="hidden overflow-x-auto sm:block" tabIndex={0} role="region" aria-label="Commission rates by program"><table className="w-full text-sm"><caption className="sr-only">Commission rates by program</caption>
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase text-ink-muted dark:border-navy-700">
@@ -77,7 +77,7 @@ export default async function PartnerCommissionsPage({ searchParams }: { searchP
                 {programs.map((p) => (
                   <tr key={p.id}>
                     <td className="p-4">
-                      <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">{p.name}</Link>
+                      <Link href={`/programs/${p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">{p.name}</Link>
                     </td>
                     <td className="p-4 text-ink-muted">{p.university.name}</td>
                     <td className="p-4"><FeeDisplay amount={serializeProgram(p).tuitionFee} /></td>

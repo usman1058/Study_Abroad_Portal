@@ -74,6 +74,22 @@ enum ShortCourseCategory {
   OTHER
 }
 
+enum ScholarshipAwardType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FULL_TUITION
+  OTHER
+}
+
+enum ScholarshipCategory {
+  MERIT
+  NEED_BASED
+  COUNTRY_SPECIFIC
+  UNIVERSITY_SPECIFIC
+  PROGRAM_SPECIFIC
+  OTHER
+}
+
 enum VisitorLeadStatus {
   NEW
   CONTACTED
@@ -174,6 +190,7 @@ model University {
   logoUrl  String?
   website  String?
   programs Program[]
+  scholarships ScholarshipUniversity[]
 
   @@index([country])
 }
@@ -225,12 +242,60 @@ model Program {
   shortlistItems ShortlistItem[]
   programViews   ProgramView[]
   shortCourses   ShortCourse[]
+  scholarships   ScholarshipProgram[]
 
   createdAt DateTime @default(now())
 
   @@index([universityId])
   @@index([field])
   @@index([level])
+}
+
+model Scholarship {
+  id                  String                 @id @default(cuid())
+  slug                String                 @unique
+  name                String
+  providerName        String?
+  description         String
+  category            ScholarshipCategory    @default(OTHER)
+  awardType           ScholarshipAwardType   @default(OTHER)
+  awardValue          Decimal?               @db.Decimal(12, 2)
+  awardCurrency       String                 @default("MYR")
+  eligibleCountries   String[]               @default([])
+  studyLevels         String[]               @default([])
+  subject             String?
+  eligibilityCriteria String[]               @default([])
+  deadline            DateTime?
+  applicationUrl      String?
+  isActive            Boolean                @default(true)
+  universities        ScholarshipUniversity[]
+  programs            ScholarshipProgram[]
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@index([isActive, deadline])
+  @@index([category])
+  @@index([subject])
+}
+
+model ScholarshipUniversity {
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  universityId  String
+  university    University  @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  @@id([scholarshipId, universityId])
+  @@index([universityId])
+}
+
+model ScholarshipProgram {
+  scholarshipId String
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  programId     String
+  program       Program     @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@id([scholarshipId, programId])
+  @@index([programId])
 }
 
 model Shortlist {

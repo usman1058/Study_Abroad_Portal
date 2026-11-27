@@ -118,7 +118,7 @@ export default async function MyShortlistPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs text-ink-muted">#{idx + 1}</p>
-                          <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
+                          <Link href={`/programs/${p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                             {university}
                           </Link>
                           <p className="text-sm">{p.name}</p>
@@ -133,7 +133,7 @@ export default async function MyShortlistPage() {
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <Link
-                          href={`/scholarships/${p.slug ?? p.id}`}
+                          href={`/programs/${p.id}`}
                           className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/40"
                         >
                           <ExternalLink className="h-3 w-3" aria-hidden="true" /> View details
@@ -178,7 +178,7 @@ export default async function MyShortlistPage() {
                           <td className="p-4">
                             <div className="flex items-center gap-3">
                               <FallbackLogo src={p.universityLogoUrl ?? p.university?.logoUrl} alt={`${university} logo`} className="h-9 w-9 shrink-0 rounded-lg border border-line bg-white object-contain p-1 dark:border-navy-700" />
-                              <Link href={`/scholarships/${p.slug ?? p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
+                              <Link href={`/programs/${p.id}`} className="inline-flex min-h-6 items-center font-medium hover:underline">
                                 {university}
                               </Link>
                             </div>
@@ -196,7 +196,7 @@ export default async function MyShortlistPage() {
                           <td className="p-4">
                             <div className="flex flex-wrap items-center justify-end gap-2">
                               <Link
-                                href={`/scholarships/${p.slug ?? p.id}`}
+                                href={`/programs/${p.id}`}
                                 className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:text-brand-300 dark:hover:bg-brand-900/40"
                               >
                                 <ExternalLink className="h-3 w-3" aria-hidden="true" /> View details

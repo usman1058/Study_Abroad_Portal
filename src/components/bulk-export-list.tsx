@@ -235,7 +235,7 @@ export function BulkExportList({
                       <>
                         <ApplyButton programId={p.id} profileReady={profileReady} programName={p.name} />
                         <Link
-                          href={`/scholarships/${p.slug ?? p.id}`}
+                          href={`/programs/${p.id}`}
                           aria-label={`View ${p.name}`}
                           className="inline-flex min-h-9 items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300 dark:hover:bg-brand-900/40"
                         >
@@ -274,7 +274,7 @@ export function BulkExportList({
                                 universityLogoUrl: p.detail.universityLogoUrl ?? undefined,
                               }}
                             />
-                            <DeleteButton endpoint={`/api/scholarships/${p.id}`} itemName={p.name} />
+                            <DeleteButton endpoint={`/api/programs/${p.id}`} itemName={p.name} />
                           </>
                         )}
                       </>

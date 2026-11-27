@@ -1,86 +1,44 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { ok, fail, requireUser, serverError } from "@/lib/api";
+import { fail, ok, requireUser, serverError } from "@/lib/api";
 import { logAudit } from "@/lib/audit";
-import { makeProgramSlug } from "@/lib/slug";
-import { requiredName, optionalText, money, intRange, dateStringArray } from "@/lib/validation";
+import { slugify } from "@/lib/slug";
+import { scholarshipSchema, validateScholarshipLinks } from "@/lib/scholarships";
 
-const idFieldMax = z.string().trim().min(1).max(64);
-const tagList = z.array(z.string().trim().min(1).max(40)).max(10).default([]);
+async function makeScholarshipSlug(name: string) {
+  const base = slugify(name);
+  let slug = base;
+  let suffix = 2;
+  while (await prisma.scholarship.findUnique({ where: { slug }, select: { id: true } })) slug = `${base}-${suffix++}`;
+  return slug;
+}
 
-const programSchema = z.object({
-  universityId: idFieldMax,
-  name: requiredName(200),
-  level: requiredName(50),
-  field: z.string().trim().max(120).default(""),
-  location: optionalText(160),
-  tuitionFee: money(),
-  applicationFee: money().optional().nullable(),
-  intakeDates: dateStringArray(24).default([]),
-  requiredDocuments: z.array(z.string().trim().min(1).max(80)).max(15).default([]),
-  minGpa: z.number().min(0).max(100).optional().nullable(),
-  visaRequired: z.boolean().optional().default(false),
-  commissionRate: z.number().min(0).max(100).optional().default(0),
-  tags: tagList,
-  eligibilityCriteria: z.array(z.string().trim().min(1).max(300)).max(15).default([]),
-  offerTurnaroundDays: intRange(0, 365).optional().nullable(),
-  collegeRank: optionalText(160),
-  courseDurationMonths: intRange(0, 240).optional().nullable(),
-  universityLogoUrl: optionalText(500),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
     const { error, user } = await requireUser();
     if (error) return error;
-    if (user.role !== "SUPER_ADMIN") return fail("Only the portal owner can manage the catalog", 403);
-
-    const body = await req.json();
-    const parsed = programSchema.safeParse(body);
+    if (user.role !== "SUPER_ADMIN") return fail("Only an administrator can manage scholarships.", 403);
+    const parsed = scholarshipSchema.safeParse(await request.json());
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
-      const field = issue?.path.join(".");
-      return fail(issue ? `${field ? `${field}: ` : ""}${issue.message}` : "Program details are invalid.", 422);
+      return fail(`${issue?.path.join(".") ? `${issue.path.join(".")}: ` : ""}${issue?.message ?? "Scholarship details are invalid."}`, 422);
     }
-
-    const data = parsed.data;
-    const university = await prisma.university.findUnique({ where: { id: data.universityId }, select: { id: true, name: true } });
-    if (!university) return fail("Choose an existing university before creating the program.", 422);
-    const universityId = university.id;
-
-    const universityName = university.name;
-    const slug = await makeProgramSlug(universityName, data.name);
-
-    const program = await prisma.program.create({
+    const input = parsed.data;
+    const links = await validateScholarshipLinks(input.universityIds, input.programIds);
+    if ("error" in links && typeof links.error === "string") return fail(links.error, 422);
+    const scholarship = await prisma.scholarship.create({
       data: {
-        universityId,
-        slug,
-        name: data.name,
-        level: data.level,
-        field: data.field,
-        location: data.location ?? null,
-        tuitionFee: data.tuitionFee,
-        applicationFee: data.applicationFee ?? null,
-        intakeDates: data.intakeDates.map((d) => new Date(d)),
-        requiredDocuments: data.requiredDocuments,
-        minGpa: data.minGpa ?? null,
-        visaRequired: data.visaRequired,
-        commissionRate: data.commissionRate,
-        tags: data.tags,
-        whyHighlights: [],
-        eligibilityCriteria: data.eligibilityCriteria,
-        offerTurnaroundDays: data.offerTurnaroundDays ?? null,
-        collegeRank: data.collegeRank ?? null,
-        courseDurationMonths: data.courseDurationMonths ?? null,
-        universityLogoUrl: data.universityLogoUrl ?? null,
+        slug: await makeScholarshipSlug(input.name), name: input.name, providerName: input.providerName || null,
+        description: input.description, category: input.category, awardType: input.awardType,
+        awardValue: input.awardValue ?? null, awardCurrency: input.awardCurrency,
+        eligibleCountries: input.eligibleCountries, studyLevels: input.studyLevels, subject: input.subject || null,
+        eligibilityCriteria: input.eligibilityCriteria, deadline: input.deadline ? new Date(input.deadline) : null,
+        applicationUrl: input.applicationUrl || null, isActive: input.isActive,
+        universities: { create: links.universityIds.map((universityId) => ({ universityId })) },
+        programs: { create: links.programIds.map((programId) => ({ programId })) },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, slug: true },
     });
-
-    await logAudit({ actorId: user.id, action: "create", entityType: "Program", entityId: program.id, after: { name: program.name } });
-    return ok({ id: program.id }, { status: 201 });
-  } catch (e) {
-    return serverError(e);
-  }
+    await logAudit({ actorId: user.id, action: "create", entityType: "Scholarship", entityId: scholarship.id, after: { name: scholarship.name } });
+    return ok(scholarship, { status: 201 });
+  } catch (error) { return serverError(error); }
 }

@@ -1,244 +1,48 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { headers } from "next/headers";
-import { Download, ExternalLink, MessageCircle } from "lucide-react";
+import { ArrowLeft, Award, CalendarDays, ExternalLink, MapPin } from "lucide-react";
 import { currentUser } from "@/lib/session";
 import { prisma } from "@/lib/db";
-import { getProgramBySlug, profileCompleteness } from "@/lib/queries";
-import { ShortlistToggle } from "@/components/shortlist-toggle";
-import { CurrencySwitcher, FeeDisplay } from "@/components/currency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, toNum } from "@/lib/utils";
+import { DeleteButton } from "@/components/delete-button";
+import { humanize } from "@/lib/utils";
 import { programLevelLabel } from "@/lib/constants";
-import { ApplyButton } from "@/components/apply-button";
-import { FallbackLogo } from "@/components/fallback-logo";
+import { getProgramBySlug } from "@/lib/queries";
 
-export const metadata = { title: "Program details" };
-
-async function requestOrigin(): Promise<string> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
+type Props = { params: Promise<{ id: string }> };
+export async function generateMetadata({ params }: Props) {
+  const { id } = await params;
+  const item = await prisma.scholarship.findFirst({ where: { OR: [{ id }, { slug: id }] }, select: { name: true } });
+  return { title: item?.name ?? "Scholarship details" };
 }
 
-type PageProps = { params: Promise<{ id: string }> };
-
-export default async function ProgramDetailPage({ params }: PageProps) {
-  const { id } = await params;
+export default async function ScholarshipDetailPage({ params }: Props) {
   const user = await currentUser();
   if (!user) redirect("/");
-
-  const program = await getProgramBySlug(id);
-  // An unknown id is a real 404 rather than a 200 card, so the status matches
-  // the answer and crawlers/links do not treat a dead program as a page.
-  if (!program) notFound();
-
-  const profileReady = user.role === "STUDENT" ? await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { phone: true, country: true, gender: true, birthday: true, passportNumber: true, countryOfResidence: true, nationality: true, cityOfResidence: true, address: true, motherName: true, fatherName: true },
-  }).then((profile) => Boolean(profile && profileCompleteness(profile as unknown as Parameters<typeof profileCompleteness>[0]) >= 80)) : false;
-
-  // Last-viewed tracking, §6
-  let shortlisted = false;
-  if (user.role === "STUDENT") {
-    prisma.programView.create({ data: { programId: program.id, studentId: user.id } }).catch(() => {});
-
-    // Hydrate the shortlist toggle with its real state so an already-shortlisted
-    // course shows "Shortlisted" and can be removed from this page.
-    const shortlist = await prisma.shortlist.findUnique({
-      where: { studentId: user.id },
-      select: { id: true },
-    });
-    if (shortlist) {
-      const item = await prisma.shortlistItem.findUnique({
-        where: { shortlistId_programId: { shortlistId: shortlist.id, programId: program.id } },
-        select: { id: true },
-      });
-      shortlisted = Boolean(item);
-    }
+  const { id } = await params;
+  const scholarship = await prisma.scholarship.findFirst({ where: { OR: [{ id }, { slug: id }] }, include: {
+    universities: { include: { university: { select: { id: true, name: true, country: true, city: true, website: true } } }, orderBy: { university: { name: "asc" } } },
+    programs: { include: { program: { select: { id: true, name: true, level: true, field: true, tuitionFee: true, university: { select: { name: true } } } } }, orderBy: { program: { name: "asc" } } },
+  } });
+  if (!scholarship) {
+    const oldProgramLink = await getProgramBySlug(id);
+    if (oldProgramLink) redirect(`/programs/${oldProgramLink.id}`);
+    notFound();
   }
+  if (!scholarship.isActive && user.role !== "SUPER_ADMIN") notFound();
+  const award = scholarship.awardType === "PERCENTAGE" && scholarship.awardValue != null ? `${scholarship.awardValue.toString()}% tuition award` : scholarship.awardType === "FIXED_AMOUNT" && scholarship.awardValue != null ? `${scholarship.awardCurrency} ${scholarship.awardValue.toString()}` : humanize(scholarship.awardType);
 
-  const rawWhy: unknown = program.whyHighlights;
-  const why = Array.isArray(rawWhy) ? rawWhy.flatMap((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
-    const item = entry as Record<string, unknown>;
-    const title = typeof item.title === "string" ? item.title.trim() : "";
-    const description = typeof item.description === "string" ? item.description.trim() : "";
-    if (!title && !description) return [];
-    return [{ icon: typeof item.icon === "string" ? item.icon : "", title, description }];
-  }) : [];
-  const tags = program.tags.map((tag) => tag.trim()).filter(Boolean);
-  const criteria = program.eligibilityCriteria.map((item) => item.trim()).filter(Boolean);
-  const requiredDocuments = program.requiredDocuments.map((item) => item.trim()).filter(Boolean);
+  return <div className="mx-auto max-w-5xl space-y-7 pb-8">
+    <nav aria-label="Breadcrumb" className="text-sm text-ink-muted"><Link href="/scholarships" className="rounded-sm hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Scholarships</Link><span aria-hidden="true" className="px-2">/</span><span aria-current="page" className="font-medium text-ink dark:text-slate-100">{scholarship.name}</span></nav>
+    <header className="rounded-2xl bg-gradient-to-br from-navy-950 via-[#263b78] to-[#5b3aab] p-6 text-white shadow-sm sm:p-9"><p className="text-sm font-semibold text-blue-100">{scholarship.providerName || humanize(scholarship.category)}</p><div className="mt-2 flex flex-wrap items-start justify-between gap-4"><h1 className="max-w-3xl break-words text-3xl font-bold tracking-tight sm:text-4xl">{scholarship.name}</h1><Badge tone={scholarship.isActive ? "green" : "slate"}>{scholarship.isActive ? "Open" : "Inactive"}</Badge></div><p className="mt-4 max-w-3xl whitespace-pre-line text-base leading-7 text-blue-50">{scholarship.description}</p><div className="mt-6 flex flex-wrap gap-3"><span className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white/10 px-4 text-base font-semibold"><Award aria-hidden className="h-5 w-5" />{award}</span>{scholarship.deadline && <span className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white/10 px-4 text-sm font-medium"><CalendarDays aria-hidden className="h-4 w-4" />Deadline {scholarship.deadline.toLocaleDateString()}</span>}</div><div className="mt-6 flex flex-wrap gap-2"><Link href="/scholarships" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/40 px-4 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><ArrowLeft aria-hidden className="h-4 w-4" /> All scholarships</Link>{scholarship.applicationUrl && <a href={scholarship.applicationUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-4 text-sm font-semibold text-brand-800 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"><ExternalLink aria-hidden className="h-4 w-4" />Official application information</a>}</div></header>
+    {user.role === "SUPER_ADMIN" && <div className="flex flex-wrap justify-end gap-2"><Link href={`/scholarships/${scholarship.id}/edit`} className="inline-flex min-h-10 items-center rounded-lg border border-line-strong bg-white px-4 text-sm font-semibold hover:bg-canvas-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-navy-700 dark:bg-navy-900 dark:hover:bg-navy-800">Edit scholarship</Link><DeleteButton endpoint={`/api/scholarships/${scholarship.id}`} itemName={scholarship.name} label="Delete scholarship" /></div>}
 
-  const details: { label: string; value: React.ReactNode }[] = [];
-  if (program.applicationFee != null) details.push({ label: "Application Fee", value: <FeeDisplay amount={toNum(program.applicationFee)} /> });
-  details.push({ label: "Tuition Fee", value: <FeeDisplay amount={toNum(program.tuitionFee)} /> });
-  details.push({ label: "Visa Required", value: program.visaRequired ? "Yes" : "No" });
-  if (program.offerTurnaroundDays != null) details.push({ label: "Offer Turnaround Time", value: `${program.offerTurnaroundDays} days` });
-  if (program.courseDurationMonths != null) details.push({ label: "Course Duration", value: `${program.courseDurationMonths} months` });
-  if (program.intakeDates.length > 0) details.push({ label: "Open Intakes", value: program.intakeDates.map((d) => formatDate(d, { dateStyle: "medium" })).join(", ") });
-  if (program.collegeRank) details.push({ label: "College Rank", value: program.collegeRank });
-  if (program.minGpa != null) details.push({ label: "Minimum GPA", value: `${program.minGpa}%` });
-  if (user.role === "SUPER_ADMIN" || user.role === "MANAGER") details.push({ label: "Partner commission", value: `${toNum(program.commissionRate)}%` });
-
-  // Similar course suggestions, §6
-  const similar = await prisma.program.findMany({
-    where: {
-      id: { not: program.id },
-      field: program.field,
-      OR: [{ level: program.level }, { universityId: program.university?.id }],
-    },
-    include: { university: true },
-    take: 3,
-  });
-
-  const shareUrl = `${await requestOrigin()}/scholarships/${program.slug ?? program.id}`;
-
-  return (
-    <div className="mx-auto max-w-6xl space-y-8 pb-8">
-      <nav aria-label="Breadcrumb" className="text-sm text-ink-muted"><Link href="/programs" className="rounded-sm hover:text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">Programs</Link><span aria-hidden="true" className="px-2">/</span><span aria-current="page" className="font-medium text-ink dark:text-slate-100">{program.name}</span></nav>
-      <Card>
-        <CardContent className="p-5 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-              <FallbackLogo src={program.universityLogoUrl ?? program.university?.logoUrl} alt={`${program.university?.name ?? "University"} logo`} className="h-16 w-16 shrink-0 rounded-xl border border-line bg-white object-contain p-2 shadow-sm dark:border-navy-700 sm:h-20 sm:w-20" />
-              <div className="min-w-0">
-                <p className="text-base font-semibold text-brand-700 dark:text-brand-300">{program.university?.name ?? "Unknown university"}</p>
-                {/* The program is the subject of the page, so its name is the heading. */}
-                <h1 className="mt-1 break-words text-3xl font-bold tracking-tight sm:text-4xl">{program.name}</h1>
-                <p className="mt-2 text-base leading-7 text-ink-muted sm:text-lg">
-                  {[programLevelLabel(program.level), program.field, program.location ?? program.university?.country]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-                {program.university?.website && (
-                  <a
-                    href={program.university.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg text-base font-semibold text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-brand-300"
-                  >
-                    Go to university page <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center gap-2 lg:max-w-sm lg:justify-end">
-              {user.role === "STUDENT" && (
-                <>
-                  <ShortlistToggle programId={program.id} initial={shortlisted} />
-                  <ApplyButton programId={program.id} profileReady={profileReady} programName={program.name} />
-                  <CurrencySwitcher />
-                </>
-              )}
-              <Link href="/programs" className="inline-flex min-h-11 items-center rounded-lg border border-line-strong px-4 py-2 text-sm font-semibold hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-navy-700 dark:hover:bg-navy-800">Back to programs</Link>
-              <a
-                href={`/api/programs/${program.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-              >
-                <Download className="h-4 w-4" /> Download Details PDF
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Check out ${program.name} at ${program.university?.name} — ${shareUrl}`)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
-              >
-                <MessageCircle className="h-4 w-4" /> WhatsApp
-              </a>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {tags.length > 0 && <section aria-label="Program highlights" className="flex flex-wrap gap-2">{tags.map((t) => <Badge key={t} tone={t === "High Placement Rate" ? "green" : t === "Scholarship Available" ? "brand" : t === "MOI Accepted" ? "amber" : "slate"}>{t}</Badge>)}</section>}
-
-      {why.length > 0 && <Card>
-        <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl">Why {program.university?.name ?? "this university"}?</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {why.length === 0 ? (
-            <p className="text-sm text-ink-muted">No highlights available.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {why.map((h, i) => (
-                <div key={i} className="rounded-xl border border-line p-4 dark:border-navy-700">
-                  <div aria-hidden="true" className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-lg text-brand-600 dark:bg-brand-900/40 dark:text-brand-200">
-                    {h.icon || "✨"}
-                  </div>
-                  {h.title && <p className="text-base font-semibold">{h.title}</p>}
-                  {h.description && <p className="mt-1 text-base leading-7 text-ink-muted">{h.description}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">Course details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {details.length === 0 ? (
-              <p className="text-sm text-ink-muted">No course details available.</p>
-            ) : (
-              <dl className="grid gap-3 sm:grid-cols-2">
-                {details.map((d) => (
-                  <div key={d.label} className="rounded-xl border border-line bg-canvas-subtle/60 p-4 dark:border-navy-700 dark:bg-navy-800/50">
-                    <dt className="text-sm font-medium text-ink-muted">{d.label}</dt>
-                    <dd className="mt-1 text-base font-semibold leading-7 text-ink dark:text-slate-100">{d.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </CardContent>
-        </Card>
-
-        {(criteria.length > 0 || requiredDocuments.length > 0) && <Card>
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">Admission requirements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {criteria.length > 0 && <><p className="mb-3 text-base text-ink-muted">{program.university?.name ?? "The university"} requires:</p><ul className="list-disc space-y-2.5 pl-6 text-base leading-7 marker:text-brand-600">
-                {criteria.map((c) => (
-                  <li key={c}>{c}</li>
-                ))}
-              </ul></>}
-            {requiredDocuments.length > 0 && (
-              <>
-                <h3 className="mb-3 mt-6 text-lg font-semibold">Required documents</h3>
-                <ul className="grid gap-2 sm:grid-cols-2">
-                  {requiredDocuments.map((d) => <li key={d} className="flex min-h-12 items-center gap-2 rounded-lg border border-line px-3 py-2 text-base font-medium leading-6 dark:border-navy-700"><span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-brand-600" />{d}</li>)}
-                </ul>
-              </>
-            )}
-          </CardContent>
-        </Card>}
-      </div>
-
-      {similar.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">Similar courses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {similar.map((s) => <Link key={s.id} href={`/scholarships/${s.slug ?? s.id}`} className="flex min-h-36 items-start gap-4 rounded-xl border border-line p-5 transition hover:border-brand-400 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-navy-700 dark:hover:bg-navy-800">
-                <FallbackLogo src={s.university.logoUrl} alt={`${s.university.name} logo`} className="h-12 w-12 shrink-0 rounded-lg border border-line bg-white object-contain p-1 dark:border-navy-700" />
-                <span className="min-w-0"><span className="block text-base font-semibold">{s.university.name}</span><span className="mt-1 block text-base leading-6">{s.name}</span><span className="mt-3 block text-base font-semibold"><FeeDisplay amount={toNum(s.tuitionFee)} /></span></span>
-              </Link>)}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card><CardHeader><CardTitle className="text-xl">Eligibility</CardTitle></CardHeader><CardContent className="space-y-5">{scholarship.eligibleCountries.length > 0 && <div><h2 className="mb-2 text-sm font-semibold">Eligible applicant countries</h2><div className="flex flex-wrap gap-2">{scholarship.eligibleCountries.map((country) => <Badge key={country} tone="amber">{country}</Badge>)}</div></div>}{scholarship.studyLevels.length > 0 && <div><h2 className="mb-2 text-sm font-semibold">Study levels</h2><div className="flex flex-wrap gap-2">{scholarship.studyLevels.map((level) => <Badge key={level} tone="slate">{programLevelLabel(level)}</Badge>)}</div></div>}{scholarship.subject && <p className="text-base"><span className="font-semibold">Subject:</span> {scholarship.subject}</p>}{scholarship.eligibilityCriteria.length > 0 && <div><h2 className="mb-2 text-sm font-semibold">Criteria</h2><ul className="list-disc space-y-2 pl-5 text-base leading-7">{scholarship.eligibilityCriteria.map((item) => <li key={item}>{item}</li>)}</ul></div>}{!scholarship.eligibleCountries.length && !scholarship.studyLevels.length && !scholarship.subject && !scholarship.eligibilityCriteria.length && <p className="text-sm text-ink-muted">No additional eligibility restrictions are listed.</p>}</CardContent></Card>
+      <Card><CardHeader><CardTitle className="text-xl">Participating universities</CardTitle></CardHeader><CardContent>{scholarship.universities.length ? <ul className="space-y-3">{scholarship.universities.map(({ university }) => <li key={university.id} className="rounded-xl border border-line p-4 dark:border-navy-700"><h2 className="font-semibold">{user.role === "SUPER_ADMIN" ? <Link href={`/universities/${university.id}`} className="hover:text-brand-700 hover:underline dark:hover:text-brand-300">{university.name}</Link> : university.name}</h2><p className="mt-1 flex items-center gap-2 text-sm text-ink-muted"><MapPin aria-hidden className="h-4 w-4" />{[university.city, university.country].filter(Boolean).join(", ")}</p>{university.website && <a href={university.website} target="_blank" rel="noreferrer" className="mt-2 inline-flex min-h-8 items-center gap-1 text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300">University website <ExternalLink aria-hidden className="h-3.5 w-3.5" /></a>}</li>)}</ul> : <p className="text-sm text-ink-muted">This scholarship is linked to selected programs.</p>}</CardContent></Card>
     </div>
-  );
+
+    {scholarship.programs.length > 0 && <section aria-labelledby="eligible-programs" className="space-y-3"><div><h2 id="eligible-programs" className="text-2xl font-bold">Eligible programs</h2><p className="mt-1 text-sm text-ink-muted">Programs this scholarship can be used for.</p></div><ul className="grid gap-3 md:grid-cols-2">{scholarship.programs.map(({ program }) => <li key={program.id}><Card><CardContent className="flex h-full items-center justify-between gap-4 p-4"><div><p className="text-sm text-ink-muted">{program.university.name}</p><h3 className="mt-1 font-semibold"><Link href={`/programs/${program.id}`} className="hover:text-brand-700 hover:underline dark:hover:text-brand-300">{program.name}</Link></h3><p className="mt-1 text-sm text-ink-muted">{programLevelLabel(program.level)}{program.field ? ` · ${program.field}` : ""}</p></div><Link href={`/programs/${program.id}`} aria-label={`View ${program.name}`} className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-line-strong px-3 text-sm font-semibold hover:bg-canvas-subtle dark:border-navy-700 dark:hover:bg-navy-800">Program details</Link></CardContent></Card></li>)}</ul></section>}
+  </div>;
 }
