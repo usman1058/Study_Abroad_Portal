@@ -20,12 +20,12 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
   icons: { icon: "/icon.png", shortcut: "/icon.png", apple: "/icon.png" },
   title: { default: "Study Abroad Programs | CheckMyUni", template: "%s | CheckMyUni" },
-  description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
+  description: "CheckMyUni helps students and education consultants explore study-abroad programs and get support with student visa applications.",
   openGraph: {
     type: "website",
     siteName: "CheckMyUni",
     title: "Study Abroad Programs | CheckMyUni",
-    description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
+    description: "CheckMyUni helps students and education consultants explore study-abroad programs and get support with student visa applications.",
     url: "https://checkmyuni.com",
     images: [{ url: "/checkmyuni-og.jpg", width: 1200, height: 630, alt: "CheckMyUni study program search and guidance" }],
   },
@@ -33,14 +33,30 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     images: ["/checkmyuni-og.jpg"],
     title: "Study Abroad Programs | CheckMyUni",
-    description: "Explore study abroad programs in Malaysia, compare universities, fees, and entry requirements, and get practical guidance from CheckMyUni.",
+    description: "CheckMyUni helps students and education consultants explore study-abroad programs and get support with student visa applications.",
   },
 };
 
 export default function WebsiteLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const structuredData = [
-    { "@context": "https://schema.org", "@type": "Organization", name: "CheckMyUni", url: "https://checkmyuni.com", logo: "https://checkmyuni.com/checkmyuni-full-logo.png" },
-    { "@context": "https://schema.org", "@type": "WebSite", name: "CheckMyUni", url: "https://checkmyuni.com" },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://checkmyuni.com/#organization",
+      name: "CheckMyUni",
+      url: "https://checkmyuni.com",
+      logo: "https://checkmyuni.com/checkmyuni-full-logo.png",
+      description: "CheckMyUni helps students and education consultants explore study-abroad programs and get support with student visa applications.",
+      email: "info@checkmyuni.com",
+      contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: "info@checkmyuni.com" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "CheckMyUni",
+      url: "https://checkmyuni.com",
+      publisher: { "@id": "https://checkmyuni.com/#organization" },
+    },
   ];
   return <html lang="en" className={`${inter.variable} ${jakarta.variable}`}><body>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />

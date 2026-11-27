@@ -2,9 +2,14 @@ import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, CircleHelp } from "lucide-react";
 
-export const metadata = pageMetadata({ title: 'Study abroad FAQs', description: 'Find answers about study programs, tuition information, applications, documents, and getting support from CheckMyUni.', path: '/faq', keywords: 'study abroad questions, university application FAQs' });
+export const metadata = pageMetadata({ title: 'Study abroad FAQs', description: 'Learn how CheckMyUni supports students and education consultants with study programs, applications, documents, and student visa steps.', path: '/faq', keywords: 'CheckMyUni FAQs, student visa application help, study abroad questions' });
 
 const groups = [
+  { title: "About CheckMyUni", questions: [
+    ["What is CheckMyUni?", "CheckMyUni is a platform that helps students and education consultants explore study-abroad programs and get support as they prepare student visa applications."],
+    ["Who can use CheckMyUni?", "Students can browse public program listings and manage applications in the student portal. Education consultants and institutions can apply to work with CheckMyUni through the partner portal."],
+    ["Does CheckMyUni guarantee a student visa?", "No. CheckMyUni can help users work through application steps, but visa requirements and decisions are set by the relevant immigration authority. Always confirm current requirements with official government sources."],
+  ] },
   { title: "Programs and costs", questions: [
     ["Where do program listings come from?", "Program information is shown from the catalog maintained in the CheckMyUni portal. Availability and details can change, so confirm current information with an advisor or the institution before making a decision."],
     ["What does the listed tuition include?", "The public listing displays the tuition amount stored for the program. It may not specify a billing period or include living costs, insurance, travel, or other fees. Ask an advisor to confirm the full and current cost."],
